@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { SignIn, SignedIn, SignedOut, UserButton, useUser } from "@clerk/clerk-react";
 import { supabase } from "./supabase";
 
 // ════════════════════════════════════════════════════════════
@@ -223,7 +224,9 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [kat, setKat] = useState("Alle");
   const [sort, setSort] = useState("default");
+  const [showSignIn, setShowSignIn] = useState(false);
   const { recipes, loading } = useRecipes();
+  const { isSignedIn } = useUser();
 
   const n = k => parseFloat(vals[k]) || 0;
   const b = k => parseFloat(budget[k]) || 0;
@@ -269,15 +272,35 @@ export default function App() {
     { id: "info",    label: "ℹ️ Info" },
   ];
 
+  useEffect(() => { if (isSignedIn) setShowSignIn(false); }, [isSignedIn]);
+
   return (
     <div style={S.wrap}>
+      {/* ─ Sign-In Modal ─ */}
+      {showSignIn && !isSignedIn && (
+        <div onClick={() => setShowSignIn(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div onClick={e => e.stopPropagation()}>
+            <SignIn routing="hash" />
+          </div>
+        </div>
+      )}
       {/* ─ Header ─ */}
       <header style={S.header}>
         <div style={S.logo}>WF</div>
-        <div style={S.headerText}>
+        <div style={{ ...S.headerText, flex: 1 }}>
           <div style={{ fontWeight: 800, fontSize: 18, letterSpacing: "-.02em" }}>weight friends & WW Rechner</div>
           <div style={{ fontSize: 12, opacity: .8 }}>Coins · PersonalPoints · SmartPoints · ProPoints · Classic</div>
         </div>
+        <SignedOut>
+          <button onClick={() => setShowSignIn(true)}
+            style={{ background: "rgba(255,255,255,0.15)", border: "1.5px solid rgba(255,255,255,0.4)", color: "#fff", borderRadius: 9, padding: "7px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+            Anmelden
+          </button>
+        </SignedOut>
+        <SignedIn>
+          <UserButton appearance={{ elements: { avatarBox: { width: 36, height: 36 } } }} />
+        </SignedIn>
       </header>
 
       {/* ─ Nav ─ */}
