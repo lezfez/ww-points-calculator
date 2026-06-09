@@ -226,7 +226,22 @@ export default function App() {
   const [sort, setSort] = useState("default");
   const [showSignIn, setShowSignIn] = useState(false);
   const { recipes, loading } = useRecipes();
-  const { isSignedIn } = useUser();
+  const { isSignedIn, user } = useUser();
+  const isPremium = user?.publicMetadata?.isPremium === true;
+
+  // Show success banner after Stripe redirect
+  const premiumSuccess = new URLSearchParams(window.location.search).get("premium") === "success";
+
+  const startCheckout = async () => {
+    if (!isSignedIn) { setShowSignIn(true); return; }
+    const res = await fetch("/api/create-checkout-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: user.id, userEmail: user.primaryEmailAddress?.emailAddress }),
+    });
+    const { url } = await res.json();
+    if (url) window.location.href = url;
+  };
 
   const n = k => parseFloat(vals[k]) || 0;
   const b = k => parseFloat(budget[k]) || 0;
@@ -267,7 +282,7 @@ export default function App() {
 
   const tabs = [
     { id: "calc",    label: "🔢 Berechnen" },
-    { id: "budget",  label: "📅 Tagesbudget" },
+    { id: "budget",  label: isPremium ? "📅 Tagesbudget" : "📅 Tagesbudget 🔒" },
     { id: "recipes", label: "🍽️ WF Rezepte" },
     { id: "info",    label: "ℹ️ Info" },
   ];
@@ -283,6 +298,22 @@ export default function App() {
           <div onClick={e => e.stopPropagation()}>
             <SignIn routing="hash" />
           </div>
+        </div>
+      )}
+      {/* ─ Premium Success Banner ─ */}
+      {premiumSuccess && (
+        <div style={{ background: "#059669", color: "#fff", textAlign: "center", padding: "12px 16px", fontSize: 14, fontWeight: 700 }}>
+          🎉 Premium freigeschaltet! Danke für dein Abo.
+        </div>
+      )}
+      {/* ─ Upgrade Banner (eingeloggt, nicht premium) ─ */}
+      {isSignedIn && !isPremium && (
+        <div style={{ background: "#FAF5FF", borderBottom: "1px solid #DDD6FE", padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 13, color: C.accent2, fontWeight: 600 }}>💜 Tagesbudget & mehr freischalten</span>
+          <button onClick={startCheckout}
+            style={{ background: C.accent, color: "#fff", border: "none", borderRadius: 9, padding: "7px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+            Premium – 2,99 €/Monat
+          </button>
         </div>
       )}
       {/* ─ Header ─ */}
@@ -384,7 +415,20 @@ export default function App() {
         )}
 
         {/* ══ TAB: BUDGET ══ */}
-        {tab === "budget" && (
+        {tab === "budget" && !isPremium && (
+          <div style={{ ...S.card, textAlign: "center", padding: "40px 24px" }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>
+            <div style={{ fontWeight: 800, fontSize: 17, color: C.accent, marginBottom: 8 }}>Premium-Funktion</div>
+            <p style={{ fontSize: 14, color: C.sub, marginBottom: 20, lineHeight: 1.6 }}>
+              Das persönliche Tagesbudget ist nur für Premium-Mitglieder verfügbar.
+            </p>
+            <button onClick={startCheckout}
+              style={S.btn(C.accent)}>
+              💜 Premium für 2,99 €/Monat freischalten
+            </button>
+          </div>
+        )}
+        {tab === "budget" && isPremium && (
           <div style={S.card}>
             <div style={S.sectionTitle}>Persönliches Tages-Budget schätzen</div>
             <p style={{ fontSize: 13, color: C.sub, marginTop: 0, marginBottom: 18, lineHeight: 1.6 }}>
