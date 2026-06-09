@@ -4,14 +4,12 @@ import { supabase } from "./supabase";
 
 // ════════════════════════════════════════════════════════════
 // FORMELN
-// ════════════════════════════════════════════════════════════
 // Classic Points (bis 2010):    (kcal × 0.0165) + (fett × 0.11)
 // ProPoints (2010–2015):        protein×0.36 + kh×0.16 + fett×0.24 − bst×0.18
 // SmartPoints (2015–2021):      (kcal×0.0305) + (gesF×0.275) + (zuck×0.12) − (prot×0.098)
 // PersonalPoints (2022+):       SmartPoints − (bst×0.14) − (ungesF×0.07)
 // weight friends Coins:         (kcal×0.022) + (gesF×0.20) + (zucker×0.10) + (salz×0.15) − (prot×0.10) − (bst×0.15)
-//   Coins = abgeleitet aus WF-Programmbeschreibung: kcal, gesätt. Fett, Zucker, Eiweiß, Ballaststoffe, Salz
-//   Faktorgewichte reverse-engineered aus bekannten Rezept-Coins (z.B. Reisfleisch 7C/1P, Krautpfanne 5C/4P …)
+// ════════════════════════════════════════════════════════════
 
 function clamp(v, lo, hi) { return Math.min(Math.max(v, lo), hi); }
 
@@ -79,76 +77,57 @@ function useRecipes() {
 }
 
 // ════════════════════════════════════════════════════════════
-// DESIGN
+// DESIGN — Organic Biophilic / Nature Distilled
+// Typography: Lora (headings, display) + Raleway (body)
+// Palette: Forest Green + Terracotta + Warm Cream
 // ════════════════════════════════════════════════════════════
+const FH = "'Lora', Georgia, serif";
+const FB = "'Raleway', system-ui, sans-serif";
+
 const C = {
-  bg: "#F5F7FA", surface: "#FFFFFF", border: "#E2E8F0",
-  accent: "#7C3AED",
-  accent2: "#5B21B6",
-  coin: "#D97706",
-  coinBg: "#FEF3C7",
-  green: "#059669", greenBg: "#ECFDF5",
-  text: "#1E1B4B", sub: "#6B7280", muted: "#9CA3AF",
-  ww: "#00A551",
-  chipUp: "#FEE2E2", chipUpText: "#B91C1C",
-  chipDn: "#D1FAE5", chipDnText: "#065F46",
+  bg:         "#F5F0E8",
+  surface:    "#FDFAF5",
+  surface2:   "#EDE8DE",
+  border:     "#DDD8CC",
+
+  green:      "#228B22",
+  green2:     "#1A6B1A",
+  greenMid:   "#2E9D2E",
+  greenLight: "#5BA85B",
+  greenPale:  "#EBF4EB",
+
+  coin:       "#C67B5C",
+  coinBg:     "#FAF0EA",
+  coinText:   "#7A3618",
+  coinBorder: "rgba(198,123,92,.2)",
+
+  text:       "#1C1B18",
+  sub:        "#5C5C50",
+  muted:      "#9E9E90",
+
+  premBg:     "#FFFBF0",
+  premBorder: "#EDD698",
+  premText:   "#6B3A00",
 };
-const S = {
-  wrap: { minHeight: "100vh", background: C.bg, fontFamily: "'Inter',system-ui,sans-serif", color: C.text },
-  header: {
-    background: "linear-gradient(135deg,#7C3AED 0%,#5B21B6 100%)",
-    padding: "18px 24px 16px", display: "flex", alignItems: "center", gap: 14
-  },
-  logo: { width: 42, height: 42, borderRadius: 12, background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900, fontSize: 20 },
-  headerText: { color: "#fff" },
-  nav: { background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "0 20px", display: "flex", gap: 2, overflowX: "auto" },
-  navBtn: (a) => ({
-    padding: "14px 18px", border: "none", background: "none", cursor: "pointer",
-    fontWeight: a ? 700 : 500, fontSize: 14, whiteSpace: "nowrap",
-    color: a ? C.accent : C.sub, borderBottom: a ? `2px solid ${C.accent}` : "2px solid transparent",
-    transition: "all .15s",
-  }),
-  main: { maxWidth: 820, margin: "0 auto", padding: "24px 16px 60px" },
-  card: { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: "20px 22px", marginBottom: 20 },
-  sectionTitle: { fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 14 },
-  grid2: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: "12px 16px" },
-  label: { fontSize: 12, fontWeight: 600, color: C.sub, marginBottom: 4, display: "block" },
-  input: { padding: "9px 11px", border: `1.5px solid ${C.border}`, borderRadius: 9, fontSize: 14, color: C.text, background: C.bg, outline: "none", width: "100%", boxSizing: "border-box" },
-  select: { padding: "9px 11px", border: `1.5px solid ${C.border}`, borderRadius: 9, fontSize: 14, color: C.text, background: C.bg, outline: "none", width: "100%", boxSizing: "border-box" },
-  btn: (col) => ({ width: "100%", padding: "12px 0", background: col || C.accent, color: "#fff", border: "none", borderRadius: 11, fontSize: 15, fontWeight: 700, cursor: "pointer", marginTop: 10, letterSpacing: ".02em" }),
-  divider: { borderTop: `1px solid ${C.border}`, margin: "18px 0" },
-  pill: (col, bg) => ({ display: "inline-block", padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 700, color: col, background: bg }),
-  resultRow: { display: "flex", flexWrap: "wrap", gap: 16, justifyContent: "center", padding: "20px 0 8px" },
-  scoreBig: () => ({ textAlign: "center", flex: "1 1 120px" }),
-  scoreNum: (col) => ({ fontSize: 44, fontWeight: 900, color: col, lineHeight: 1 }),
-  scoreLbl: { fontSize: 12, color: C.muted, marginTop: 3 },
-  recipeGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 16, alignItems: "start" },
-  recipeCard: (open) => ({
-    background: C.surface, border: `1px solid ${open ? C.accent : C.border}`,
-    borderRadius: 14, padding: "16px 18px", cursor: "pointer",
-    transition: "border-color .15s, box-shadow .15s",
-    boxShadow: open ? "0 0 0 3px rgba(124,58,237,.12)" : "none",
-  }),
-  coinBadge: { display: "inline-flex", alignItems: "center", gap: 4, background: C.coinBg, color: C.coin, fontWeight: 800, fontSize: 15, padding: "3px 10px", borderRadius: 20, marginBottom: 8 },
-  disclaimer: { fontSize: 11, color: C.muted, textAlign: "center", marginTop: 14, fontStyle: "italic", lineHeight: 1.5 },
-  searchBar: { padding: "10px 14px", border: `1.5px solid ${C.border}`, borderRadius: 11, fontSize: 14, width: "100%", boxSizing: "border-box", marginBottom: 16, background: C.bg, color: C.text, outline: "none" },
-  filterRow: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 },
-  filterBtn: (a) => ({ padding: "6px 13px", borderRadius: 20, border: `1.5px solid ${a ? C.accent : C.border}`, background: a ? "rgba(124,58,237,.08)" : C.surface, color: a ? C.accent2 : C.sub, fontWeight: a ? 700 : 500, fontSize: 12, cursor: "pointer" }),
+
+const sh = {
+  xs: "0 1px 3px rgba(28,27,24,.07), 0 2px 6px rgba(28,27,24,.04)",
+  sm: "0 2px 8px rgba(28,27,24,.09), 0 4px 16px rgba(28,27,24,.06)",
 };
 
 // ════════════════════════════════════════════════════════════
 // FIELD DEFINITIONS
 // ════════════════════════════════════════════════════════════
 const FIELD_DEFS = {
-  kcal:   { label: "Kalorien (kcal)", step: 1 },
-  fett:   { label: "Fett gesamt (g)", step: 0.1 },
-  gesF:   { label: "Gesättigte Fettsäuren (g)", step: 0.1 },
-  ungesF: { label: "Ungesättigte Fettsäuren (g)", step: 0.1 },
-  kh:     { label: "Kohlenhydrate (g)", step: 0.1 },
-  zucker: { label: "davon Zucker (g)", step: 0.1 },
-  protein:{ label: "Protein / Eiweiß (g)", step: 0.1 },
-  bst:    { label: "Ballaststoffe (g)", step: 0.1 },
-  salz:   { label: "Salz (g)", step: 0.1 },
+  kcal:    { label: "Kalorien (kcal)", step: 1 },
+  fett:    { label: "Fett gesamt (g)", step: 0.1 },
+  gesF:    { label: "Gesättigte Fettsäuren (g)", step: 0.1 },
+  ungesF:  { label: "Ungesättigte Fettsäuren (g)", step: 0.1 },
+  kh:      { label: "Kohlenhydrate (g)", step: 0.1 },
+  zucker:  { label: "davon Zucker (g)", step: 0.1 },
+  protein: { label: "Protein / Eiweiß (g)", step: 0.1 },
+  bst:     { label: "Ballaststoffe (g)", step: 0.1 },
+  salz:    { label: "Salz (g)", step: 0.1 },
 };
 const SYS_FIELDS = {
   coins:    ["kcal", "gesF", "zucker", "protein", "bst", "salz"],
@@ -158,11 +137,11 @@ const SYS_FIELDS = {
   classic:  ["kcal", "fett"],
 };
 const SYSTEMS = [
-  { id: "coins",    label: "💜 weight friends Coins", sub: "Österreich" },
-  { id: "personal", label: "PersonalPoints™", sub: "WW 2022+" },
-  { id: "smart",    label: "SmartPoints™",    sub: "WW 2015–21" },
-  { id: "pro",      label: "ProPoints™",      sub: "WW 2010–15" },
-  { id: "classic",  label: "Classic Points",  sub: "WW bis 2010" },
+  { id: "coins",    label: "weight friends Coins", sub: "Österreich · aktuell" },
+  { id: "personal", label: "PersonalPoints™",      sub: "WW 2022+" },
+  { id: "smart",    label: "SmartPoints™",          sub: "WW 2015–21" },
+  { id: "pro",      label: "ProPoints™",            sub: "WW 2010–15" },
+  { id: "classic",  label: "Classic Points",        sub: "WW bis 2010" },
 ];
 
 // ════════════════════════════════════════════════════════════
@@ -171,37 +150,172 @@ const SYSTEMS = [
 function Field({ id, def, value, onChange }) {
   return (
     <div>
-      <label style={S.label} htmlFor={id}>{def.label}</label>
-      <input id={id} type="number" min={0} step={def.step} style={S.input}
-        value={value} placeholder="0"
-        onChange={e => onChange(id, e.target.value)} />
+      <label
+        htmlFor={id}
+        style={{ fontSize: 12, fontWeight: 600, color: C.sub, marginBottom: 5, display: "block", fontFamily: FB, letterSpacing: ".03em" }}
+      >
+        {def.label}
+      </label>
+      <input
+        id={id}
+        type="number"
+        min={0}
+        step={def.step}
+        className="app-input"
+        style={{
+          padding: "11px 13px",
+          border: `1.5px solid ${C.border}`,
+          borderRadius: 10,
+          fontSize: 14,
+          fontFamily: FB,
+          color: C.text,
+          background: C.surface,
+          outline: "none",
+          width: "100%",
+          boxSizing: "border-box",
+        }}
+        value={value}
+        placeholder="0"
+        onChange={e => onChange(id, e.target.value)}
+      />
+    </div>
+  );
+}
+
+function ScoreBlock({ value, label, bg, textColor, borderColor }) {
+  return (
+    <div style={{
+      flex: "1 1 90px",
+      minWidth: 72,
+      background: bg,
+      border: `1px solid ${borderColor || "transparent"}`,
+      borderRadius: 16,
+      padding: "14px 12px",
+      textAlign: "center",
+    }}>
+      <div style={{
+        fontSize: 46,
+        fontWeight: 700,
+        fontFamily: FH,
+        fontStyle: "italic",
+        color: textColor,
+        lineHeight: 1,
+        letterSpacing: "-.02em",
+      }}>
+        {value}
+      </div>
+      <div style={{
+        fontSize: 11,
+        color: textColor,
+        fontWeight: 600,
+        marginTop: 8,
+        opacity: 0.75,
+        letterSpacing: ".04em",
+        fontFamily: FB,
+      }}>
+        {label}
+      </div>
     </div>
   );
 }
 
 function RecipeCard({ recipe, onSelect, selected }) {
   return (
-    <div style={S.recipeCard(selected)} onClick={() => onSelect(selected ? null : recipe.id)}>
-      <div style={S.coinBadge}>🪙 {recipe.coins} Coins</div>
-      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{recipe.name}</div>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: selected ? 12 : 0 }}>
-        <span style={S.pill(C.sub, C.bg)}>{recipe.kategorie}</span>
-        <span style={S.pill(C.sub, C.bg)}>⏱ {recipe.zeit}</span>
-        <span style={S.pill(C.sub, C.bg)}>👥 {recipe.portionen} Port.</span>
+    <div
+      className={`recipe-card${selected ? " recipe-card--open" : ""}`}
+      style={{
+        background: C.surface,
+        border: `1.5px solid ${selected ? C.green : C.border}`,
+        borderRadius: 18,
+        padding: "16px 18px",
+        cursor: "pointer",
+        boxShadow: selected ? `0 0 0 3px ${C.greenPale}, ${sh.sm}` : sh.xs,
+      }}
+      onClick={() => onSelect(selected ? null : recipe.id)}
+    >
+      {/* Coin badge */}
+      <div style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        background: C.coinBg,
+        border: `1px solid ${C.coinBorder}`,
+        color: C.coinText,
+        fontWeight: 700,
+        fontFamily: FH,
+        fontStyle: "italic",
+        fontSize: 14,
+        padding: "4px 12px 4px 10px",
+        borderRadius: 999,
+        marginBottom: 9,
+      }}>
+        🪙 {recipe.coins} Coins
       </div>
+
+      {/* Name */}
+      <div style={{ fontWeight: 700, fontSize: 15, color: C.text, marginBottom: 9, lineHeight: 1.4, fontFamily: FB }}>
+        {recipe.name}
+      </div>
+
+      {/* Meta pills + chevron */}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+        {[recipe.kategorie, `⏱ ${recipe.zeit}`, `👥 ${recipe.portionen} Port.`].map((tag, i) => (
+          <span key={i} style={{
+            padding: "4px 10px",
+            borderRadius: 999,
+            background: C.surface2,
+            color: C.sub,
+            fontSize: 11,
+            fontWeight: 600,
+            fontFamily: FB,
+          }}>
+            {tag}
+          </span>
+        ))}
+        <span style={{ marginLeft: "auto", fontSize: 12, color: selected ? C.green : C.muted, fontWeight: 700 }}>
+          {selected ? "▲" : "▼"}
+        </span>
+      </div>
+
+      {/* Expanded detail */}
       {selected && (
-        <div style={{ marginTop: 10, fontSize: 13, color: C.text, textAlign: "left" }}>
-          <div style={{ fontWeight: 700, marginBottom: 6, color: C.accent }}>Zutaten</div>
-          <ul style={{ margin: "0 0 12px", padding: "0 0 0 18px", lineHeight: 1.8, textAlign: "left" }}>
+        <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", color: C.muted, marginBottom: 8, fontFamily: FB }}>
+            Zutaten
+          </div>
+          <ul style={{ margin: "0 0 14px", padding: "0 0 0 18px", lineHeight: 1.9, textAlign: "left", fontSize: 13, color: C.text, fontFamily: FB }}>
             {recipe.zutaten.map((z, i) => <li key={i}>{z}</li>)}
           </ul>
-          <div style={{ fontWeight: 700, marginBottom: 6, color: C.accent }}>Zubereitung</div>
-          <p style={{ margin: "0 0 8px", lineHeight: 1.7 }}>{recipe.zubereitung}</p>
+
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", color: C.muted, marginBottom: 8, fontFamily: FB }}>
+            Zubereitung
+          </div>
+          <p style={{ margin: "0 0 12px", lineHeight: 1.8, fontSize: 13, color: C.text, fontFamily: FB }}>
+            {recipe.zubereitung}
+          </p>
+
           {recipe.hinweis && (
-            <div style={{ ...S.pill(C.green, C.greenBg), fontSize: 12 }}>ℹ️ {recipe.hinweis}</div>
+            <div style={{
+              background: C.greenPale,
+              border: `1px solid rgba(34,139,34,.15)`,
+              borderRadius: 9,
+              padding: "8px 12px",
+              fontSize: 12,
+              color: C.green2,
+              marginBottom: 12,
+              fontFamily: FB,
+            }}>
+              ℹ️ {recipe.hinweis}
+            </div>
           )}
-          <a href={recipe.url} target="_blank" rel="noreferrer"
-            style={{ display: "block", marginTop: 10, fontSize: 12, color: C.accent, textDecoration: "underline" }}>
+
+          <a
+            href={recipe.url}
+            target="_blank"
+            rel="noreferrer"
+            style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: C.green, fontWeight: 700, textDecoration: "none", fontFamily: FB, cursor: "pointer" }}
+            onClick={e => e.stopPropagation()}
+          >
             → Rezept auf weightfriends.at
           </a>
         </div>
@@ -214,22 +328,21 @@ function RecipeCard({ recipe, onSelect, selected }) {
 // MAIN APP
 // ════════════════════════════════════════════════════════════
 export default function App() {
-  const [tab, setTab] = useState("calc");
-  const [system, setSystem] = useState("coins");
-  const [vals, setVals] = useState({ kcal:"", fett:"", gesF:"", ungesF:"", kh:"", zucker:"", protein:"", bst:"", salz:"" });
-  const [result, setResult] = useState(null);
-  const [budget, setBudget] = useState({ gewicht:"", groesse:"", alter:"", geschlecht:"w", aktivitaet:"sitzend" });
+  const [tab, setTab]                   = useState("calc");
+  const [system, setSystem]             = useState("coins");
+  const [vals, setVals]                 = useState({ kcal: "", fett: "", gesF: "", ungesF: "", kh: "", zucker: "", protein: "", bst: "", salz: "" });
+  const [result, setResult]             = useState(null);
+  const [budget, setBudget]             = useState({ gewicht: "", groesse: "", alter: "", geschlecht: "w", aktivitaet: "sitzend" });
   const [budgetResult, setBudgetResult] = useState(null);
-  const [openRecipe, setOpenRecipe] = useState(null);
-  const [search, setSearch] = useState("");
-  const [kat, setKat] = useState("Alle");
-  const [sort, setSort] = useState("default");
-  const [showSignIn, setShowSignIn] = useState(false);
+  const [openRecipe, setOpenRecipe]     = useState(null);
+  const [search, setSearch]             = useState("");
+  const [kat, setKat]                   = useState("Alle");
+  const [sort, setSort]                 = useState("default");
+  const [showSignIn, setShowSignIn]     = useState(false);
+
   const { recipes, loading } = useRecipes();
   const { isSignedIn, user } = useUser();
   const isPremium = user?.publicMetadata?.isPremium === true;
-
-  // Show success banner after Stripe redirect
   const premiumSuccess = new URLSearchParams(window.location.search).get("premium") === "success";
 
   const startCheckout = async () => {
@@ -245,24 +358,28 @@ export default function App() {
 
   const n = k => parseFloat(vals[k]) || 0;
   const b = k => parseFloat(budget[k]) || 0;
-
-  const handleVal = (k, v) => { setVals(p => ({ ...p, [k]: v })); setResult(null); };
+  const handleVal    = (k, v) => { setVals(p => ({ ...p, [k]: v })); setResult(null); };
   const handleBudget = (k, v) => { setBudget(p => ({ ...p, [k]: v })); setBudgetResult(null); };
 
   const calculate = () => {
-    let r = {};
-    const d = { kcal: n("kcal"), fett: n("fett"), gesF: n("gesF"), ungesF: n("ungesF"), kh: n("kh"), zucker: n("zucker"), protein: n("protein"), bst: n("bst"), salz: n("salz") };
-    r.coins    = calcCoins(d);
-    r.personal = calcPersonalPoints(d);
-    r.smart    = calcSmartPoints(d);
-    r.pro      = calcProPoints(d);
-    r.classic  = calcClassic(d);
-    setResult(r);
+    const d = {
+      kcal: n("kcal"), fett: n("fett"), gesF: n("gesF"), ungesF: n("ungesF"),
+      kh: n("kh"), zucker: n("zucker"), protein: n("protein"), bst: n("bst"), salz: n("salz"),
+    };
+    setResult({
+      coins:    calcCoins(d),
+      personal: calcPersonalPoints(d),
+      smart:    calcSmartPoints(d),
+      pro:      calcProPoints(d),
+      classic:  calcClassic(d),
+    });
   };
 
   const calcBudget = () => {
-    const br = calcDailyBudget({ gewicht: b("gewicht"), groesse: b("groesse"), alter: b("alter"), geschlecht: budget.geschlecht, aktivitaet: budget.aktivitaet });
-    setBudgetResult(br);
+    setBudgetResult(calcDailyBudget({
+      gewicht: b("gewicht"), groesse: b("groesse"), alter: b("alter"),
+      geschlecht: budget.geschlecht, aktivitaet: budget.aktivitaet,
+    }));
   };
 
   const kategorien = useMemo(() =>
@@ -280,183 +397,381 @@ export default function App() {
     return filtered;
   }, [recipes, kat, search, sort]);
 
-  const tabs = [
-    { id: "calc",    label: "🔢 Berechnen" },
-    { id: "budget",  label: isPremium ? "📅 Tagesbudget" : "📅 Tagesbudget 🔒" },
-    { id: "recipes", label: "🍽️ WF Rezepte" },
-    { id: "info",    label: "ℹ️ Info" },
+  const TABS = [
+    { id: "calc",    label: "Berechnen" },
+    { id: "budget",  label: isPremium ? "Tagesbudget" : "Tagesbudget 🔒" },
+    { id: "recipes", label: "WF Rezepte" },
+    { id: "info",    label: "Info" },
   ];
 
   useEffect(() => { if (isSignedIn) setShowSignIn(false); }, [isSignedIn]);
 
+  // Shared style fragments
+  const card = {
+    background: C.surface,
+    border: `1px solid ${C.border}`,
+    borderRadius: 20,
+    padding: "20px 22px",
+    marginBottom: 16,
+    boxShadow: sh.xs,
+  };
+  const sectionLabel = {
+    fontSize: 10,
+    fontWeight: 700,
+    color: C.muted,
+    letterSpacing: ".12em",
+    textTransform: "uppercase",
+    marginBottom: 14,
+    fontFamily: FB,
+  };
+  const inputStyle = {
+    padding: "11px 13px",
+    border: `1.5px solid ${C.border}`,
+    borderRadius: 10,
+    fontSize: 14,
+    fontFamily: FB,
+    color: C.text,
+    background: C.surface,
+    outline: "none",
+    width: "100%",
+    boxSizing: "border-box",
+  };
+  const labelStyle = {
+    fontSize: 12,
+    fontWeight: 600,
+    color: C.sub,
+    marginBottom: 5,
+    display: "block",
+    fontFamily: FB,
+    letterSpacing: ".03em",
+  };
+  const primaryBtn = (coinStyle) => ({
+    width: "100%",
+    padding: "14px 0",
+    background: coinStyle
+      ? `linear-gradient(135deg, ${C.coin} 0%, #A34D08 100%)`
+      : `linear-gradient(135deg, ${C.green} 0%, ${C.greenLight} 100%)`,
+    color: "#fff",
+    border: "none",
+    borderRadius: 12,
+    fontSize: 15,
+    fontWeight: 700,
+    fontFamily: FB,
+    cursor: "pointer",
+    marginTop: 14,
+    letterSpacing: ".04em",
+    boxShadow: coinStyle ? "0 3px 12px rgba(198,123,92,.35)" : "0 3px 12px rgba(34,139,34,.3)",
+  });
+  const filterChip = (active) => ({
+    padding: "7px 14px",
+    borderRadius: 999,
+    border: `1.5px solid ${active ? C.green : C.border}`,
+    background: active ? C.greenPale : C.surface,
+    color: active ? C.green2 : C.sub,
+    fontWeight: active ? 700 : 500,
+    fontSize: 12,
+    fontFamily: FB,
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+    minHeight: 36,
+    transition: "all .15s",
+  });
+
   return (
-    <div style={S.wrap}>
-      {/* ─ Sign-In Modal ─ */}
+    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: FB, color: C.text }}>
+
+      {/* ─── Sign-In Modal ─── */}
       {showSignIn && !isSignedIn && (
-        <div onClick={() => setShowSignIn(false)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+        <div
+          onClick={() => setShowSignIn(false)}
+          style={{
+            position: "fixed", inset: 0,
+            background: "rgba(0,0,0,.5)",
+            backdropFilter: "blur(4px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 1000,
+          }}
+        >
           <div onClick={e => e.stopPropagation()}>
             <SignIn routing="hash" forceRedirectUrl={window.location.origin} signUpForceRedirectUrl={window.location.origin} />
           </div>
         </div>
       )}
-      {/* ─ Premium Success Banner ─ */}
+
+      {/* ─── Premium success banner ─── */}
       {premiumSuccess && (
-        <div style={{ background: "#059669", color: "#fff", textAlign: "center", padding: "12px 16px", fontSize: 14, fontWeight: 700 }}>
+        <div style={{ background: C.green, color: "#fff", textAlign: "center", padding: "12px 16px", fontSize: 14, fontWeight: 600, fontFamily: FB }}>
           🎉 Premium freigeschaltet! Danke für dein Abo.
         </div>
       )}
-      {/* ─ Upgrade Banner (eingeloggt, nicht premium) ─ */}
+
+      {/* ─── Upgrade banner ─── */}
       {isSignedIn && !isPremium && (
-        <div style={{ background: "#FAF5FF", borderBottom: "1px solid #DDD6FE", padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 13, color: C.accent2, fontWeight: 600 }}>💜 Tagesbudget & mehr freischalten</span>
-          <button onClick={startCheckout}
-            style={{ background: C.accent, color: "#fff", border: "none", borderRadius: 9, padding: "7px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+        <div style={{
+          background: C.premBg,
+          borderBottom: `1px solid ${C.premBorder}`,
+          padding: "10px 20px",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          gap: 12, flexWrap: "wrap",
+        }}>
+          <span style={{ fontSize: 13, color: C.premText, fontWeight: 600, fontFamily: FB }}>
+            🌿 Tagesbudget &amp; mehr freischalten
+          </span>
+          <button
+            onClick={startCheckout}
+            className="btn-primary"
+            style={{
+              background: `linear-gradient(135deg, ${C.coin} 0%, #A34D08 100%)`,
+              color: "#fff", border: "none", borderRadius: 9,
+              padding: "8px 18px", fontSize: 13, fontWeight: 700,
+              cursor: "pointer", fontFamily: FB, whiteSpace: "nowrap",
+              boxShadow: "0 2px 8px rgba(198,123,92,.3)",
+            }}
+          >
             Premium – 2,99 €/Monat
           </button>
         </div>
       )}
-      {/* ─ Header ─ */}
-      <header style={S.header}>
-        <div style={S.logo}>WF</div>
-        <div style={{ ...S.headerText, flex: 1 }}>
-          <div style={{ fontWeight: 800, fontSize: 18, letterSpacing: "-.02em" }}>weight friends & WW Rechner</div>
-          <div style={{ fontSize: 12, opacity: .8 }}>Coins · PersonalPoints · SmartPoints · ProPoints · Classic</div>
+
+      {/* ─── Header ─── */}
+      <header style={{
+        background: `linear-gradient(135deg, ${C.green2} 0%, ${C.green} 60%, ${C.greenMid} 100%)`,
+        padding: "14px 20px",
+        display: "flex", alignItems: "center", gap: 14,
+      }}>
+        {/* Logo */}
+        <div style={{
+          width: 46, height: 46, borderRadius: 14, flexShrink: 0,
+          background: "rgba(255,255,255,.15)",
+          border: "1.5px solid rgba(255,255,255,.25)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          color: "#fff", fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 18,
+        }}>
+          wf
         </div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontFamily: FH, fontStyle: "italic", fontWeight: 700,
+            fontSize: 19, color: "#fff", letterSpacing: "-.01em",
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          }}>
+            weight friends &amp; WW Rechner
+          </div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,.65)", letterSpacing: ".08em", textTransform: "uppercase", marginTop: 3, fontFamily: FB }}>
+            Coins · PersonalPoints · SmartPoints · ProPoints
+          </div>
+        </div>
+
         <SignedOut>
-          <button onClick={() => setShowSignIn(true)}
-            style={{ background: "rgba(255,255,255,0.15)", border: "1.5px solid rgba(255,255,255,0.4)", color: "#fff", borderRadius: 9, padding: "7px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+          <button
+            onClick={() => setShowSignIn(true)}
+            style={{
+              background: "rgba(255,255,255,.14)",
+              border: "1.5px solid rgba(255,255,255,.3)",
+              color: "#fff", borderRadius: 10,
+              padding: "9px 16px", fontSize: 13, fontWeight: 600,
+              cursor: "pointer", fontFamily: FB, whiteSpace: "nowrap",
+              flexShrink: 0, minHeight: 44,
+            }}
+          >
             Anmelden
           </button>
         </SignedOut>
         <SignedIn>
-          <UserButton appearance={{ elements: { avatarBox: { width: 36, height: 36 } } }} />
+          <UserButton appearance={{ elements: { avatarBox: { width: 38, height: 38 } } }} />
         </SignedIn>
       </header>
 
-      {/* ─ Nav ─ */}
-      <nav style={S.nav}>
-        {tabs.map(t => <button key={t.id} style={S.navBtn(tab === t.id)} onClick={() => setTab(t.id)}>{t.label}</button>)}
+      {/* ─── Navigation ─── */}
+      <nav
+        className="nav-scroll"
+        style={{
+          background: C.surface,
+          borderBottom: `1px solid ${C.border}`,
+          padding: "10px 16px",
+          display: "flex", gap: 6, overflowX: "auto",
+        }}
+      >
+        {TABS.map(t => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            style={{
+              padding: "9px 18px",
+              border: "none",
+              borderRadius: 999,
+              background: tab === t.id ? C.green : "transparent",
+              color: tab === t.id ? "#fff" : C.sub,
+              fontWeight: tab === t.id ? 700 : 500,
+              fontSize: 13, fontFamily: FB,
+              cursor: "pointer", whiteSpace: "nowrap",
+              transition: "background .18s, color .18s",
+              letterSpacing: ".03em",
+              minHeight: 44,
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
       </nav>
 
-      <main style={S.main}>
+      {/* ─── Main ─── */}
+      <main style={{ maxWidth: 860, margin: "0 auto", padding: "22px 16px 80px" }}>
 
-        {/* ══ TAB: BERECHNEN ══ */}
+        {/* ══ BERECHNEN ══ */}
         {tab === "calc" && (
-          <>
-            <div style={S.card}>
-              <div style={S.sectionTitle}>Punktesystem wählen</div>
+          <div className="tab-content">
+            {/* System selector */}
+            <div style={card}>
+              <div style={sectionLabel}>Punktesystem wählen</div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {SYSTEMS.map(s => (
-                  <button key={s.id} onClick={() => { setSystem(s.id); setResult(null); }}
-                    style={{ ...S.filterBtn(system === s.id), display: "flex", flexDirection: "column", alignItems: "flex-start", padding: "8px 14px" }}>
-                    <span style={{ fontSize: 13 }}>{s.label}</span>
-                    <span style={{ fontSize: 10, fontWeight: 400, opacity: .7 }}>{s.sub}</span>
+                  <button
+                    key={s.id}
+                    onClick={() => { setSystem(s.id); setResult(null); }}
+                    style={{
+                      padding: "10px 14px",
+                      border: `1.5px solid ${system === s.id ? C.green : C.border}`,
+                      borderRadius: 12,
+                      background: system === s.id ? C.greenPale : C.surface,
+                      cursor: "pointer", textAlign: "left", fontFamily: FB,
+                      transition: "all .15s",
+                      display: "flex", flexDirection: "column", gap: 2,
+                      minHeight: 52,
+                    }}
+                  >
+                    <span style={{ fontSize: 13, fontWeight: 700, color: system === s.id ? C.green2 : C.text }}>
+                      {s.label}
+                    </span>
+                    <span style={{ fontSize: 10, color: C.muted, fontWeight: 400 }}>
+                      {s.sub}
+                    </span>
                   </button>
                 ))}
               </div>
             </div>
 
-            <div style={S.card}>
-              <div style={S.sectionTitle}>Nährwerte pro Portion eingeben</div>
-              <div style={S.grid2}>
+            {/* Inputs */}
+            <div style={card}>
+              <div style={sectionLabel}>Nährwerte pro Portion</div>
+              <div className="field-grid">
                 {SYS_FIELDS[system].map(fid => (
                   <Field key={fid} id={fid} def={FIELD_DEFS[fid]} value={vals[fid]} onChange={handleVal} />
                 ))}
               </div>
-              <button style={S.btn(system === "coins" ? C.coin : C.accent)} onClick={calculate}>
+              <button
+                className="btn-primary"
+                style={primaryBtn(system === "coins")}
+                onClick={calculate}
+              >
                 {system === "coins" ? "🪙 Coins berechnen" : "Punkte berechnen"}
               </button>
             </div>
 
+            {/* Results */}
             {result && (
-              <div style={S.card}>
-                <div style={S.sectionTitle}>Ergebnis – alle Systeme im Vergleich</div>
-                <div style={S.resultRow}>
-                  <div style={S.scoreBig()}>
-                    <div style={S.scoreNum(C.coin)}>{result.coins}</div>
-                    <div style={S.scoreLbl}>💜 Coins (wf)</div>
-                  </div>
-                  <div style={S.scoreBig()}>
-                    <div style={S.scoreNum(C.ww)}>{result.personal}</div>
-                    <div style={S.scoreLbl}>PersonalPoints</div>
-                  </div>
-                  <div style={S.scoreBig()}>
-                    <div style={S.scoreNum(C.ww)}>{result.smart}</div>
-                    <div style={S.scoreLbl}>SmartPoints</div>
-                  </div>
-                  <div style={S.scoreBig()}>
-                    <div style={S.scoreNum(C.sub)}>{result.pro}</div>
-                    <div style={S.scoreLbl}>ProPoints</div>
-                  </div>
-                  <div style={S.scoreBig()}>
-                    <div style={S.scoreNum(C.sub)}>{result.classic}</div>
-                    <div style={S.scoreLbl}>Classic</div>
-                  </div>
+              <div style={card}>
+                <div style={sectionLabel}>Ergebnis – alle Systeme im Vergleich</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
+                  <ScoreBlock value={result.coins}    label="🌿 Coins (wf)"   bg={C.coinBg}    textColor={C.coinText} borderColor={C.coinBorder} />
+                  <ScoreBlock value={result.personal} label="PersonalPoints™" bg={C.greenPale} textColor={C.green}    borderColor="rgba(34,139,34,.14)" />
+                  <ScoreBlock value={result.smart}    label="SmartPoints™"    bg={C.greenPale} textColor={C.greenMid} borderColor="rgba(34,139,34,.1)" />
+                  <ScoreBlock value={result.pro}      label="ProPoints™"      bg={C.surface2}  textColor={C.sub}      borderColor={C.border} />
+                  <ScoreBlock value={result.classic}  label="Classic Points"  bg={C.surface2}  textColor={C.sub}      borderColor={C.border} />
                 </div>
               </div>
             )}
 
-            <div style={{ ...S.card, background: "#FAF5FF", borderColor: "#DDD6FE" }}>
-              <div style={S.sectionTitle}>Verwendete Formeln</div>
-              <div style={{ fontSize: 12, color: C.text, lineHeight: 2, fontFamily: "monospace" }}>
-                <b style={{ color: C.coin }}>Coins (wf):</b> kcal×0.022 + gesF×0.20 + Zucker×0.10 + Salz×0.15 − Protein×0.10 − Bst×0.15<br />
-                <b style={{ color: C.ww }}>PersonalPoints:</b> SmartPoints − Bst×0.14 − ungesF×0.07<br />
-                <b style={{ color: C.ww }}>SmartPoints:</b> kcal×0.0305 + gesF×0.275 + Zucker×0.12 − Protein×0.098<br />
+            {/* Formulas */}
+            <div style={{ ...card, background: C.greenPale, borderColor: "rgba(34,139,34,.14)" }}>
+              <div style={sectionLabel}>Verwendete Formeln</div>
+              <div style={{ fontSize: 12, color: C.text, lineHeight: 2.1, fontFamily: "'JetBrains Mono', 'Fira Code', 'Courier New', monospace" }}>
+                <b style={{ color: C.coinText }}>Coins (wf):</b> kcal×0.022 + gesF×0.20 + Zucker×0.10 + Salz×0.15 − Protein×0.10 − Bst×0.15<br />
+                <b style={{ color: C.green }}>PersonalPoints:</b> SmartPoints − Bst×0.14 − ungesF×0.07<br />
+                <b style={{ color: C.green }}>SmartPoints:</b> kcal×0.0305 + gesF×0.275 + Zucker×0.12 − Protein×0.098<br />
                 <b style={{ color: C.sub }}>ProPoints:</b> Protein×0.36 + KH×0.16 + Fett×0.24 − Bst×0.18<br />
                 <b style={{ color: C.sub }}>Classic:</b> kcal×0.0165 + Fett×0.11
               </div>
-              <p style={S.disclaimer}>
+              <p style={{ fontSize: 11, color: C.muted, textAlign: "center", marginTop: 14, fontStyle: "italic", lineHeight: 1.6, fontFamily: FB }}>
                 ⚠️ Alle Formeln sind Näherungen / reverse-engineered. Weder WW noch weight friends veröffentlichen offizielle Formeln.
-                Die Coins-Formel wurde aus den bekannten Rezeptwerten und der Programminfo (kcal, gesätt. Fett, Zucker, Eiweiß, Ballaststoffe, Salz) abgeleitet.
+                Die Coins-Formel wurde aus bekannten Rezeptwerten und der Programminfo abgeleitet.
               </p>
             </div>
-          </>
+          </div>
         )}
 
-        {/* ══ TAB: BUDGET ══ */}
+        {/* ══ BUDGET – gesperrt ══ */}
         {tab === "budget" && !isPremium && (
-          <div style={{ ...S.card, textAlign: "center", padding: "40px 24px" }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>
-            <div style={{ fontWeight: 800, fontSize: 17, color: C.accent, marginBottom: 8 }}>Premium-Funktion</div>
-            <p style={{ fontSize: 14, color: C.sub, marginBottom: 20, lineHeight: 1.6 }}>
-              Das persönliche Tagesbudget ist nur für Premium-Mitglieder verfügbar.
+          <div className="tab-content" style={{ ...card, textAlign: "center", padding: "52px 28px" }}>
+            <div style={{ fontSize: 56, marginBottom: 16 }}>🌿</div>
+            <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 24, color: C.green, marginBottom: 10 }}>
+              Premium-Funktion
+            </div>
+            <p style={{ fontSize: 14, color: C.sub, lineHeight: 1.75, maxWidth: 340, margin: "0 auto 28px", fontFamily: FB }}>
+              Das persönliche Tagesbudget ist exklusiv für Premium-Mitglieder verfügbar.
             </p>
-            <button onClick={startCheckout}
-              style={S.btn(C.accent)}>
-              💜 Premium für 2,99 €/Monat freischalten
+            <button
+              className="btn-primary"
+              onClick={startCheckout}
+              style={{
+                ...primaryBtn(true),
+                width: "auto",
+                padding: "14px 32px",
+                display: "inline-block",
+              }}
+            >
+              🌿 Premium – 2,99 €/Monat
             </button>
           </div>
         )}
+
+        {/* ══ BUDGET – freigeschaltet ══ */}
         {tab === "budget" && isPremium && (
-          <div style={S.card}>
-            <div style={S.sectionTitle}>Persönliches Tages-Budget schätzen</div>
-            <p style={{ fontSize: 13, color: C.sub, marginTop: 0, marginBottom: 18, lineHeight: 1.6 }}>
+          <div className="tab-content" style={card}>
+            <div style={sectionLabel}>Tages-Budget berechnen</div>
+            <p style={{ fontSize: 13, color: C.sub, marginTop: 0, marginBottom: 18, lineHeight: 1.7, fontFamily: FB }}>
               Berechnung via <strong>Mifflin-St-Jeor-Formel</strong> (Grundumsatz × Aktivitätsfaktor).<br />
               weight friends und WW verwenden beide individuelle Budgets basierend auf diesem Prinzip.
             </p>
-            <div style={S.grid2}>
+            <div className="field-grid">
               {[
-                { id: "gewicht", label: "Gewicht (kg)", type: "number" },
-                { id: "groesse", label: "Größe (cm)", type: "number" },
-                { id: "alter",   label: "Alter (Jahre)", type: "number" },
+                { id: "gewicht", label: "Gewicht (kg)" },
+                { id: "groesse", label: "Größe (cm)" },
+                { id: "alter",   label: "Alter (Jahre)" },
               ].map(f => (
                 <div key={f.id}>
-                  <label style={S.label}>{f.label}</label>
-                  <input type="number" style={S.input} value={budget[f.id]} placeholder="–"
-                    onChange={e => handleBudget(f.id, e.target.value)} />
+                  <label style={labelStyle}>{f.label}</label>
+                  <input
+                    type="number"
+                    className="app-input"
+                    style={inputStyle}
+                    value={budget[f.id]}
+                    placeholder="–"
+                    onChange={e => handleBudget(f.id, e.target.value)}
+                  />
                 </div>
               ))}
               <div>
-                <label style={S.label}>Geschlecht</label>
-                <select style={S.select} value={budget.geschlecht} onChange={e => handleBudget("geschlecht", e.target.value)}>
+                <label style={labelStyle}>Geschlecht</label>
+                <select
+                  className="app-select"
+                  style={inputStyle}
+                  value={budget.geschlecht}
+                  onChange={e => handleBudget("geschlecht", e.target.value)}
+                >
                   <option value="w">Weiblich</option>
                   <option value="m">Männlich</option>
                 </select>
               </div>
               <div>
-                <label style={S.label}>Aktivitätsniveau</label>
-                <select style={S.select} value={budget.aktivitaet} onChange={e => handleBudget("aktivitaet", e.target.value)}>
+                <label style={labelStyle}>Aktivitätsniveau</label>
+                <select
+                  className="app-select"
+                  style={inputStyle}
+                  value={budget.aktivitaet}
+                  onChange={e => handleBudget("aktivitaet", e.target.value)}
+                >
                   <option value="sitzend">Überwiegend sitzend</option>
                   <option value="leicht">Leicht aktiv</option>
                   <option value="maessig">Mäßig aktiv</option>
@@ -464,21 +779,18 @@ export default function App() {
                 </select>
               </div>
             </div>
-            <button style={S.btn()} onClick={calcBudget}>Budget berechnen</button>
+            <button className="btn-primary" style={primaryBtn(false)} onClick={calcBudget}>
+              Budget berechnen
+            </button>
+
             {budgetResult && (
               <>
-                <div style={S.divider} />
-                <div style={S.resultRow}>
-                  <div style={S.scoreBig()}>
-                    <div style={S.scoreNum(C.coin)}>{budgetResult.coins}</div>
-                    <div style={S.scoreLbl}>💜 Coins/Tag (wf)</div>
-                  </div>
-                  <div style={S.scoreBig()}>
-                    <div style={S.scoreNum(C.ww)}>{budgetResult.ww}</div>
-                    <div style={S.scoreLbl}>WW Points/Tag</div>
-                  </div>
+                <div style={{ borderTop: `1px solid ${C.border}`, margin: "22px 0 18px" }} />
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center" }}>
+                  <ScoreBlock value={budgetResult.coins} label="🌿 Coins/Tag (wf)"  bg={C.coinBg}    textColor={C.coinText} borderColor={C.coinBorder} />
+                  <ScoreBlock value={budgetResult.ww}    label="WW Points/Tag"       bg={C.greenPale} textColor={C.green}    borderColor="rgba(34,139,34,.14)" />
                 </div>
-                <p style={{ fontSize: 12, color: C.sub, textAlign: "center", marginTop: 10, lineHeight: 1.6 }}>
+                <p style={{ fontSize: 12, color: C.sub, textAlign: "center", marginTop: 14, lineHeight: 1.7, fontFamily: FB }}>
                   Typischer Bereich: <b>18–44 WW Punkte</b> · <b>18–50 Coins</b> pro Tag.<br />
                   Leitsatz-Bonus bei weight friends: +1 Coin pro erfülltem Leitsatz (max. 6 zusätzlich).
                 </p>
@@ -487,57 +799,78 @@ export default function App() {
           </div>
         )}
 
-        {/* ══ TAB: REZEPTE ══ */}
+        {/* ══ REZEPTE ══ */}
         {tab === "recipes" && (
-          <>
-            <div style={S.card}>
-              <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 4 }}>🍽️ Rezepte von weight friends</div>
-              <div style={{ fontSize: 13, color: C.sub, marginBottom: 16 }}>
-                {loading ? "Lade Rezepte…" : `${recipes.length} Rezepte mit Coins-Werten – direkt von weightfriends.at`}
+          <div className="tab-content">
+            <div style={card}>
+              <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 22, color: C.text, marginBottom: 4 }}>
+                Rezepte von weight friends
               </div>
-              <input style={S.searchBar} placeholder="Suche nach Rezept oder Zutat …"
-                value={search} onChange={e => setSearch(e.target.value)} />
-              <div style={S.filterRow}>
+              <div style={{ fontSize: 13, color: C.sub, marginBottom: 16, fontFamily: FB }}>
+                {loading ? "Rezepte werden geladen…" : `${recipes.length} Rezepte mit Coins-Werten – direkt von weightfriends.at`}
+              </div>
+
+              <input
+                className="app-input"
+                style={{ ...inputStyle, marginBottom: 14 }}
+                placeholder="Rezept oder Zutat suchen…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+
+              <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 10 }}>
                 {kategorien.map(k => (
-                  <button key={k} style={S.filterBtn(kat === k)} onClick={() => setKat(k)}>{k}</button>
+                  <button key={k} style={filterChip(kat === k)} onClick={() => setKat(k)}>
+                    {k}
+                  </button>
                 ))}
               </div>
-              <div style={S.filterRow}>
-                <button style={S.filterBtn(sort === "default")}   onClick={() => setSort("default")}>🔀 Standard</button>
-                <button style={S.filterBtn(sort === "coins-asc")} onClick={() => setSort("coins-asc")}>🪙 Coins ↑</button>
-                <button style={S.filterBtn(sort === "coins-desc")} onClick={() => setSort("coins-desc")}>🪙 Coins ↓</button>
+
+              <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+                {[["default", "🔀 Standard"], ["coins-asc", "🪙 Coins ↑"], ["coins-desc", "🪙 Coins ↓"]].map(([v, label]) => (
+                  <button key={v} style={filterChip(sort === v)} onClick={() => setSort(v)}>
+                    {label}
+                  </button>
+                ))}
               </div>
             </div>
 
             {loading ? (
-              <div style={{ ...S.card, textAlign: "center", color: C.muted }}>Rezepte werden geladen…</div>
+              <div style={{ ...card, textAlign: "center", color: C.muted, padding: "44px 24px" }}>
+                <div style={{ fontSize: 28, marginBottom: 10 }}>🌿</div>
+                <span style={{ fontFamily: FB }}>Rezepte werden geladen…</span>
+              </div>
             ) : filteredRecipes.length === 0 ? (
-              <div style={{ ...S.card, textAlign: "center", color: C.muted }}>Keine Rezepte gefunden.</div>
+              <div style={{ ...card, textAlign: "center", color: C.muted, padding: "44px 24px", fontFamily: FB }}>
+                Keine Rezepte gefunden.
+              </div>
             ) : (
-              <div style={S.recipeGrid}>
+              <div className="recipe-grid">
                 {filteredRecipes.map(r => (
                   <RecipeCard key={r.id} recipe={r} selected={openRecipe === r.id} onSelect={setOpenRecipe} />
                 ))}
               </div>
             )}
 
-            <p style={S.disclaimer}>
+            <p style={{ fontSize: 11, color: C.muted, textAlign: "center", marginTop: 18, fontStyle: "italic", lineHeight: 1.6, fontFamily: FB }}>
               Rezepte und Coins-Werte stammen von weightfriends.at. Alle Rechte beim Inhaber.
               Diese App ist kein offizielles Produkt von weight friends.
             </p>
-          </>
+          </div>
         )}
 
-        {/* ══ TAB: INFO ══ */}
+        {/* ══ INFO ══ */}
         {tab === "info" && (
-          <>
-            <div style={S.card}>
-              <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 12, color: C.accent }}>💜 weight friends Coins – wie funktioniert's?</div>
-              <p style={{ fontSize: 13, lineHeight: 1.8, color: C.text }}>
+          <div className="tab-content">
+            <div style={card}>
+              <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 20, color: C.green, marginBottom: 12 }}>
+                🌿 weight friends Coins – wie funktioniert's?
+              </div>
+              <p style={{ fontSize: 13, lineHeight: 1.85, color: C.text, marginBottom: 12, fontFamily: FB }}>
                 <strong>weight friends</strong> ist ein österreichisches Abnehmprogramm mit Sitz in Wien.
                 Jedes Lebensmittel erhält einen Wert in <strong>Coins</strong>, basierend auf:
               </p>
-              <ul style={{ fontSize: 13, lineHeight: 2, color: C.text, paddingLeft: 20 }}>
+              <ul style={{ fontSize: 13, lineHeight: 2.1, color: C.text, paddingLeft: 20, marginBottom: 12, fontFamily: FB }}>
                 <li>⬆️ <b>Kalorien (kcal)</b> – erhöht den Coin-Wert</li>
                 <li>⬆️ <b>Gesättigte Fettsäuren</b> – erhöht den Coin-Wert</li>
                 <li>⬆️ <b>Zucker</b> – erhöht den Coin-Wert</li>
@@ -545,37 +878,53 @@ export default function App() {
                 <li>⬇️ <b>Eiweiß (Protein)</b> – senkt den Coin-Wert</li>
                 <li>⬇️ <b>Ballaststoffe</b> – senkt den Coin-Wert</li>
               </ul>
-              <p style={{ fontSize: 13, lineHeight: 1.8, color: C.text, marginTop: 0 }}>
+              <p style={{ fontSize: 13, lineHeight: 1.85, color: C.text, fontFamily: FB }}>
                 Zusätzlich gibt es <b>Bonus-Coins</b> für gesunde Verhaltensweisen (Leitsätze):
-                Gemüse & Obst essen, gesunde Fette, ausreichend trinken, bewusst genießen, Bewegung, Erholung.
+                Gemüse &amp; Obst essen, gesunde Fette, ausreichend trinken, bewusst genießen, Bewegung, Erholung.
                 Für jeden erfüllten Leitsatz +1 Coin auf das Tagesbudget.
               </p>
             </div>
-            <div style={S.card}>
-              <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 10, color: C.ww }}>🟢 WW PersonalPoints – aktuelles System (2022+)</div>
-              <p style={{ fontSize: 13, lineHeight: 1.8, color: C.text }}>
+
+            <div style={card}>
+              <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 20, color: C.greenMid, marginBottom: 10 }}>
+                WW PersonalPoints – aktuelles System (2022+)
+              </div>
+              <p style={{ fontSize: 13, lineHeight: 1.85, color: C.text, fontFamily: FB }}>
                 WW (Weight Watchers) berechnet Punkte auf Basis von kcal, gesättigten Fetten, Zucker (negativ)
-                und Protein, Ballaststoffen, ungesättigte Fette (positiv / punktsenkend).
+                und Protein, Ballaststoffen, ungesättigten Fetten (positiv / punktsenkend).
                 Über 200 ZeroPoint-Lebensmittel müssen nicht getrackt werden.
                 Das individuelle Tagesbudget basiert auf der Mifflin-St-Jeor-Formel.
               </p>
             </div>
-            <div style={{ ...S.card, background: "#FAF5FF", borderColor: "#DDD6FE" }}>
-              <div style={S.sectionTitle}>Coins-Formel – Herleitung</div>
-              <p style={{ fontSize: 12, lineHeight: 1.8, color: C.text }}>
+
+            <div style={{ ...card, background: C.greenPale, borderColor: "rgba(34,139,34,.14)" }}>
+              <div style={sectionLabel}>Coins-Formel – Herleitung</div>
+              <p style={{ fontSize: 12, lineHeight: 1.85, color: C.text, marginBottom: 14, fontFamily: FB }}>
                 weight friends veröffentlicht keine offizielle Formel. Die hier verwendete Formel wurde durch
                 Auswertung der bekannten Rezept-Coins (z. B. Reisfleisch 7C, Waldviertler Topfenkäse 2C,
                 Krautpfanne 5C, Ritschert 5C, Malakofftorte 10C) in Kombination mit den 6 genannten
                 Nährwertkategorien abgeleitet (least-squares-Näherung).
               </p>
-              <code style={{ fontSize: 12, display: "block", background: "#EDE9FE", padding: "10px 14px", borderRadius: 8, color: C.accent2, lineHeight: 1.8 }}>
+              <code style={{
+                fontSize: 12,
+                display: "block",
+                background: "rgba(34,139,34,.08)",
+                border: "1px solid rgba(34,139,34,.15)",
+                padding: "12px 16px",
+                borderRadius: 10,
+                color: C.green2,
+                lineHeight: 1.9,
+                fontFamily: "'JetBrains Mono', 'Fira Code', 'Courier New', monospace",
+              }}>
                 Coins = kcal×0.022 + gesF×0.20 + Zucker×0.10 + Salz×0.15{"\n"}
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;− Protein×0.10 − Ballaststoffe×0.15{"\n"}
                 Minimum: 0, gerundet auf ganze Zahl
               </code>
-              <p style={S.disclaimer}>⚠️ Nicht-offizielle Näherung. Ergebnisse können von der offiziellen weight friends App abweichen.</p>
+              <p style={{ fontSize: 11, color: C.muted, textAlign: "center", marginTop: 14, fontStyle: "italic", lineHeight: 1.6, fontFamily: FB }}>
+                ⚠️ Nicht-offizielle Näherung. Ergebnisse können von der offiziellen weight friends App abweichen.
+              </p>
             </div>
-          </>
+          </div>
         )}
 
       </main>
