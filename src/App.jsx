@@ -222,6 +222,7 @@ export default function App() {
   const [openRecipe, setOpenRecipe] = useState(null);
   const [search, setSearch] = useState("");
   const [kat, setKat] = useState("Alle");
+  const [sort, setSort] = useState("default");
   const { recipes, loading } = useRecipes();
 
   const n = k => parseFloat(vals[k]) || 0;
@@ -250,12 +251,16 @@ export default function App() {
     ["Alle", ...Array.from(new Set(recipes.map(r => r.kategorie)))],
     [recipes]);
 
-  const filteredRecipes = useMemo(() =>
-    recipes.filter(r =>
+  const filteredRecipes = useMemo(() => {
+    const filtered = recipes.filter(r =>
       (kat === "Alle" || r.kategorie === kat) &&
       (search === "" || r.name.toLowerCase().includes(search.toLowerCase()) ||
         r.zutaten.some(z => z.toLowerCase().includes(search.toLowerCase())))
-    ), [recipes, kat, search]);
+    );
+    if (sort === "coins-asc")  return [...filtered].sort((a, b) => a.coins - b.coins);
+    if (sort === "coins-desc") return [...filtered].sort((a, b) => b.coins - a.coins);
+    return filtered;
+  }, [recipes, kat, search, sort]);
 
   const tabs = [
     { id: "calc",    label: "🔢 Berechnen" },
@@ -429,6 +434,11 @@ export default function App() {
                 {kategorien.map(k => (
                   <button key={k} style={S.filterBtn(kat === k)} onClick={() => setKat(k)}>{k}</button>
                 ))}
+              </div>
+              <div style={S.filterRow}>
+                <button style={S.filterBtn(sort === "default")}   onClick={() => setSort("default")}>🔀 Standard</button>
+                <button style={S.filterBtn(sort === "coins-asc")} onClick={() => setSort("coins-asc")}>🪙 Coins ↑</button>
+                <button style={S.filterBtn(sort === "coins-desc")} onClick={() => setSort("coins-desc")}>🪙 Coins ↓</button>
               </div>
             </div>
 
