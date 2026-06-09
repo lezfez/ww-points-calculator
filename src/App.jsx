@@ -121,7 +121,7 @@ const S = {
   scoreBig: () => ({ textAlign: "center", flex: "1 1 120px" }),
   scoreNum: (col) => ({ fontSize: 44, fontWeight: 900, color: col, lineHeight: 1 }),
   scoreLbl: { fontSize: 12, color: C.muted, marginTop: 3 },
-  recipeGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 16 },
+  recipeGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 16, alignItems: "start" },
   recipeCard: (open) => ({
     background: C.surface, border: `1px solid ${open ? C.accent : C.border}`,
     borderRadius: 14, padding: "16px 18px", cursor: "pointer",
@@ -189,9 +189,9 @@ function RecipeCard({ recipe, onSelect, selected }) {
         <span style={S.pill(C.sub, C.bg)}>👥 {recipe.portionen} Port.</span>
       </div>
       {selected && (
-        <div style={{ marginTop: 10, fontSize: 13, color: C.text }}>
+        <div style={{ marginTop: 10, fontSize: 13, color: C.text, textAlign: "left" }}>
           <div style={{ fontWeight: 700, marginBottom: 6, color: C.accent }}>Zutaten</div>
-          <ul style={{ margin: "0 0 12px", padding: "0 0 0 18px", lineHeight: 1.8 }}>
+          <ul style={{ margin: "0 0 12px", padding: "0 0 0 18px", lineHeight: 1.8, textAlign: "left" }}>
             {recipe.zutaten.map((z, i) => <li key={i}>{z}</li>)}
           </ul>
           <div style={{ fontWeight: 700, marginBottom: 6, color: C.accent }}>Zubereitung</div>
