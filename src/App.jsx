@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { SignIn, SignedIn, SignedOut, UserButton, useUser, useAuth } from "@clerk/clerk-react";
-import appLogo from "./assets/app-logo.png";
+import appLogo from "./assets/app-logo-icon.svg";
 import { useRecipes } from "./hooks/useRecipes";
 import { useFeatureFlags } from "./hooks/useFeatureFlags";
 import { getUserRole, hasAccess, ROLE_LABELS } from "./lib/roles";
@@ -210,17 +210,22 @@ export default function App() {
 
         {/* Header */}
         <header className="app-header" style={{ background: `linear-gradient(135deg, ${C.green2} 0%, ${C.green} 60%, ${C.greenMid} 100%)`, padding: "14px 20px", display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <img src={appLogo} alt="WampeWeg" style={{ display: "block", width: "min(300px, 62vw)", maxHeight: 64, objectFit: "contain", objectPosition: "left center", borderRadius: 8 }} />
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3 }}>
-              <div style={{ fontSize: 10, color: "rgba(255,255,255,.65)", letterSpacing: ".08em", textTransform: "uppercase", fontFamily: FB }}>
-                Coins · PersonalPoints · SmartPoints · ProPoints
+          <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12 }}>
+            <img src={appLogo} alt="WampeWeg" style={{ display: "block", height: 52, width: 52, flexShrink: 0 }} />
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 20, color: "#fff", letterSpacing: "-.01em", lineHeight: 1.1 }}>
+                WampeWeg
               </div>
-              {isSignedIn && (
-                <span style={{ fontSize: 10, background: "rgba(255,255,255,.15)", color: "#fff", borderRadius: 999, padding: "2px 8px", fontFamily: FB, letterSpacing: ".04em", fontWeight: 600 }}>
-                  {ROLE_LABELS[userRole]}
-                </span>
-              )}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3 }}>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,.65)", letterSpacing: ".08em", textTransform: "uppercase", fontFamily: FB }}>
+                  Coins · PersonalPoints · SmartPoints · ProPoints
+                </div>
+                {isSignedIn && (
+                  <span style={{ fontSize: 10, background: "rgba(255,255,255,.15)", color: "#fff", borderRadius: 999, padding: "2px 8px", fontFamily: FB, letterSpacing: ".04em", fontWeight: 600 }}>
+                    {ROLE_LABELS[userRole]}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           <SignedOut>
@@ -234,7 +239,7 @@ export default function App() {
               <UserButton appearance={{ elements: { avatarBox: { width: 38, height: 38 } } }} />
               {isPremium && (
                 <span style={{ position: "absolute", top: -8, right: -6, fontSize: 14, lineHeight: 1, pointerEvents: "none", filter: "drop-shadow(0 1px 2px rgba(0,0,0,.4))" }}>
-                  👑
+                  🌿
                 </span>
               )}
             </div>
