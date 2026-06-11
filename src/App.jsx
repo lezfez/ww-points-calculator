@@ -870,7 +870,7 @@ export default function App() {
                 <strong>weight friends</strong> ist ein österreichisches Abnehmprogramm mit Sitz in Wien.
                 Jedes Lebensmittel erhält einen Wert in <strong>Coins</strong>, basierend auf:
               </p>
-              <ul style={{ fontSize: 13, lineHeight: 2.1, color: C.text, paddingLeft: 20, marginBottom: 12, fontFamily: FB }}>
+              <ul style={{ fontSize: 13, lineHeight: 2.1, color: C.text, paddingLeft: 0, marginBottom: 12, fontFamily: FB, listStyle: "none" }}>
                 <li>⬆️ <b>Kalorien (kcal)</b> – erhöht den Coin-Wert</li>
                 <li>⬆️ <b>Gesättigte Fettsäuren</b> – erhöht den Coin-Wert</li>
                 <li>⬆️ <b>Zucker</b> – erhöht den Coin-Wert</li>
