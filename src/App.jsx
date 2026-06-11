@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { SignIn, SignedIn, SignedOut, UserButton, useUser, useAuth } from "@clerk/clerk-react";
 import { supabase } from "./supabase";
 import appLogo from "./assets/app-logo.png";
+import { FLAG_DEFS } from "./lib/featureFlags";
+import { FIELD_DEFS, SYS_FIELDS, SYSTEMS } from "./lib/pointSystems";
 import {
   calcClassic,
   calcCoins,
@@ -10,6 +12,8 @@ import {
   calcProPoints,
   calcSmartPoints,
 } from "./lib/points";
+import { getUserRole, hasAccess, ROLE_LABELS, ROLE_OPTIONS } from "./lib/roles";
+import { C, FB, FH, sh } from "./styles/theme";
 
 // ════════════════════════════════════════════════════════════
 // SUPABASE HOOK – Rezepte
@@ -130,103 +134,6 @@ function useFeatureFlags() {
 
   return { flags, loading, error, reload };
 }
-
-// ════════════════════════════════════════════════════════════
-// ROLLEN-SYSTEM
-// Hierarchie: guest (0) < user (1) < premium (2) < admin (3)
-// ════════════════════════════════════════════════════════════
-const ROLE_RANK   = { guest: 0, user: 1, premium: 2, admin: 3 };
-const ROLE_LABELS = { guest: "Gast", user: "Registriert", premium: "Premium", admin: "Admin" };
-const ROLE_OPTIONS = ["user", "premium", "admin"];
-
-function getUserRole(user, isSignedIn) {
-  if (!isSignedIn || !user) return "guest";
-  const meta = user.publicMetadata || {};
-  if (meta.role === "admin")   return "admin";
-  if (meta.role === "premium" || meta.isPremium === true) return "premium";
-  return "user";
-}
-
-function hasAccess(requiredRole, userRole) {
-  return (ROLE_RANK[userRole] || 0) >= (ROLE_RANK[requiredRole] || 0);
-}
-
-// ════════════════════════════════════════════════════════════
-// DESIGN TOKENS
-// ════════════════════════════════════════════════════════════
-const FH = "'Lora', Georgia, serif";
-const FB = "'Raleway', system-ui, sans-serif";
-
-const C = {
-  bg:         "#F5F0E8",
-  surface:    "#FDFAF5",
-  surface2:   "#EDE8DE",
-  border:     "#DDD8CC",
-
-  green:      "#228B22",
-  green2:     "#1A6B1A",
-  greenMid:   "#2E9D2E",
-  greenLight: "#5BA85B",
-  greenPale:  "#EBF4EB",
-
-  coin:       "#C67B5C",
-  coinBg:     "#FAF0EA",
-  coinText:   "#7A3618",
-  coinBorder: "rgba(198,123,92,.2)",
-
-  text:       "#1C1B18",
-  sub:        "#5C5C50",
-  muted:      "#9E9E90",
-
-  premBg:     "#FFFBF0",
-  premBorder: "#EDD698",
-  premText:   "#6B3A00",
-
-  adminBg:    "#F0F4FF",
-  adminBorder:"#C7D2FE",
-  adminText:  "#3730A3",
-};
-
-const sh = {
-  xs: "0 1px 3px rgba(28,27,24,.07), 0 2px 6px rgba(28,27,24,.04)",
-  sm: "0 2px 8px rgba(28,27,24,.09), 0 4px 16px rgba(28,27,24,.06)",
-};
-
-// ════════════════════════════════════════════════════════════
-// FIELD DEFINITIONS
-// ════════════════════════════════════════════════════════════
-const FIELD_DEFS = {
-  kcal:    { label: "Kalorien (kcal)", step: 1 },
-  fett:    { label: "Fett gesamt (g)", step: 0.1 },
-  gesF:    { label: "Gesättigte Fettsäuren (g)", step: 0.1 },
-  ungesF:  { label: "Ungesättigte Fettsäuren (g)", step: 0.1 },
-  kh:      { label: "Kohlenhydrate (g)", step: 0.1 },
-  zucker:  { label: "davon Zucker (g)", step: 0.1 },
-  protein: { label: "Protein / Eiweiß (g)", step: 0.1 },
-  bst:     { label: "Ballaststoffe (g)", step: 0.1 },
-  salz:    { label: "Salz (g)", step: 0.1 },
-};
-const SYS_FIELDS = {
-  coins:    ["kcal", "gesF", "zucker", "protein", "bst", "salz"],
-  personal: ["kcal", "gesF", "ungesF", "zucker", "protein", "bst"],
-  smart:    ["kcal", "gesF", "zucker", "protein"],
-  pro:      ["protein", "kh", "fett", "bst"],
-  classic:  ["kcal", "fett"],
-};
-const SYSTEMS = [
-  { id: "coins",    label: "weight friends Coins", sub: "Österreich · aktuell" },
-  { id: "personal", label: "PersonalPoints™",      sub: "WW 2022+" },
-  { id: "smart",    label: "SmartPoints™",          sub: "WW 2015–21" },
-  { id: "pro",      label: "ProPoints™",            sub: "WW 2010–15" },
-  { id: "classic",  label: "Classic Points",        sub: "WW bis 2010" },
-];
-
-const FLAG_DEFS = [
-  { id: "tab_calc",    label: "Berechnen",   desc: "Punkte- und Coins-Rechner" },
-  { id: "tab_budget",  label: "Tagesbudget", desc: "Persönliches Tagesbudget (Mifflin-St-Jeor)" },
-  { id: "tab_recipes", label: "WF Rezepte",  desc: "Rezepte von weightfriends.at" },
-  { id: "tab_info",    label: "Info",        desc: "Informationen zu den Systemen" },
-];
 
 // ════════════════════════════════════════════════════════════
 // SMALL COMPONENTS

@@ -53,7 +53,12 @@ Stripe-Checkout-Rückgaben über `?premium=success` und `?premium=canceled` werd
 |---|---|
 | `src/App.jsx` | Haupt-App, UI, Hooks, Rollenlogik, Admin-UI |
 | `src/lib/points.js` | Pure Berechnungsfunktionen für Punkte und Tagesbudget |
+| `src/lib/pointSystems.js` | Feld- und Punktesystem-Definitionen |
+| `src/lib/roles.js` | Rollenlabels, Rollenrangfolge und Zugriffshilfen |
+| `src/lib/featureFlags.js` | Definitionen der administrierbaren Feature Flags |
+| `src/data/recipesFallback.json` | Statische Rezeptdaten als möglicher späterer Supabase-Fallback |
 | `src/supabase.js` | Browser-Supabase-Client mit Anon-Key |
+| `src/styles/theme.js` | Design-Tokens für Farben, Fonts und Schatten |
 | `api/` | Vercel Serverless Functions für Stripe, Clerk und Admin-Aktionen |
 | `test/points.test.js` | Charakterisierungstests für die Punkteformeln |
 | `vite.config.js` | Vite, PWA und manuelles Chunk-Splitting |

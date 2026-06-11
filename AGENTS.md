@@ -27,7 +27,10 @@ Main capabilities:
 
 - `src/App.jsx` is the active main app and contains most UI, hooks, role logic, and admin screens.
 - `src/lib/points.js` contains pure point and daily-budget formulas. Keep calculation changes there and cover them with `test/points.test.js`.
+- `src/lib/pointSystems.js`, `src/lib/roles.js`, and `src/lib/featureFlags.js` contain shared domain constants and helpers.
+- `src/data/recipesFallback.json` contains static recipe data extracted from the old inline constant. It is not currently used by the active Supabase-powered recipe hook, but can be wired as a future fallback.
 - `src/supabase.js` creates the browser Supabase client from `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+- `src/styles/theme.js` contains shared design tokens.
 - `api/` contains Vercel serverless functions for Clerk admin checks, Stripe checkout/webhooks, and feature-flag updates.
 - `public/` contains app icons and manifest assets.
 - `vite.config.js` contains React and PWA config.
