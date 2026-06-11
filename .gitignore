@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Legacy nested copy; the active app lives at the repository root.
+ww-points-calculator/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

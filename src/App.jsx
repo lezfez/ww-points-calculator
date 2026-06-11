@@ -1,37 +1,14 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { SignIn, SignedIn, SignedOut, UserButton, useUser, useAuth } from "@clerk/clerk-react";
 import { supabase } from "./supabase";
-
-// ════════════════════════════════════════════════════════════
-// FORMELN
-// ════════════════════════════════════════════════════════════
-function clamp(v, lo, hi) { return Math.min(Math.max(v, lo), hi); }
-
-function calcClassic({ kcal, fett }) {
-  return Math.max(0, Math.round(kcal * 0.0165 + fett * 0.11));
-}
-function calcProPoints({ protein, kh, fett, bst }) {
-  return Math.max(0, Math.round(protein * 0.36 + kh * 0.16 + fett * 0.24 - clamp(bst, 0, 10) * 0.18 + 0.14));
-}
-function calcSmartPoints({ kcal, gesF, zucker, protein }) {
-  return Math.max(0, Math.round(kcal * 0.0305 + gesF * 0.275 + zucker * 0.12 - protein * 0.098));
-}
-function calcPersonalPoints({ kcal, gesF, ungesF, zucker, protein, bst }) {
-  const sp = kcal * 0.0305 + gesF * 0.275 + zucker * 0.12 - protein * 0.098;
-  return Math.max(0, Math.round(sp - clamp(bst, 0, 10) * 0.14 - clamp(ungesF, 0, 20) * 0.07));
-}
-function calcCoins({ kcal, gesF, zucker, protein, bst, salz }) {
-  const raw = kcal * 0.022 + gesF * 0.20 + zucker * 0.10 + salz * 0.15
-    - clamp(protein, 0, 50) * 0.10 - clamp(bst, 0, 10) * 0.15;
-  return Math.max(0, Math.round(raw));
-}
-function calcDailyBudget({ gewicht, groesse, alter, geschlecht, aktivitaet }) {
-  const bmr = geschlecht === "m"
-    ? 10 * gewicht + 6.25 * groesse - 5 * alter + 5
-    : 10 * gewicht + 6.25 * groesse - 5 * alter - 161;
-  const f = { sitzend: 1.2, leicht: 1.375, maessig: 1.55, aktiv: 1.725 }[aktivitaet] || 1.2;
-  return { ww: clamp(Math.round(bmr * f / 30), 18, 44), coins: clamp(Math.round(bmr * f / 28), 18, 50) };
-}
+import {
+  calcClassic,
+  calcCoins,
+  calcDailyBudget,
+  calcPersonalPoints,
+  calcProPoints,
+  calcSmartPoints,
+} from "./lib/points";
 
 // ════════════════════════════════════════════════════════════
 // SUPABASE HOOK – Rezepte
@@ -39,34 +16,66 @@ function calcDailyBudget({ gewicht, groesse, alter, geschlecht, aktivitaet }) {
 function useRecipes() {
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    async function load() {
-      const { data, error } = await supabase
-        .from("recipes")
-        .select(`id, name, coins, portionen, zeit, kategorie, hinweis, url,
-          recipe_ingredients(ingredient, position),
-          recipe_steps(step_text, position)`)
-        .order("id");
-      if (!error) {
-        const mapped = data.map(r => ({
-          ...r,
-          zutaten: [...r.recipe_ingredients]
-            .sort((a, b) => a.position - b.position)
-            .map(i => i.ingredient),
-          zubereitung: [...r.recipe_steps]
-            .sort((a, b) => a.position - b.position)
-            .map(s => s.step_text)
-            .join(" "),
-        }));
-        setRecipes(mapped);
-      }
-      setLoading(false);
-    }
-    load();
+  const fetchRecipes = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("recipes")
+      .select(`id, name, coins, portionen, zeit, kategorie, hinweis, url,
+        recipe_ingredients(ingredient, position),
+        recipe_steps(step_text, position)`)
+      .order("id");
+
+    if (error) throw error;
+
+    return (data || []).map(r => ({
+      ...r,
+      zutaten: [...(r.recipe_ingredients || [])]
+        .sort((a, b) => a.position - b.position)
+        .map(i => i.ingredient),
+      zubereitung: [...(r.recipe_steps || [])]
+        .sort((a, b) => a.position - b.position)
+        .map(s => s.step_text)
+        .join(" "),
+    }));
   }, []);
 
-  return { recipes, loading };
+  const reload = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const mapped = await fetchRecipes();
+      setRecipes(mapped);
+    } catch (e) {
+      setRecipes([]);
+      setError(e?.message || "Rezepte konnten nicht geladen werden.");
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchRecipes]);
+
+  useEffect(() => {
+    let active = true;
+
+    fetchRecipes()
+      .then(mapped => {
+        if (!active) return;
+        setRecipes(mapped);
+        setError(null);
+      })
+      .catch(e => {
+        if (!active) return;
+        setRecipes([]);
+        setError(e?.message || "Rezepte konnten nicht geladen werden.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => { active = false; };
+  }, [fetchRecipes]);
+
+  return { recipes, loading, error, reload };
 }
 
 // ════════════════════════════════════════════════════════════
@@ -74,19 +83,51 @@ function useRecipes() {
 // ════════════════════════════════════════════════════════════
 function useFeatureFlags() {
   const [flags, setFlags] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const reload = useCallback(async () => {
-    const { data } = await supabase.from("feature_flags").select("*");
-    if (data) {
-      const map = {};
-      data.forEach(f => { map[f.id] = f; });
-      setFlags(map);
-    }
+  const fetchFlags = useCallback(async () => {
+    const { data, error } = await supabase.from("feature_flags").select("*");
+    if (error) throw error;
+
+    const map = {};
+    (data || []).forEach(f => { map[f.id] = f; });
+    return map;
   }, []);
 
-  useEffect(() => { reload(); }, [reload]);
+  const reload = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const map = await fetchFlags();
+      setFlags(map);
+    } catch (e) {
+      setError(e?.message || "Feature Flags konnten nicht geladen werden.");
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchFlags]);
 
-  return { flags, reload };
+  useEffect(() => {
+    let active = true;
+
+    fetchFlags()
+      .then(map => {
+        if (!active) return;
+        setFlags(map);
+        setError(null);
+      })
+      .catch(e => {
+        if (active) setError(e?.message || "Feature Flags konnten nicht geladen werden.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => { active = false; };
+  }, [fetchFlags]);
+
+  return { flags, loading, error, reload };
 }
 
 // ════════════════════════════════════════════════════════════
@@ -318,6 +359,13 @@ export default function App() {
   const [kat, setKat]                   = useState("Alle");
   const [sort, setSort]                 = useState("default");
   const [showSignIn, setShowSignIn]     = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutMsg, setCheckoutMsg] = useState(() => {
+    const status = new URLSearchParams(window.location.search).get("premium");
+    if (status === "success") return { type: "ok", text: "Premium freigeschaltet. Danke für dein Abo." };
+    if (status === "canceled") return { type: "warn", text: "Checkout abgebrochen. Es wurde nichts berechnet." };
+    return null;
+  });
 
   // Admin state
   const [adminFlagDraft, setAdminFlagDraft]   = useState({});
@@ -330,13 +378,19 @@ export default function App() {
   const [adminRoleSelected, setAdminRoleSelected] = useState({});
   const [bootstrapMsg, setBootstrapMsg]       = useState(null);
 
-  const { recipes, loading }  = useRecipes();
-  const { flags, reload: reloadFlags } = useFeatureFlags();
+  const { recipes, loading: recipesLoading, error: recipesError, reload: reloadRecipes }  = useRecipes();
+  const { flags, loading: flagsLoading, error: flagsError, reload: reloadFlags } = useFeatureFlags();
   const { isSignedIn, user }  = useUser();
   const { getToken }          = useAuth();
   const userRole              = getUserRole(user, isSignedIn);
   const isPremium             = userRole === "premium" || userRole === "admin";
-  const premiumSuccess        = new URLSearchParams(window.location.search).get("premium") === "success";
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("premium")) return;
+    url.searchParams.delete("premium");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }, []);
 
   // Admin fetch helper (always sends Bearer token)
   const adminFetch = useCallback(async (url, options = {}) => {
@@ -367,13 +421,21 @@ export default function App() {
 
   const startCheckout = async () => {
     if (!isSignedIn) { setShowSignIn(true); return; }
-    const res = await fetch("/api/create-checkout-session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: user.id, userEmail: user.primaryEmailAddress?.emailAddress }),
-    });
-    const { url } = await res.json();
-    if (url) window.location.href = url;
+    setCheckoutLoading(true);
+    setCheckoutMsg(null);
+    try {
+      const res = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, userEmail: user.primaryEmailAddress?.emailAddress }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.url) throw new Error(data.error || "Checkout konnte nicht gestartet werden.");
+      window.location.href = data.url;
+    } catch (e) {
+      setCheckoutMsg({ type: "err", text: e?.message || "Checkout konnte nicht gestartet werden." });
+      setCheckoutLoading(false);
+    }
   };
 
   const n = k => parseFloat(vals[k]) || 0;
@@ -484,7 +546,9 @@ export default function App() {
     ...(userRole === "admin" ? [{ id: "admin", label: "Admin" }] : []),
   ].filter(t => t.id === "admin" || isTabEnabled(t.id));
 
-  useEffect(() => { if (isSignedIn) setShowSignIn(false); }, [isSignedIn]);
+  useEffect(() => {
+    if (isSignedIn) queueMicrotask(() => setShowSignIn(false));
+  }, [isSignedIn]);
 
   // ── Shared style fragments ──
   const card = { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 20, padding: "20px 22px", marginBottom: 16, boxShadow: sh.xs };
@@ -520,10 +584,21 @@ export default function App() {
         </div>
       )}
 
-      {/* Premium success */}
-      {premiumSuccess && (
-        <div style={{ background: C.green, color: "#fff", textAlign: "center", padding: "12px 16px", fontSize: 14, fontWeight: 600, fontFamily: FB }}>
-          🎉 Premium freigeschaltet! Danke für dein Abo.
+      {/* Checkout status */}
+      {checkoutMsg && (
+        <div style={{
+          background: checkoutMsg.type === "ok" ? C.green : checkoutMsg.type === "warn" ? C.premBg : "#FEE2E2",
+          color: checkoutMsg.type === "ok" ? "#fff" : checkoutMsg.type === "warn" ? C.premText : "#991B1B",
+          borderBottom: checkoutMsg.type === "ok" ? "none" : `1px solid ${checkoutMsg.type === "warn" ? C.premBorder : "#FCA5A5"}`,
+          textAlign: "center", padding: "12px 16px", fontSize: 14, fontWeight: 600, fontFamily: FB,
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 12, flexWrap: "wrap",
+        }}>
+          <span>{checkoutMsg.text}</span>
+          <button
+            onClick={() => setCheckoutMsg(null)}
+            style={{ border: "none", background: "rgba(255,255,255,.24)", color: "inherit", borderRadius: 999, padding: "4px 10px", fontFamily: FB, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+            Schließen
+          </button>
         </div>
       )}
 
@@ -537,8 +612,9 @@ export default function App() {
               🌿 Tagesbudget &amp; mehr freischalten
             </span>
             <button onClick={startCheckout} className="btn-primary"
-              style={{ background: `linear-gradient(135deg, ${C.coin} 0%, #A34D08 100%)`, color: "#fff", border: "none", borderRadius: 9, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FB, whiteSpace: "nowrap", boxShadow: "0 2px 8px rgba(198,123,92,.3)" }}>
-              Premium – 2,99 €/Monat
+              disabled={checkoutLoading}
+              style={{ background: `linear-gradient(135deg, ${C.coin} 0%, #A34D08 100%)`, color: "#fff", border: "none", borderRadius: 9, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: checkoutLoading ? "wait" : "pointer", fontFamily: FB, whiteSpace: "nowrap", boxShadow: "0 2px 8px rgba(198,123,92,.3)", opacity: checkoutLoading ? .75 : 1 }}>
+              {checkoutLoading ? "Weiterleitung…" : "Premium – 2,99 €/Monat"}
             </button>
           </div>
         )}
@@ -684,10 +760,10 @@ export default function App() {
             <p style={{ fontSize: 14, color: C.sub, lineHeight: 1.75, maxWidth: 340, margin: "0 auto 28px", fontFamily: FB }}>
               Das persönliche Tagesbudget ist exklusiv für Premium-Mitglieder verfügbar.
             </p>
-            <button className="btn-primary" onClick={startCheckout}
-              style={{ ...primaryBtn(true), width: "auto", padding: "14px 32px", display: "inline-block" }}>
-              🌿 Premium – 2,99 €/Monat
-            </button>
+              <button className="btn-primary" onClick={startCheckout} disabled={checkoutLoading}
+                style={{ ...primaryBtn(true), width: "auto", padding: "14px 32px", display: "inline-block", cursor: checkoutLoading ? "wait" : "pointer", opacity: checkoutLoading ? .75 : 1 }}>
+                {checkoutLoading ? "Weiterleitung…" : "🌿 Premium – 2,99 €/Monat"}
+              </button>
           </div>
         )}
 
@@ -747,7 +823,11 @@ export default function App() {
                 Rezepte von weight friends
               </div>
               <div style={{ fontSize: 13, color: C.sub, marginBottom: 16, fontFamily: FB }}>
-                {loading ? "Rezepte werden geladen…" : `${recipes.length} Rezepte mit Coins-Werten – direkt von weightfriends.at`}
+                {recipesLoading
+                  ? "Rezepte werden geladen…"
+                  : recipesError
+                    ? "Rezepte sind gerade nicht erreichbar."
+                    : `${recipes.length} Rezepte mit Coins-Werten – direkt von weightfriends.at`}
               </div>
               <input className="app-input" style={{ ...inputStyle, marginBottom: 14 }} placeholder="Rezept oder Zutat suchen…" value={search} onChange={e => setSearch(e.target.value)} />
               <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 10 }}>
@@ -759,13 +839,27 @@ export default function App() {
                 ))}
               </div>
             </div>
-            {loading ? (
+            {recipesLoading ? (
               <div style={{ ...card, textAlign: "center", color: C.muted, padding: "44px 24px" }}>
                 <div style={{ fontSize: 28, marginBottom: 10 }}>🌿</div>
                 <span style={{ fontFamily: FB }}>Rezepte werden geladen…</span>
               </div>
+            ) : recipesError ? (
+              <div style={{ ...card, textAlign: "center", color: C.sub, padding: "44px 24px", fontFamily: FB }}>
+                <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 21, color: C.coinText, marginBottom: 8 }}>
+                  Rezepte konnten nicht geladen werden
+                </div>
+                <p style={{ margin: "0 auto 18px", maxWidth: 440, fontSize: 13, lineHeight: 1.7 }}>
+                  Die Verbindung zu Supabase ist fehlgeschlagen. Bitte prüfe die Verbindung oder versuche es erneut.
+                </p>
+                <button onClick={reloadRecipes} className="btn-primary" style={{ ...primaryBtn(false), width: "auto", padding: "12px 24px", display: "inline-block", marginTop: 0 }}>
+                  Erneut laden
+                </button>
+              </div>
             ) : filteredRecipes.length === 0 ? (
-              <div style={{ ...card, textAlign: "center", color: C.muted, padding: "44px 24px", fontFamily: FB }}>Keine Rezepte gefunden.</div>
+              <div style={{ ...card, textAlign: "center", color: C.muted, padding: "44px 24px", fontFamily: FB }}>
+                {recipes.length === 0 ? "Noch keine Rezepte vorhanden." : "Keine Rezepte gefunden."}
+              </div>
             ) : (
               <div className="recipe-grid">
                 {filteredRecipes.map(r => <RecipeCard key={r.id} recipe={r} selected={openRecipe === r.id} onSelect={setOpenRecipe} />)}
@@ -818,8 +912,9 @@ export default function App() {
               </ul>
               {!isPremium && (
                 <button onClick={startCheckout} className="btn-primary"
-                  style={{ ...primaryBtn(true), marginTop: 0, width: "auto", padding: "12px 28px", display: "inline-block", fontSize: 14 }}>
-                  🌿 Jetzt Premium werden – 2,99 €/Monat
+                  disabled={checkoutLoading}
+                  style={{ ...primaryBtn(true), marginTop: 0, width: "auto", padding: "12px 28px", display: "inline-block", fontSize: 14, cursor: checkoutLoading ? "wait" : "pointer", opacity: checkoutLoading ? .75 : 1 }}>
+                  {checkoutLoading ? "Weiterleitung…" : "🌿 Jetzt Premium werden – 2,99 €/Monat"}
                 </button>
               )}
               {isPremium && (
@@ -896,7 +991,7 @@ export default function App() {
             </p>
             {flags?.[`tab_${tab}`]?.required_role === "user"
               ? <button onClick={() => setShowSignIn(true)} className="btn-primary" style={{ ...primaryBtn(false), width: "auto", padding: "14px 32px", display: "inline-block" }}>Jetzt anmelden</button>
-              : <button onClick={startCheckout} className="btn-primary" style={{ ...primaryBtn(true), width: "auto", padding: "14px 32px", display: "inline-block" }}>🌿 Premium – 2,99 €/Monat</button>
+              : <button onClick={startCheckout} disabled={checkoutLoading} className="btn-primary" style={{ ...primaryBtn(true), width: "auto", padding: "14px 32px", display: "inline-block", cursor: checkoutLoading ? "wait" : "pointer", opacity: checkoutLoading ? .75 : 1 }}>{checkoutLoading ? "Weiterleitung…" : "🌿 Premium – 2,99 €/Monat"}</button>
             }
           </div>
         )}
@@ -923,7 +1018,18 @@ export default function App() {
                 Als Admin siehst du immer alles, unabhängig von diesen Einstellungen.
               </p>
 
-              {flags ? (
+              {flagsLoading ? (
+                <div style={{ color: C.muted, fontFamily: FB, fontSize: 13 }}>Lade Flags…</div>
+              ) : flagsError ? (
+                <div style={{ background: "#FEE2E2", border: "1px solid #FCA5A5", color: "#991B1B", borderRadius: 10, padding: "12px 14px", fontFamily: FB, fontSize: 13, lineHeight: 1.6 }}>
+                  <div style={{ fontWeight: 700, marginBottom: 8 }}>Feature Flags konnten nicht geladen werden.</div>
+                  <button
+                    onClick={reloadFlags}
+                    style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: "#991B1B", color: "#fff", fontSize: 12, fontWeight: 700, fontFamily: FB, cursor: "pointer" }}>
+                    Erneut laden
+                  </button>
+                </div>
+              ) : flags ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {FLAG_DEFS.map(def => {
                     const current = flags[def.id] || {};
@@ -976,9 +1082,7 @@ export default function App() {
                     );
                   })}
                 </div>
-              ) : (
-                <div style={{ color: C.muted, fontFamily: FB, fontSize: 13 }}>Lade Flags…</div>
-              )}
+              ) : null}
 
               {adminFlagMsg && (
                 <div style={{ marginTop: 12, padding: "8px 14px", borderRadius: 9, background: adminFlagMsg.type === "ok" ? C.greenPale : "#FEE2E2", color: adminFlagMsg.type === "ok" ? C.green2 : "#991B1B", fontSize: 13, fontWeight: 600, fontFamily: FB }}>

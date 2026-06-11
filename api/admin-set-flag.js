@@ -2,6 +2,8 @@ import { createClerkClient, verifyToken } from "@clerk/backend";
 import { createClient } from "@supabase/supabase-js";
 
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 async function requireAdmin(token) {
   const payload = await verifyToken(token, {
@@ -32,10 +34,13 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Ungültige Rolle" });
   }
 
-  const supabase = createClient(
-    process.env.VITE_SUPABASE_URL,
-    process.env.VITE_SUPABASE_ANON_KEY
-  );
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    return res.status(500).json({ error: "Supabase Admin-Konfiguration fehlt" });
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
+    auth: { persistSession: false },
+  });
 
   const updates = { updated_at: new Date().toISOString() };
   if (required_role !== undefined) updates.required_role = required_role;

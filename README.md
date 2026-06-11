@@ -105,6 +105,7 @@ Standard-Einträge: `tab_calc`, `tab_budget`, `tab_recipes`, `tab_info`
 |---|---|
 | `VITE_SUPABASE_URL` | Supabase Projekt-URL |
 | `VITE_SUPABASE_ANON_KEY` | Supabase Anon Key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase Service Role Key für serverseitige Admin-Writes |
 | `VITE_CLERK_PUBLISHABLE_KEY` | Clerk Publishable Key |
 | `CLERK_SECRET_KEY` | Clerk Secret Key (Server-only) |
 | `STRIPE_SECRET_KEY` | Stripe Secret Key |
@@ -117,6 +118,7 @@ Standard-Einträge: `tab_calc`, `tab_budget`, `tab_recipes`, `tab_info`
 ```env
 VITE_SUPABASE_URL=https://...supabase.co
 VITE_SUPABASE_ANON_KEY=eyJ...
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
 CLERK_SECRET_KEY=sk_test_...
 STRIPE_SECRET_KEY=sk_test_...
@@ -133,6 +135,8 @@ ADMIN_EMAILS=deine@email.com
 npm install
 npm run dev
 ```
+
+Die aktive App liegt im Repository-Root. Der verschachtelte Ordner `ww-points-calculator/` ist eine Legacy-Kopie und wird nicht für Build, Lint oder Deployment verwendet.
 
 Für lokale Stripe Webhooks:
 ```bash
