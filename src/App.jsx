@@ -12,6 +12,7 @@ import TabBudget from "./components/tabs/TabBudget";
 import TabRecipes from "./components/tabs/TabRecipes";
 import TabInfo from "./components/tabs/TabInfo";
 import TabAdmin from "./components/tabs/TabAdmin";
+import InstallBanner from "./components/InstallBanner";
 
 export default function App() {
   const [tab, setTab]             = useState("calc");
@@ -326,6 +327,8 @@ export default function App() {
         )}
 
       </main>
+
+      <InstallBanner />
     </div>
   );
 }

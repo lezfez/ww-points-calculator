@@ -1,6 +1,6 @@
 {
-  "name": "WW & weight friends Rechner",
-  "short_name": "wf Rechner",
+  "name": "WampeWeg. Gewichtsreduktionsplaner mit Systemrechner",
+  "short_name": "WampeWeg",
   "description": "Coins, PersonalPoints, SmartPoints, ProPoints schnell berechnen",
   "start_url": "/",
   "scope": "/",
