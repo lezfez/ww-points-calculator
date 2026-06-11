@@ -230,7 +230,14 @@ export default function App() {
             </button>
           </SignedOut>
           <SignedIn>
-            <UserButton appearance={{ elements: { avatarBox: { width: 38, height: 38 } } }} />
+            <div style={{ position: "relative", display: "inline-flex" }}>
+              <UserButton appearance={{ elements: { avatarBox: { width: 38, height: 38 } } }} />
+              {isPremium && (
+                <span style={{ position: "absolute", top: -8, right: -6, fontSize: 14, lineHeight: 1, pointerEvents: "none", filter: "drop-shadow(0 1px 2px rgba(0,0,0,.4))" }}>
+                  👑
+                </span>
+              )}
+            </div>
           </SignedIn>
         </header>
 
