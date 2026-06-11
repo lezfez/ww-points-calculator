@@ -1,9 +1,12 @@
-import { createClerkClient } from "@clerk/backend";
+import { createClerkClient, verifyToken } from "@clerk/backend";
 
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 
 async function requireAdmin(token) {
-  const payload = await clerk.verifyToken(token);
+  const payload = await verifyToken(token, {
+    secretKey: process.env.CLERK_SECRET_KEY,
+    clockSkewInMs: 60000,
+  });
   const user = await clerk.users.getUser(payload.sub);
   if (user.publicMetadata?.role !== "admin") throw new Error("Forbidden");
 }

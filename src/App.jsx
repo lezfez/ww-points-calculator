@@ -318,6 +318,7 @@ export default function App() {
   // Admin fetch helper (always sends Bearer token)
   const adminFetch = useCallback(async (url, options = {}) => {
     const token = await getToken();
+    if (!token) throw new Error("Kein Session-Token – bitte neu einloggen.");
     return fetch(url, {
       ...options,
       headers: {
@@ -430,10 +431,11 @@ export default function App() {
     try {
       const res = await adminFetch("/api/admin-bootstrap", { method: "POST" });
       const data = await res.json();
-      setBootstrapMsg(data.message || data.error || "Unbekannte Antwort");
+      const msg = data.message || data.error || "Unbekannte Antwort";
+      setBootstrapMsg(data.detail ? `${msg} (${data.detail})` : msg);
       if (data.success) setTimeout(() => window.location.reload(), 1500);
-    } catch {
-      setBootstrapMsg("Netzwerkfehler");
+    } catch (e) {
+      setBootstrapMsg(e?.message || "Netzwerkfehler");
     }
   };
 
@@ -734,6 +736,55 @@ export default function App() {
         {/* ══ INFO ══ */}
         {tab === "info" && !isTabLocked("info") && (
           <div className="tab-content">
+
+            {/* App-Beschreibung */}
+            <div style={{ ...card, background: `linear-gradient(135deg, ${C.greenPale} 0%, ${C.surface} 100%)`, borderColor: "rgba(34,139,34,.18)" }}>
+              <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 22, color: C.green2, marginBottom: 8 }}>
+                Über diese App
+              </div>
+              <p style={{ fontSize: 13, lineHeight: 1.85, color: C.text, marginBottom: 14, fontFamily: FB }}>
+                Der <strong>WW &amp; weight friends Punkte-Rechner</strong> hilft dir dabei, Lebensmittel schnell und einfach
+                in allen gängigen Punktesystemen zu bewerten – egal ob du gerade bei weight friends oder WW bist,
+                oder einfach mehrere Systeme vergleichen möchtest.
+              </p>
+              <p style={{ fontSize: 13, lineHeight: 1.85, color: C.text, marginBottom: 0, fontFamily: FB }}>
+                Gib einfach die Nährwerte vom Etikett ein und erhalte sofort die Punkte für alle fünf Systeme gleichzeitig:
+                weight friends Coins, WW PersonalPoints™, SmartPoints™, ProPoints™ und Classic Points.
+              </p>
+            </div>
+
+            {/* Premium-Vorteile */}
+            <div style={{ ...card, background: C.premBg, borderColor: C.premBorder }}>
+              <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 18, color: C.premText, marginBottom: 12 }}>
+                🌟 Premium-Vorteile
+              </div>
+              <ul style={{ fontSize: 13, lineHeight: 2.1, color: C.text, paddingLeft: 0, marginBottom: 16, fontFamily: FB, listStyle: "none" }}>
+                <li style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <span style={{ color: C.coin, fontWeight: 700, flexShrink: 0 }}>✦</span>
+                  <span><b>Persönliches Tagesbudget</b> – berechne dein individuelles Tages-Limit für Coins und WW-Punkte basierend auf deinem Körpergewicht, deiner Größe, deinem Alter und deiner Aktivität.</span>
+                </li>
+                <li style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <span style={{ color: C.coin, fontWeight: 700, flexShrink: 0 }}>✦</span>
+                  <span><b>Zugang zu weiteren Funktionen</b> – zukünftige Premium-Features wie Lebensmittel-Favoriten, Tagesprotokoll und Produktdatenbank stehen dir als Erster zur Verfügung.</span>
+                </li>
+                <li style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <span style={{ color: C.coin, fontWeight: 700, flexShrink: 0 }}>✦</span>
+                  <span><b>Unterstützung der Weiterentwicklung</b> – mit deinem Abo hilfst du dabei, die App weiterzuentwickeln und neue Rezepte, Formeln und Funktionen hinzuzufügen.</span>
+                </li>
+              </ul>
+              {!isPremium && (
+                <button onClick={startCheckout} className="btn-primary"
+                  style={{ ...primaryBtn(true), marginTop: 0, width: "auto", padding: "12px 28px", display: "inline-block", fontSize: 14 }}>
+                  🌿 Jetzt Premium werden – 2,99 €/Monat
+                </button>
+              )}
+              {isPremium && (
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: C.greenPale, border: `1px solid rgba(34,139,34,.2)`, borderRadius: 10, padding: "10px 16px", fontFamily: FB, fontSize: 13, fontWeight: 700, color: C.green2 }}>
+                  ✓ Du bist Premium-Mitglied
+                </div>
+              )}
+            </div>
+
             <div style={card}>
               <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 20, color: C.green, marginBottom: 12 }}>
                 🌿 weight friends Coins – wie funktioniert's?
