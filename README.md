@@ -19,7 +19,7 @@ Berechnet alle fünf Systeme parallel aus Nährwertangaben:
 Persönliches Tages-Budget via Mifflin-St-Jeor-Formel (Grundumsatz × Aktivitätsfaktor) – gibt empfohlene Coins/Tag und WW Points/Tag aus.
 
 ### WF Rezepte
-Rezepte von weightfriends.at mit Coins-Werten, Kategoriefilter, Textsuche und Sortierung nach Coins.
+Rezepte von weightfriends.at mit Coins-Werten, Kategoriefilter, Textsuche und Sortierung nach Coins. Lade-, Fehler- und Leerzustände werden getrennt angezeigt; bei Supabase-Fehlern gibt es einen erneuten Ladeversuch.
 
 ### Info
 Hintergründe zu den Formeln und zur Herleitung der weight friends Coins-Formel.
@@ -27,6 +27,9 @@ Hintergründe zu den Formeln und zur Herleitung der weight friends Coins-Formel.
 ### Admin-Bereich (nur Admin-Rolle)
 - **Zugriffssteuerung**: Mindestrolle pro Tab konfigurieren (Gast / Registriert / Premium / Admin), Tabs deaktivieren
 - **Benutzerverwaltung**: Clerk-User per E-Mail suchen, Rollen zuweisen
+
+### Checkout UX
+Stripe-Checkout-Rückgaben über `?premium=success` und `?premium=canceled` werden als Statusbanner angezeigt. Der Query-Parameter wird danach aus der URL entfernt.
 
 ---
 
@@ -40,6 +43,21 @@ Hintergründe zu den Formeln und zur Herleitung der weight friends Coins-Formel.
 | Datenbank | Supabase (Rezepte + Feature Flags) |
 | Payments | Stripe (monatliches Premium-Abo) |
 | Hosting | Vercel (Serverless Functions in `/api/`) |
+| Tests | Node Test Runner (`node --test`) |
+
+---
+
+## Projektstruktur
+
+| Pfad | Zweck |
+|---|---|
+| `src/App.jsx` | Haupt-App, UI, Hooks, Rollenlogik, Admin-UI |
+| `src/lib/points.js` | Pure Berechnungsfunktionen für Punkte und Tagesbudget |
+| `src/supabase.js` | Browser-Supabase-Client mit Anon-Key |
+| `api/` | Vercel Serverless Functions für Stripe, Clerk und Admin-Aktionen |
+| `test/points.test.js` | Charakterisierungstests für die Punkteformeln |
+| `vite.config.js` | Vite, PWA und manuelles Chunk-Splitting |
+| `ww-points-calculator/` | Legacy-Kopie, nicht aktiv für Build/Lint/Deployment |
 
 ---
 
@@ -67,9 +85,11 @@ Rollen werden in Clerk `publicMetadata.role` gespeichert. `isPremium: true` wird
 | `/api/admin-bootstrap` | POST | Setzt eigene Rolle auf `admin` (E-Mail muss in `ADMIN_EMAILS` stehen) |
 | `/api/admin-get-users` | GET | Listet Clerk-User (Admin-only, max. 25, Suche per `?query=`) |
 | `/api/admin-set-role` | POST | Setzt Rolle eines Users in Clerk (Admin-only) |
-| `/api/admin-set-flag` | POST | Aktualisiert Feature Flag in Supabase (Admin-only) |
+| `/api/admin-set-flag` | POST | Aktualisiert Feature Flag in Supabase mit Service-Role-Key (Admin-only) |
 
 Alle Admin-Endpoints verifizieren den Clerk JWT (`Authorization: Bearer <token>`) und prüfen `publicMetadata.role === "admin"`.
+
+`/api/admin-set-flag` benötigt zusätzlich `SUPABASE_SERVICE_ROLE_KEY`. Fehlt diese Variable, schlägt der Endpoint bewusst fehl, statt mit dem öffentlichen Anon-Key zu schreiben.
 
 ---
 
@@ -105,6 +125,7 @@ Standard-Einträge: `tab_calc`, `tab_budget`, `tab_recipes`, `tab_info`
 |---|---|
 | `VITE_SUPABASE_URL` | Supabase Projekt-URL |
 | `VITE_SUPABASE_ANON_KEY` | Supabase Anon Key |
+| `SUPABASE_URL` | Optional: serverseitige Supabase URL; fällt auf `VITE_SUPABASE_URL` zurück |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase Service Role Key für serverseitige Admin-Writes |
 | `VITE_CLERK_PUBLISHABLE_KEY` | Clerk Publishable Key |
 | `CLERK_SECRET_KEY` | Clerk Secret Key (Server-only) |
@@ -118,6 +139,7 @@ Standard-Einträge: `tab_calc`, `tab_budget`, `tab_recipes`, `tab_info`
 ```env
 VITE_SUPABASE_URL=https://...supabase.co
 VITE_SUPABASE_ANON_KEY=eyJ...
+SUPABASE_URL=https://...supabase.co
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
 CLERK_SECRET_KEY=sk_test_...
@@ -142,6 +164,22 @@ Für lokale Stripe Webhooks:
 ```bash
 stripe listen --forward-to localhost:5173/api/stripe-webhook
 ```
+
+---
+
+## Qualitätssicherung
+
+```bash
+npm run lint
+npm run test
+npm run build
+```
+
+- `npm run lint` prüft `src/`, `api/` und `vite.config.js` mit getrennten Browser-/Node-Globals.
+- `npm run test` führt Formeltests über den Node Test Runner aus.
+- `npm run build` erstellt den Vite/PWA-Produktionsbuild.
+
+Der Build splittet große Abhängigkeiten (`clerk`, `supabase`, übrige `vendor`) in separate Chunks, damit der App-Entry klein bleibt.
 
 ---
 

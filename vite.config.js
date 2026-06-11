@@ -18,7 +18,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'icon.svg', 'icon-maskable.svg'],
+      includeAssets: ['icon.svg', 'icon-maskable.svg'],
       manifest: {
         name: 'WW & weight friends Rechner',
         short_name: 'wf Rechner',
