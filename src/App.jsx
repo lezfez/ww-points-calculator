@@ -281,6 +281,29 @@ function RoleBadge({ role }) {
 }
 
 // ════════════════════════════════════════════════════════════
+// BOTTOM NAV ICONS
+// ════════════════════════════════════════════════════════════
+function TAB_ICON({ id }) {
+  const props = { width: 22, height: 22, viewBox: "0 0 24 24", fill: "currentColor" };
+  if (id === "calc") return (
+    <svg {...props}><rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/></svg>
+  );
+  if (id === "budget") return (
+    <svg {...props}><rect x="2" y="14" width="5" height="8" rx="1"/><rect x="9.5" y="9" width="5" height="13" rx="1"/><rect x="17" y="5" width="5" height="17" rx="1"/></svg>
+  );
+  if (id === "recipes") return (
+    <svg {...props}><path d="M12 3C9.5 6 8 9 8 13a4 4 0 008 0c0-4-1.5-7-4-10z"/><rect x="11" y="17" width="2" height="4" rx="1"/></svg>
+  );
+  if (id === "info") return (
+    <svg {...props}><path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm0 4a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm1 13h-2v-7h2v7z"/></svg>
+  );
+  if (id === "admin") return (
+    <svg {...props}><path d="M12 2L4 5.5V11c0 5 3.3 9.7 8 11 4.7-1.3 8-6 8-11V5.5L12 2z"/></svg>
+  );
+  return null;
+}
+
+// ════════════════════════════════════════════════════════════
 // MAIN APP
 // ════════════════════════════════════════════════════════════
 export default function App() {
@@ -504,76 +527,97 @@ export default function App() {
         </div>
       )}
 
-      {/* Upgrade banner */}
-      {isSignedIn && !isPremium && (
-        <div style={{ background: C.premBg, borderBottom: `1px solid ${C.premBorder}`, padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 13, color: C.premText, fontWeight: 600, fontFamily: FB }}>
-            🌿 Tagesbudget &amp; mehr freischalten
-          </span>
-          <button onClick={startCheckout} className="btn-primary"
-            style={{ background: `linear-gradient(135deg, ${C.coin} 0%, #A34D08 100%)`, color: "#fff", border: "none", borderRadius: 9, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FB, whiteSpace: "nowrap", boxShadow: "0 2px 8px rgba(198,123,92,.3)" }}>
-            Premium – 2,99 €/Monat
-          </button>
-        </div>
-      )}
+      {/* ── Sticky Shell: Header + Upgrade-Banner + Nav ── */}
+      <div className="sticky-shell">
 
-      {/* Header */}
-      <header style={{ background: `linear-gradient(135deg, ${C.green2} 0%, ${C.green} 60%, ${C.greenMid} 100%)`, padding: "14px 20px", display: "flex", alignItems: "center", gap: 14 }}>
-        <div style={{ width: 46, height: 46, borderRadius: 14, flexShrink: 0, background: "rgba(255,255,255,.15)", border: "1.5px solid rgba(255,255,255,.25)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 18 }}>
-          wf
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 19, color: "#fff", letterSpacing: "-.01em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            weight friends &amp; WW Rechner
+        {/* Upgrade banner */}
+        {isSignedIn && !isPremium && (
+          <div style={{ background: C.premBg, borderBottom: `1px solid ${C.premBorder}`, padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 13, color: C.premText, fontWeight: 600, fontFamily: FB }}>
+              🌿 Tagesbudget &amp; mehr freischalten
+            </span>
+            <button onClick={startCheckout} className="btn-primary"
+              style={{ background: `linear-gradient(135deg, ${C.coin} 0%, #A34D08 100%)`, color: "#fff", border: "none", borderRadius: 9, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FB, whiteSpace: "nowrap", boxShadow: "0 2px 8px rgba(198,123,92,.3)" }}>
+              Premium – 2,99 €/Monat
+            </button>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3 }}>
-            <div style={{ fontSize: 10, color: "rgba(255,255,255,.65)", letterSpacing: ".08em", textTransform: "uppercase", fontFamily: FB }}>
-              Coins · PersonalPoints · SmartPoints · ProPoints
+        )}
+
+        {/* Header */}
+        <header className="app-header" style={{ background: `linear-gradient(135deg, ${C.green2} 0%, ${C.green} 60%, ${C.greenMid} 100%)`, padding: "14px 20px", display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 46, height: 46, borderRadius: 14, flexShrink: 0, background: "rgba(255,255,255,.15)", border: "1.5px solid rgba(255,255,255,.25)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 18 }}>
+            wf
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 19, color: "#fff", letterSpacing: "-.01em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              weight friends &amp; WW Rechner
             </div>
-            {isSignedIn && (
-              <span style={{ fontSize: 10, background: "rgba(255,255,255,.15)", color: "#fff", borderRadius: 999, padding: "2px 8px", fontFamily: FB, letterSpacing: ".04em", fontWeight: 600 }}>
-                {ROLE_LABELS[userRole]}
-              </span>
-            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3 }}>
+              <div style={{ fontSize: 10, color: "rgba(255,255,255,.65)", letterSpacing: ".08em", textTransform: "uppercase", fontFamily: FB }}>
+                Coins · PersonalPoints · SmartPoints · ProPoints
+              </div>
+              {isSignedIn && (
+                <span style={{ fontSize: 10, background: "rgba(255,255,255,.15)", color: "#fff", borderRadius: 999, padding: "2px 8px", fontFamily: FB, letterSpacing: ".04em", fontWeight: 600 }}>
+                  {ROLE_LABELS[userRole]}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-        <SignedOut>
-          <button onClick={() => setShowSignIn(true)}
-            style={{ background: "rgba(255,255,255,.14)", border: "1.5px solid rgba(255,255,255,.3)", color: "#fff", borderRadius: 10, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FB, whiteSpace: "nowrap", flexShrink: 0, minHeight: 44 }}>
-            Anmelden
-          </button>
-        </SignedOut>
-        <SignedIn>
-          <UserButton appearance={{ elements: { avatarBox: { width: 38, height: 38 } } }} />
-        </SignedIn>
-      </header>
+          <SignedOut>
+            <button onClick={() => setShowSignIn(true)}
+              style={{ background: "rgba(255,255,255,.14)", border: "1.5px solid rgba(255,255,255,.3)", color: "#fff", borderRadius: 10, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FB, whiteSpace: "nowrap", flexShrink: 0, minHeight: 44 }}>
+              Anmelden
+            </button>
+          </SignedOut>
+          <SignedIn>
+            <UserButton appearance={{ elements: { avatarBox: { width: 38, height: 38 } } }} />
+          </SignedIn>
+        </header>
 
-      {/* Navigation */}
-      <nav className="nav-scroll" style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "10px 16px", display: "flex", gap: 6, overflowX: "auto" }}>
+        {/* Desktop Navigation (auf Mobile ausgeblendet via CSS) */}
+        <nav className="nav-top nav-scroll" style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "10px 16px", display: "flex", gap: 6, overflowX: "auto" }}>
+          {TABS.map(t => {
+            const locked = isTabLocked(t.id);
+            const isAdmin = t.id === "admin";
+            return (
+              <button key={t.id} onClick={() => setTab(t.id)}
+                style={{
+                  padding: "9px 18px", border: "none", borderRadius: 999,
+                  background: tab === t.id ? (isAdmin ? C.adminText : C.green) : "transparent",
+                  color: tab === t.id ? "#fff" : (isAdmin ? C.adminText : C.sub),
+                  fontWeight: tab === t.id ? 700 : 500,
+                  fontSize: 13, fontFamily: FB, cursor: "pointer", whiteSpace: "nowrap",
+                  transition: "background .18s, color .18s",
+                  letterSpacing: ".03em", minHeight: 44,
+                }}>
+                {t.label}{locked ? " 🔒" : ""}
+              </button>
+            );
+          })}
+        </nav>
+
+      </div>{/* /sticky-shell */}
+
+      {/* Mobile Bottom Nav */}
+      <nav className="bottom-nav">
         {TABS.map(t => {
-          const locked = isTabLocked(t.id);
+          const locked  = isTabLocked(t.id);
+          const active  = tab === t.id;
           const isAdmin = t.id === "admin";
+          const color   = active ? (isAdmin ? C.adminText : C.green) : C.muted;
           return (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              style={{
-                padding: "9px 18px", border: "none", borderRadius: 999,
-                background: tab === t.id
-                  ? (isAdmin ? C.adminText : C.green)
-                  : "transparent",
-                color: tab === t.id ? "#fff" : (isAdmin ? C.adminText : C.sub),
-                fontWeight: tab === t.id ? 700 : 500,
-                fontSize: 13, fontFamily: FB, cursor: "pointer", whiteSpace: "nowrap",
-                transition: "background .18s, color .18s",
-                letterSpacing: ".03em", minHeight: 44,
-              }}>
-              {t.label}{locked ? " 🔒" : ""}
+            <button key={t.id} className="bottom-nav-btn"
+              onClick={() => setTab(t.id)}
+              style={{ color, fontFamily: FB }}>
+              <TAB_ICON id={t.id} />
+              <span>{t.label}{locked ? " 🔒" : ""}</span>
             </button>
           );
         })}
       </nav>
 
       {/* Main */}
-      <main style={{ maxWidth: 860, margin: "0 auto", padding: "22px 16px 80px" }}>
+      <main className="main-content" style={{ maxWidth: 860, margin: "0 auto", padding: "22px 16px 80px" }}>
 
         {/* ══ BERECHNEN ══ */}
         {tab === "calc" && !isTabLocked("calc") && (

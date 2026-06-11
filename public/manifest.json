@@ -1,0 +1,15 @@
+{
+  "name": "WW & weight friends Rechner",
+  "short_name": "wf Rechner",
+  "description": "Coins, PersonalPoints, SmartPoints, ProPoints schnell berechnen",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F5F0E8",
+  "theme_color": "#228B22",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

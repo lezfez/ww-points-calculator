@@ -1,8 +1,14 @@
 /* Reset */
 *, *::before, *::after { box-sizing: border-box; }
-body { margin: 0; padding: 0; }
+body {
+  margin: 0;
+  padding: 0;
+  overscroll-behavior: none;          /* kein Browser-Bounce */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
 
-/* Root: full width, no old cramped constraints */
+/* Root */
 #root {
   min-height: 100svh;
   width: 100%;
@@ -20,6 +26,11 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 /* Placeholder */
 input::placeholder { color: #B8B0A4; }
 
+/* iOS – verhindert Auto-Zoom beim Fokussieren von Inputs */
+@media (max-width: 767px) {
+  input, select, textarea { font-size: 16px !important; }
+}
+
 /* Focus states – green ring */
 .app-input:focus,
 .app-select:focus {
@@ -28,17 +39,26 @@ input::placeholder { color: #B8B0A4; }
   outline: none;
 }
 
+/* Buttons: touch-action für kein 300ms Delay */
+button, a { touch-action: manipulation; }
+
 /* Hide scrollbar (nav) */
 .nav-scroll { scrollbar-width: none; -ms-overflow-style: none; }
 .nav-scroll::-webkit-scrollbar { display: none; }
 
-/* Responsive grids */
+/* ── Sticky Shell: Header + Nav kleben oben ── */
+.sticky-shell {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+}
+
+/* ── Responsive grids ── */
 .field-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
   gap: 12px 16px;
 }
-
 .recipe-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -46,32 +66,86 @@ input::placeholder { color: #B8B0A4; }
   align-items: start;
 }
 
-/* Tab content animation */
-.tab-content {
-  animation: fadeUp .2s ease both;
-}
+/* ── Tab content animation ── */
+.tab-content { animation: fadeUp .2s ease both; }
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(5px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Button animations */
-.btn-primary {
-  transition: filter .15s, transform .1s, box-shadow .15s;
-}
-.btn-primary:hover { filter: brightness(1.07); transform: translateY(-1px); }
-.btn-primary:active { transform: translateY(0); filter: brightness(0.97); }
+/* ── Button hover/active ── */
+.btn-primary { transition: filter .15s, transform .1s, box-shadow .15s; }
+.btn-primary:hover  { filter: brightness(1.07); transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0);  filter: brightness(0.97); }
 
-/* Recipe card hover */
-.recipe-card {
-  transition: box-shadow .2s, border-color .2s, transform .15s;
-}
+/* ── Recipe card ── */
+.recipe-card { transition: box-shadow .2s, border-color .2s, transform .15s; }
 .recipe-card:not(.recipe-card--open):hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(28, 27, 24, 0.13), 0 2px 8px rgba(28, 27, 24, 0.08) !important;
+  box-shadow: 0 6px 24px rgba(28,27,24,.13), 0 2px 8px rgba(28,27,24,.08) !important;
 }
 
-/* Reduced motion */
+/* ══ MOBILE BOTTOM NAV ══ */
+.bottom-nav { display: none; }
+
+@media (max-width: 767px) {
+  /* Top-Nav auf Mobile ausblenden */
+  .nav-top { display: none !important; }
+
+  /* Header: safe area oben (notch/status bar bei Standalone) */
+  .app-header {
+    padding-top: max(14px, env(safe-area-inset-top)) !important;
+  }
+
+  /* Hauptinhalt: Platz für Bottom-Nav + safe area */
+  .main-content {
+    padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* Bottom Nav */
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #FDFAF5;
+    border-top: 1px solid #DDD8CC;
+    box-shadow: 0 -2px 16px rgba(28,27,24,.08);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    z-index: 300;
+  }
+
+  .bottom-nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 2px 6px;
+    border: none;
+    background: none;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .03em;
+    gap: 4px;
+    cursor: pointer;
+    min-height: 56px;
+    transition: color .15s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  .bottom-nav-btn svg {
+    flex-shrink: 0;
+    transition: transform .15s;
+  }
+  .bottom-nav-btn:active svg {
+    transform: scale(0.88);
+  }
+}
+
+/* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
   *, .tab-content, .btn-primary, .recipe-card {
     animation: none !important;
