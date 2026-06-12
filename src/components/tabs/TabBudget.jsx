@@ -1,10 +1,12 @@
-import { useState, useId } from "react";
+import { useState, useId, useEffect } from "react";
 import { C, FH, FB, card, sectionLabel, inputStyle, labelStyle, primaryBtn } from "../../styles/theme";
 import { calcDailyBudget } from "../../lib/points";
 import ScoreBlock from "../ScoreBlock";
 import DonutChart from "../DonutChart";
+import WeekStrip from "../WeekStrip";
 import { useUserProfile } from "../../hooks/useUserProfile";
 import { useDailyJournal } from "../../hooks/useDailyJournal";
+import { useWeeklyJournal } from "../../hooks/useWeeklyJournal";
 
 // ─── helpers ───────────────────────────────────────────────
 const MEALS = [
@@ -307,6 +309,11 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
 
   const { profile, loading: profileLoading, updateProfile } = useUserProfile();
   const { entry, weeklyUsed, loading: journalLoading, saveState, updateEntry, updateMeal } = useDailyJournal(date);
+  const { week, streak, reload: reloadWeek } = useWeeklyJournal(date);
+
+  useEffect(() => {
+    if (saveState === "saved") reloadWeek();
+  }, [saveState]);
 
   if (locked) {
     return (
@@ -367,19 +374,19 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
   return (
     <div className="tab-content">
 
-      {/* Date navigation */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-        <button onClick={() => setDate(d => addDays(d, -1))}
-          style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 9, padding: "8px 12px", cursor: "pointer", fontSize: 16, color: C.sub }}>
-          ‹
-        </button>
-        <div style={{ flex: 1, textAlign: "center", fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 18, color: C.text }}>
-          {formatDate(date)}
-        </div>
-        <button onClick={() => setDate(d => addDays(d, 1))} disabled={isToday}
-          style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 9, padding: "8px 12px", cursor: isToday ? "default" : "pointer", fontSize: 16, color: isToday ? C.border : C.sub }}>
-          ›
-        </button>
+      {/* Week strip with day selection */}
+      <WeekStrip
+        week={week}
+        streak={streak}
+        selectedDate={date}
+        onSelectDate={setDate}
+        onPrevWeek={() => setDate(d => addDays(d, -7))}
+        onNextWeek={() => setDate(d => addDays(d, 7))}
+      />
+
+      {/* Selected day label */}
+      <div style={{ textAlign: "center", fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 18, color: C.text, marginBottom: 14, marginTop: -6 }}>
+        {formatDate(date)}
       </div>
 
       {/* Budget summary + Donut */}
