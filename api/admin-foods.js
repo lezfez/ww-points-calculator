@@ -124,8 +124,8 @@ export default async function handler(req, res) {
     const body = req.body ?? {};
 
     if (body.import && Array.isArray(body.foods)) {
-      // Bulk import from OFF
-      const toInsert = body.foods.filter(f => f.off_id);
+      // Bulk import from OFF — strip UI-only fields before DB insert
+      const toInsert = body.foods.filter(f => f.off_id).map(({ _sourceLabel, ...rest }) => rest);
       if (toInsert.length === 0) return res.json({ imported: 0 });
       const { data, error } = await supabase
         .from("foods")

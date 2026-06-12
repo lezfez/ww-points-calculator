@@ -336,7 +336,11 @@ function OFFImport({ authFetch, onImported }) {
     const foods = [...selected].map(i => products[i]);
     const res = await authFetch("/api/admin-foods", { method: "POST", body: JSON.stringify({ import: true, foods }) });
     const data = await res.json();
-    setMsg(`✓ ${data.imported} Lebensmittel importiert`);
+    if (data.error) {
+      setMsg(`✗ Fehler: ${data.error}`);
+    } else {
+      setMsg(`✓ ${data.imported} Lebensmittel importiert`);
+    }
     setSelected(new Set());
     setImporting(false);
     onImported();
