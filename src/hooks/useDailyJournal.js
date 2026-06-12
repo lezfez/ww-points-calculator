@@ -5,6 +5,8 @@ const EMPTY_ENTRY = {
   meals: { fruehstueck: [], snack1: [], mittag: [], abend: [], snack2: [] },
   earned_coins: 0,
   used_bonus_coins: 0,
+  activity_blocks: 0,
+  recovery_blocks: 0,
   wellness: { gemuese: 0, oel: 0, getraenke: 0, bewusste_mahlzeit: false },
 };
 

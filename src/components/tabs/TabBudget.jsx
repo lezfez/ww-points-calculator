@@ -118,6 +118,75 @@ function MealSlot({ meal, items = [], onChange }) {
   );
 }
 
+// ─── ActivityTracker ───────────────────────────────────────
+const BLOCK_COLS = 8;
+
+function BlockRow({ count, onChange, color }) {
+  return (
+    <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
+      {Array.from({ length: BLOCK_COLS }, (_, i) => (
+        <button
+          key={i}
+          onClick={() => onChange(count === i + 1 ? i : i + 1)}
+          style={{
+            width: 24, height: 24, borderRadius: 6, border: "none",
+            background: i < count ? color : C.surface2,
+            outline: `1.5px solid ${i < count ? color : C.border}`,
+            cursor: "pointer", transition: "background .1s, outline .1s",
+          }}
+        />
+      ))}
+      <button onClick={() => onChange(count + 1)}
+        style={{ width: 24, height: 24, borderRadius: 6, border: `1.5px solid ${C.border}`, background: "none", cursor: "pointer", color: C.muted, fontSize: 15, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        +
+      </button>
+      {count > BLOCK_COLS && (
+        <span style={{ fontSize: 11, color: C.muted, fontFamily: FB }}>+{count - BLOCK_COLS} weitere</span>
+      )}
+    </div>
+  );
+}
+
+function ActivityTracker({ activityBlocks, recoveryBlocks, onChangeActivity, onChangeRecovery }) {
+  const earned = activityBlocks + recoveryBlocks;
+  return (
+    <div style={card}>
+      <div style={sectionLabel}>🏃 Aktivität & verdiente Coins</div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <span style={{ fontFamily: FB, fontSize: 13, fontWeight: 600, color: C.text }}>Aktiv <span style={{ color: C.muted, fontWeight: 400 }}>(je 10 Min)</span></span>
+            <span style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 14, color: C.green }}>+{activityBlocks} 🪙</span>
+          </div>
+          <BlockRow count={activityBlocks} onChange={onChangeActivity} color={C.green} />
+          <div style={{ fontSize: 11, color: C.muted, fontFamily: FB, marginTop: 5 }}>
+            {activityBlocks} × 10 Min = {activityBlocks * 10} Minuten aktiv
+          </div>
+        </div>
+
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <span style={{ fontFamily: FB, fontSize: 13, fontWeight: 600, color: C.text }}>Erholung <span style={{ color: C.muted, fontWeight: 400 }}>(je 1 Std)</span></span>
+            <span style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 14, color: "#5B8E5B" }}>+{recoveryBlocks} 🪙</span>
+          </div>
+          <BlockRow count={recoveryBlocks} onChange={onChangeRecovery} color="#5B8E5B" />
+          <div style={{ fontSize: 11, color: C.muted, fontFamily: FB, marginTop: 5 }}>
+            {recoveryBlocks} × 1 Std = {recoveryBlocks} Stunden Erholung
+          </div>
+        </div>
+
+        {earned > 0 && (
+          <div style={{ background: C.greenPale, border: `1px solid rgba(34,139,34,.18)`, borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontFamily: FB, fontSize: 13, color: C.green2, fontWeight: 600 }}>Heute verdient</span>
+            <span style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 18, color: C.green }}>+{earned} 🪙</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── WellnessRow ───────────────────────────────────────────
 function WellnessRow({ item, value, onChange }) {
   if (item.max === 1) {
@@ -287,9 +356,10 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
   // Derived values
   const { daily_budget, weekly_bonus } = profile;
   const weeklyRemaining = Math.max(weekly_bonus - weeklyUsed, 0);
-  const totalToday = mealCoins(Object.values(entry.meals).flat());
   const allMealItems = Object.values(entry.meals).flat();
   const totalUsed = allMealItems.reduce((s, i) => s + (parseInt(i.coins) || 0), 0);
+  const earnedCoins = (entry.activity_blocks || 0) + (entry.recovery_blocks || 0);
+  const totalAvailable = daily_budget + earnedCoins + (entry.used_bonus_coins || 0);
   const today = toISODate(new Date());
   const isToday = date === today;
   const isFuture = date > today;
@@ -326,16 +396,38 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
 
         {journalLoading
           ? <div style={{ height: 160, display: "flex", alignItems: "center", justifyContent: "center", color: C.muted, fontFamily: FB }}>Lade…</div>
-          : <DonutChart used={totalUsed} budget={daily_budget} bonusUsed={entry.used_bonus_coins} />
+          : <DonutChart used={totalUsed} budget={daily_budget} earnedToday={earnedCoins} bonusUsed={entry.used_bonus_coins || 0} />
         }
+
+        {/* Budget breakdown */}
+        {!journalLoading && (earnedCoins > 0 || entry.used_bonus_coins > 0) && (
+          <div style={{ marginTop: 12, display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 11, fontFamily: FB, color: C.muted }}>
+              {daily_budget} Budget
+              {earnedCoins > 0 && <> + <span style={{ color: C.green, fontWeight: 700 }}>+{earnedCoins} Aktiv</span></>}
+              {entry.used_bonus_coins > 0 && <> + <span style={{ color: C.coin, fontWeight: 700 }}>+{entry.used_bonus_coins} Bonus</span></>}
+              {" "}= <b style={{ color: C.text }}>{totalAvailable} gesamt</b>
+            </span>
+          </div>
+        )}
 
         {/* Save indicator */}
         {saveState !== "idle" && (
-          <div style={{ marginTop: 10, fontSize: 11, fontFamily: FB, color: saveState === "saved" ? C.green : saveState === "error" ? "#DC2626" : C.muted }}>
+          <div style={{ marginTop: 8, fontSize: 11, fontFamily: FB, color: saveState === "saved" ? C.green : saveState === "error" ? "#DC2626" : C.muted }}>
             {saveState === "saving" ? "Speichert…" : saveState === "saved" ? "✓ Gespeichert" : "✗ Fehler beim Speichern"}
           </div>
         )}
       </div>
+
+      {/* Aktivitäts-Tracker */}
+      {!isFuture && (
+        <ActivityTracker
+          activityBlocks={entry.activity_blocks || 0}
+          recoveryBlocks={entry.recovery_blocks || 0}
+          onChangeActivity={v => updateEntry({ activity_blocks: v, recovery_blocks: entry.recovery_blocks || 0 })}
+          onChangeRecovery={v => updateEntry({ activity_blocks: entry.activity_blocks || 0, recovery_blocks: v })}
+        />
+      )}
 
       {/* Meal slots */}
       {!isFuture && (
@@ -353,8 +445,8 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
           </div>
           <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontFamily: FB, fontSize: 13, color: C.sub }}>Tagesverbrauch</span>
-            <span style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 18, color: totalUsed > daily_budget ? "#DC2626" : C.coinText }}>
-              🪙 {totalUsed} / {daily_budget}
+            <span style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 18, color: totalUsed > totalAvailable ? "#DC2626" : C.coinText }}>
+              🪙 {totalUsed} / {totalAvailable}
             </span>
           </div>
         </div>

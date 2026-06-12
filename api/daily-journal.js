@@ -56,6 +56,7 @@ export default async function handler(req, res) {
       user_id: userId, date,
       meals: EMPTY_MEALS,
       earned_coins: 0, used_bonus_coins: 0,
+      activity_blocks: 0, recovery_blocks: 0,
       wellness: EMPTY_WELLNESS,
     };
 
@@ -65,7 +66,7 @@ export default async function handler(req, res) {
   }
 
   // PUT – upsert journal entry
-  const { date, meals, earned_coins, used_bonus_coins, wellness } = req.body ?? {};
+  const { date, meals, earned_coins, used_bonus_coins, activity_blocks, recovery_blocks, wellness } = req.body ?? {};
   if (!date) return res.status(400).json({ error: "date fehlt" });
 
   const updates = {
@@ -74,9 +75,18 @@ export default async function handler(req, res) {
     updated_at: new Date().toISOString(),
   };
   if (meals !== undefined) updates.meals = meals;
-  if (earned_coins !== undefined) updates.earned_coins = Math.max(0, parseInt(earned_coins) || 0);
   if (used_bonus_coins !== undefined) updates.used_bonus_coins = Math.max(0, parseInt(used_bonus_coins) || 0);
+  if (activity_blocks !== undefined) updates.activity_blocks = Math.max(0, parseInt(activity_blocks) || 0);
+  if (recovery_blocks !== undefined) updates.recovery_blocks = Math.max(0, parseInt(recovery_blocks) || 0);
   if (wellness !== undefined) updates.wellness = wellness;
+  // earned_coins is always derived
+  const ab = updates.activity_blocks ?? 0;
+  const rb = updates.recovery_blocks ?? 0;
+  if (activity_blocks !== undefined || recovery_blocks !== undefined) {
+    updates.earned_coins = ab + rb;
+  } else if (earned_coins !== undefined) {
+    updates.earned_coins = Math.max(0, parseInt(earned_coins) || 0);
+  }
 
   const { data, error } = await supabase
     .from("daily_journal")
