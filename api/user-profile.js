@@ -1,0 +1,56 @@
+import { verifyToken } from "@clerk/backend";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+async function getUserId(token) {
+  const payload = await verifyToken(token, {
+    secretKey: process.env.CLERK_SECRET_KEY,
+    clockSkewInMs: 60000,
+  });
+  return payload.sub;
+}
+
+export default async function handler(req, res) {
+  if (!["GET", "PUT"].includes(req.method)) return res.status(405).end();
+
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return res.status(401).json({ error: "Nicht authentifiziert" });
+
+  let userId;
+  try {
+    userId = await getUserId(token);
+  } catch {
+    return res.status(401).json({ error: "Ungültiges Token" });
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
+    auth: { persistSession: false },
+  });
+
+  if (req.method === "GET") {
+    const { data } = await supabase
+      .from("user_profiles")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
+
+    return res.json(data || { user_id: userId, daily_budget: 35, weekly_bonus: 49 });
+  }
+
+  // PUT – upsert profile
+  const { daily_budget, weekly_bonus } = req.body ?? {};
+  const updates = { user_id: userId, updated_at: new Date().toISOString() };
+  if (daily_budget !== undefined) updates.daily_budget = Math.max(1, parseInt(daily_budget) || 35);
+  if (weekly_bonus !== undefined) updates.weekly_bonus = Math.max(0, parseInt(weekly_bonus) || 49);
+
+  const { data, error } = await supabase
+    .from("user_profiles")
+    .upsert(updates, { onConflict: "user_id" })
+    .select()
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json(data);
+}
