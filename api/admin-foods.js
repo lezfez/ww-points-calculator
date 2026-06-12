@@ -63,6 +63,7 @@ function mapOFFProduct(p, sourceLabel) {
 async function searchOFF(q, { url, label }) {
   const endpoint = `${url}/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=20&lc=de&fields=${OFF_FIELDS}`;
   const res = await fetch(endpoint, { headers: { "User-Agent": "WW-Points-Calculator-Admin/1.0" } });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data = await res.json();
   return (data.products || [])
     .filter(p => p.product_name_de || p.product_name || p.product_name_en)

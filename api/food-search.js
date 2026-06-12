@@ -94,7 +94,10 @@ export default async function handler(req, res) {
       `https://at.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=15&lc=de&fields=${OFF_FIELDS}`,
     ];
     const offResults = await Promise.allSettled(
-      offUrls.map(url => fetch(url, { headers: { "User-Agent": "WW-Points-Calculator/1.0" } }).then(r => r.json()))
+      offUrls.map(url =>
+        fetch(url, { headers: { "User-Agent": "WW-Points-Calculator/1.0" } })
+          .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+      )
     );
 
     const seen = new Map();
@@ -126,8 +129,9 @@ export default async function handler(req, res) {
       ...products,
     ].slice(0, 20);
 
-    return res.json({ foods: merged, source: "openfoodfacts" });
+    const offAvailable = offResults.some(r => r.status === "fulfilled");
+    return res.json({ foods: merged, source: "openfoodfacts", offUnavailable: !offAvailable });
   } catch {
-    return res.json({ foods: cached || [], source: "cache" });
+    return res.json({ foods: cached || [], source: "cache", offUnavailable: true });
   }
 }
