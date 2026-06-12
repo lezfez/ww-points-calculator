@@ -4,7 +4,7 @@ import appLogo from "./assets/app-logo-icon.svg";
 import { useRecipes } from "./hooks/useRecipes";
 import { useFeatureFlags } from "./hooks/useFeatureFlags";
 import { getUserRole, hasAccess, ROLE_LABELS } from "./lib/roles";
-import { C, FB, FH, card, primaryBtn } from "./styles/theme";
+import { C, FB, FH } from "./styles/theme";
 import TabIcon from "./components/TabIcon";
 import TabLocked from "./components/TabLocked";
 import TabCalc from "./components/tabs/TabCalc";
@@ -34,6 +34,11 @@ export default function App() {
   const [adminUserLoading, setAdminUserLoading] = useState(false);
   const [adminRoleSaving, setAdminRoleSaving]   = useState({});
   const [adminRoleSelected, setAdminRoleSelected] = useState({});
+
+  // Image generation state
+  const [imageGenLoading, setImageGenLoading]       = useState(false);
+  const [imageGenPerRecipe, setImageGenPerRecipe]   = useState({});
+  const [imageGenMsg, setImageGenMsg]               = useState(null);
   const [bootstrapMsg, setBootstrapMsg]         = useState(null);
 
   const { recipes, loading: recipesLoading, error: recipesError, reload: reloadRecipes } = useRecipes();
@@ -156,6 +161,32 @@ export default function App() {
       setBootstrapMsg(e?.message || "Netzwerkfehler");
     }
   };
+
+  const generateRecipeImage = useCallback(async (id) => {
+    setImageGenPerRecipe(p => ({ ...p, [id]: true }));
+    try {
+      const res = await adminFetch("/api/generate-recipe-image", { method: "POST", body: JSON.stringify({ id }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Generierung fehlgeschlagen");
+      await reloadRecipes();
+      setImageGenMsg({ type: "ok", text: `Bild generiert ✓` });
+    } catch (e) {
+      setImageGenMsg({ type: "err", text: e?.message || "Fehler" });
+    }
+    setImageGenPerRecipe(p => ({ ...p, [id]: false }));
+    setTimeout(() => setImageGenMsg(null), 4000);
+  }, [adminFetch, reloadRecipes]);
+
+  const generateAllImages = useCallback(async () => {
+    const todo = recipes.filter(r => r.image_status !== "ready");
+    if (!todo.length) return;
+    setImageGenLoading(true);
+    for (const r of todo) {
+      await generateRecipeImage(r.id);
+      if (todo.indexOf(r) < todo.length - 1) await new Promise(res => setTimeout(res, 1500));
+    }
+    setImageGenLoading(false);
+  }, [recipes, generateRecipeImage]);
 
   const TABS = useMemo(() => [
     { id: "calc",    label: "Berechnen" },
@@ -313,6 +344,9 @@ export default function App() {
             users={adminUsers} userLoading={adminUserLoading} onSearchUsers={searchUsers}
             roleSaving={adminRoleSaving} roleSelected={adminRoleSelected} onRoleSelected={setAdminRoleSelected} onApplyRole={applyUserRole}
             bootstrapMsg={bootstrapMsg} onBootstrap={doBootstrap}
+            recipes={recipes}
+            imageGenLoading={imageGenLoading} imageGenPerRecipe={imageGenPerRecipe} imageGenMsg={imageGenMsg}
+            onGenerateImage={generateRecipeImage} onGenerateAllImages={generateAllImages}
           />
         )}
 

@@ -3,12 +3,20 @@ import { C, FB, FH, card, sectionLabel, inputStyle, primaryBtn } from "../../sty
 import { FLAG_DEFS } from "../../lib/featureFlags";
 import { ROLE_LABELS, ROLE_OPTIONS } from "../../lib/roles";
 
+const IMAGE_STATUS_LABEL = {
+  ready:      { icon: "✅", label: "Fertig",       color: "#228B22" },
+  generating: { icon: "⏳", label: "Generiert…",   color: "#B45309" },
+  failed:     { icon: "✗",  label: "Fehler",        color: "#991B1B" },
+  pending:    { icon: "○",  label: "Ausstehend",    color: "#9E9E90" },
+};
+
 export default function TabAdmin({
   flags, flagsLoading, flagsError, onReloadFlags,
   flagDraft, onFlagDraftChange, flagSaving, flagMsg, onSaveFlag,
   userQuery, onUserQueryChange, users, userLoading, onSearchUsers,
   roleSaving, roleSelected, onRoleSelected, onApplyRole,
   bootstrapMsg, onBootstrap,
+  recipes, imageGenLoading, imageGenPerRecipe, imageGenMsg, onGenerateImage, onGenerateAllImages,
 }) {
   return (
     <div className="tab-content">
@@ -154,6 +162,80 @@ export default function TabAdmin({
         {users.length === 0 && userQuery && !userLoading && (
           <div style={{ color: C.muted, fontFamily: FB, fontSize: 13, textAlign: "center", padding: "16px 0" }}>Keine Benutzer gefunden.</div>
         )}
+      </div>
+
+      {/* Rezeptbilder */}
+      <div style={card}>
+        <div style={{ ...sectionLabel, color: C.adminText }}>Rezeptbilder (KI-Generierung)</div>
+        {recipes && (() => {
+          const total = recipes.length;
+          const ready = recipes.filter(r => r.image_status === "ready").length;
+          const failed = recipes.filter(r => r.image_status === "failed").length;
+          const pending = total - ready - failed - recipes.filter(r => r.image_status === "generating").length;
+          return (
+            <>
+              <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+                <div style={{ flex: 1, minWidth: 100, background: C.greenPale, borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
+                  <div style={{ fontWeight: 700, fontSize: 20, color: C.green2, fontFamily: FH }}>{ready}</div>
+                  <div style={{ fontSize: 11, color: C.green2, fontFamily: FB }}>von {total} fertig</div>
+                </div>
+                {failed > 0 && (
+                  <div style={{ flex: 1, minWidth: 100, background: "#FEE2E2", borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
+                    <div style={{ fontWeight: 700, fontSize: 20, color: "#991B1B", fontFamily: FH }}>{failed}</div>
+                    <div style={{ fontSize: 11, color: "#991B1B", fontFamily: FB }}>fehlgeschlagen</div>
+                  </div>
+                )}
+                {(pending + failed) > 0 && (
+                  <div style={{ flex: 1, minWidth: 100, background: C.surface2, borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
+                    <div style={{ fontWeight: 700, fontSize: 20, color: C.sub, fontFamily: FH }}>{pending + failed}</div>
+                    <div style={{ fontSize: 11, color: C.sub, fontFamily: FB }}>ausstehend</div>
+                  </div>
+                )}
+              </div>
+
+              {ready < total && (
+                <button
+                  onClick={onGenerateAllImages}
+                  disabled={imageGenLoading}
+                  style={{ ...primaryBtn(false), marginTop: 0, marginBottom: 16, opacity: imageGenLoading ? .7 : 1 }}>
+                  {imageGenLoading ? "⏳ Generiere…" : `🌿 Alle fehlenden Bilder generieren (${total - ready})`}
+                </button>
+              )}
+
+              {imageGenMsg && (
+                <div style={{ marginBottom: 12, padding: "8px 14px", borderRadius: 9, background: imageGenMsg.type === "ok" ? C.greenPale : "#FEE2E2", color: imageGenMsg.type === "ok" ? C.green2 : "#991B1B", fontSize: 13, fontWeight: 600, fontFamily: FB }}>
+                  {imageGenMsg.type === "ok" ? "✓ " : "✗ "}{imageGenMsg.text}
+                </div>
+              )}
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {recipes.map(r => {
+                  const st = IMAGE_STATUS_LABEL[r.image_status] || IMAGE_STATUS_LABEL.pending;
+                  const isLoading = imageGenPerRecipe?.[r.id];
+                  return (
+                    <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: C.surface2, borderRadius: 10, border: `1px solid ${C.border}` }}>
+                      {r.image_url
+                        ? <img src={r.image_url} alt="" style={{ width: 48, height: 36, objectFit: "cover", borderRadius: 6, flexShrink: 0, border: `1px solid ${C.border}` }} />
+                        : <div style={{ width: 48, height: 36, background: C.border, borderRadius: 6, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🍽️</div>
+                      }
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, fontSize: 12, color: C.text, fontFamily: FB, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</div>
+                        <div style={{ fontSize: 11, color: st.color, fontFamily: FB }}>{st.icon} {st.label}</div>
+                      </div>
+                      <button
+                        onClick={() => onGenerateImage(r.id)}
+                        disabled={isLoading || imageGenLoading}
+                        title="Bild (neu) generieren"
+                        style={{ padding: "6px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: C.surface, color: C.sub, fontSize: 12, fontWeight: 600, fontFamily: FB, cursor: "pointer", whiteSpace: "nowrap", opacity: (isLoading || imageGenLoading) ? .5 : 1 }}>
+                        {isLoading ? "⏳" : "↻"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          );
+        })()}
       </div>
 
       {/* Admin Bootstrap */}
