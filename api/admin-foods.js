@@ -21,7 +21,14 @@ function calcCoins({ kcal, gesF, zucker, protein, bst, salz }) {
   return Math.max(0, Math.round(raw));
 }
 
-function mapOFFProduct(p) {
+const OFF_SOURCES = [
+  { key: "world", url: "https://world.openfoodfacts.org", label: "🌍 Global" },
+  { key: "at",    url: "https://at.openfoodfacts.org",    label: "🇦🇹 AT" },
+];
+
+const OFF_FIELDS = "id,code,product_name,product_name_de,product_name_en,brands,nutriments,serving_size,serving_quantity";
+
+function mapOFFProduct(p, sourceLabel) {
   const n = p.nutriments || {};
   const kcal    = n["energy-kcal_100g"] ?? null;
   const protein = n["proteins_100g"] ?? null;
@@ -49,7 +56,31 @@ function mapOFFProduct(p) {
     serving_label: p.serving_size || null,
     source: "openfoodfacts",
     off_id: p.id || p.code || null,
+    _sourceLabel: sourceLabel,
   };
+}
+
+async function searchOFF(q, { url, label }) {
+  const endpoint = `${url}/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=20&lc=de&fields=${OFF_FIELDS}`;
+  const res = await fetch(endpoint, { headers: { "User-Agent": "WW-Points-Calculator-Admin/1.0" } });
+  const data = await res.json();
+  return (data.products || [])
+    .filter(p => p.product_name_de || p.product_name || p.product_name_en)
+    .map(p => mapOFFProduct(p, label))
+    .filter(p => p.kcal_100g != null);
+}
+
+function mergeAndDedup(arrays) {
+  const seen = new Map();
+  for (const products of arrays) {
+    for (const p of products) {
+      const key = p.off_id || `${p.name}__${p.brand}`;
+      if (!seen.has(key)) seen.set(key, p);
+      // AT preferred over world for same product
+      else if (p._sourceLabel?.includes("AT")) seen.set(key, p);
+    }
+  }
+  return [...seen.values()];
 }
 
 export default async function handler(req, res) {
@@ -67,16 +98,11 @@ export default async function handler(req, res) {
     const pageSize = 25;
 
     if (off === "1") {
-      // Search Open Food Facts
       if (!q || q.length < 2) return res.json({ products: [] });
       try {
-        const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=30&lc=de&cc=de&fields=id,code,product_name,product_name_de,product_name_en,brands,nutriments,serving_size,serving_quantity`;
-        const offRes = await fetch(url, { headers: { "User-Agent": "WW-Points-Calculator-Admin/1.0" } });
-        const data = await offRes.json();
-        const products = (data.products || [])
-          .filter(p => p.product_name_de || p.product_name || p.product_name_en)
-          .map(mapOFFProduct)
-          .filter(p => p.kcal_100g != null);
+        const results = await Promise.allSettled(OFF_SOURCES.map(src => searchOFF(q, src)));
+        const arrays = results.map(r => r.status === "fulfilled" ? r.value : []);
+        const products = mergeAndDedup(arrays);
         return res.json({ products });
       } catch {
         return res.json({ products: [] });

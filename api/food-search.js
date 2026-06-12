@@ -86,16 +86,30 @@ export default async function handler(req, res) {
     return res.json({ foods: cached, source: "cache" });
   }
 
-  // 2. Query Open Food Facts
+  // 2. Query Open Food Facts (global + AT parallel)
   try {
-    const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=24&lc=de&cc=de&fields=id,code,product_name,product_name_de,product_name_en,brands,nutriments,serving_size,serving_quantity`;
-    const offRes = await fetch(url, { headers: { "User-Agent": "WW-Points-Calculator/1.0" } });
-    const offData = await offRes.json();
+    const OFF_FIELDS = "id,code,product_name,product_name_de,product_name_en,brands,nutriments,serving_size,serving_quantity";
+    const offUrls = [
+      `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=20&lc=de&fields=${OFF_FIELDS}`,
+      `https://at.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=15&lc=de&fields=${OFF_FIELDS}`,
+    ];
+    const offResults = await Promise.allSettled(
+      offUrls.map(url => fetch(url, { headers: { "User-Agent": "WW-Points-Calculator/1.0" } }).then(r => r.json()))
+    );
 
-    const products = (offData.products || [])
-      .filter(p => p.product_name_de || p.product_name || p.product_name_en)
-      .map(mapOFFProduct)
-      .filter(p => p.kcal_100g != null);
+    const seen = new Map();
+    for (const result of offResults) {
+      if (result.status !== "fulfilled") continue;
+      const prods = (result.value.products || [])
+        .filter(p => p.product_name_de || p.product_name || p.product_name_en)
+        .map(mapOFFProduct)
+        .filter(p => p.kcal_100g != null);
+      for (const p of prods) {
+        const key = p.off_id || `${p.name}__${p.brand}`;
+        if (!seen.has(key)) seen.set(key, p);
+      }
+    }
+    const products = [...seen.values()];
 
     // Upsert into cache (ignore conflicts)
     if (products.length > 0) {

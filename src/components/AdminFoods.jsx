@@ -395,7 +395,12 @@ function OFFImport({ authFetch, onImported }) {
                 {p.kcal_100g != null ? `${p.kcal_100g} kcal` : "–"} · P {p.protein_100g ?? "–"}g · KH {p.carbs_100g ?? "–"}g · F {p.fat_100g ?? "–"}g
               </div>
             </div>
-            <span style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 12, color: C.coinText, flexShrink: 0 }}>🪙 {p.coins_100g}</span>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3, flexShrink: 0 }}>
+                <span style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 12, color: C.coinText }}>🪙 {p.coins_100g}</span>
+                {p._sourceLabel && (
+                  <span style={{ fontSize: 9, fontFamily: FB, color: C.muted, background: C.surface2, borderRadius: 999, padding: "1px 6px" }}>{p._sourceLabel}</span>
+                )}
+              </div>
           </button>
         ))}
       </div>
