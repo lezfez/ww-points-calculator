@@ -21,12 +21,14 @@ function calcCoins({ kcal, gesF, zucker, protein, bst, salz }) {
   return Math.max(0, Math.round(raw));
 }
 
-const OFF_SOURCES = [
-  { key: "world", url: "https://world.openfoodfacts.org", label: "🌍 Global" },
-  { key: "at",    url: "https://at.openfoodfacts.org",    label: "🇦🇹 AT" },
-];
-
+const BASE_URL = "https://world.openfoodfacts.org";
 const OFF_FIELDS = "id,code,product_name,product_name_de,product_name_en,brands,nutriments,serving_size,serving_quantity";
+
+// Two searches via world.openfoodfacts.org: global + AT country-filter (avoids the unreliable at.openfoodfacts.org domain)
+const OFF_SOURCES = [
+  { key: "world", params: "",                                                                        label: "🌍 Global" },
+  { key: "at",    params: "&tagtype_0=countries&tag_contains_0=contains&tag_0=en:austria",           label: "🇦🇹 AT" },
+];
 
 function mapOFFProduct(p, sourceLabel) {
   const n = p.nutriments || {};
@@ -60,8 +62,8 @@ function mapOFFProduct(p, sourceLabel) {
   };
 }
 
-async function searchOFF(q, { url, label }) {
-  const endpoint = `${url}/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=20&lc=de&fields=${OFF_FIELDS}`;
+async function searchOFF(q, { params, label }) {
+  const endpoint = `${BASE_URL}/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=20&lc=de&fields=${OFF_FIELDS}${params}`;
   const res = await fetch(endpoint, { headers: { "User-Agent": "WW-Points-Calculator-Admin/1.0" } });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data = await res.json();

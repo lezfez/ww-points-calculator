@@ -89,9 +89,10 @@ export default async function handler(req, res) {
   // 2. Query Open Food Facts (global + AT parallel)
   try {
     const OFF_FIELDS = "id,code,product_name,product_name_de,product_name_en,brands,nutriments,serving_size,serving_quantity";
+    const BASE = "https://world.openfoodfacts.org/cgi/search.pl";
     const offUrls = [
-      `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=20&lc=de&fields=${OFF_FIELDS}`,
-      `https://at.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=15&lc=de&fields=${OFF_FIELDS}`,
+      `${BASE}?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=20&lc=de&fields=${OFF_FIELDS}`,
+      `${BASE}?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=15&lc=de&fields=${OFF_FIELDS}&tagtype_0=countries&tag_contains_0=contains&tag_0=en:austria`,
     ];
     const offResults = await Promise.allSettled(
       offUrls.map(url =>
