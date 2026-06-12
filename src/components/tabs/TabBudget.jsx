@@ -6,6 +6,7 @@ import DonutChart from "../DonutChart";
 import WeekStrip from "../WeekStrip";
 import StatsView from "../StatsView";
 import RecipePicker from "../RecipePicker";
+import FoodSearch from "../FoodSearch";
 import { useUserProfile } from "../../hooks/useUserProfile";
 import { useDailyJournal } from "../../hooks/useDailyJournal";
 import { useWeeklyJournal } from "../../hooks/useWeeklyJournal";
@@ -44,7 +45,7 @@ function addDays(dateStr, n) {
 function mealCoins(items) { return (items || []).reduce((s, i) => s + (parseInt(i.coins) || 0), 0); }
 
 // ─── MealSlot ──────────────────────────────────────────────
-function MealSlot({ meal, items = [], onChange, onOpenPicker }) {
+function MealSlot({ meal, items = [], onChange, onOpenPicker, onOpenFoodSearch }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState({ name: "", coins: "" });
   const uid = useId();
@@ -115,6 +116,12 @@ function MealSlot({ meal, items = [], onChange, onOpenPicker }) {
               onClick={addItem}
               style={{ padding: "8px 12px", borderRadius: 9, border: "none", background: C.green, color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", flexShrink: 0 }}>
               +
+            </button>
+            <button
+              onClick={onOpenFoodSearch}
+              title="Lebensmittel suchen"
+              style={{ padding: "8px 10px", borderRadius: 9, border: `1.5px solid ${C.border}`, background: C.surface2, fontSize: 15, cursor: "pointer", flexShrink: 0 }}>
+              🔍
             </button>
             {onOpenPicker && (
               <button
@@ -319,6 +326,7 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
   const [showSettings, setShowSettings] = useState(false);
   const [activeView, setActiveView] = useState("journal"); // "journal" | "stats"
   const [pickerSlot, setPickerSlot] = useState(null); // meal id or null
+  const [foodSlot, setFoodSlot] = useState(null);    // meal id for food search
 
   const { profile, loading: profileLoading, updateProfile } = useUserProfile();
   const { entry, weeklyUsed, loading: journalLoading, saveState, updateEntry, updateMeal } = useDailyJournal(date);
@@ -493,6 +501,7 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
                 items={entry.meals[meal.id] || []}
                 onChange={items => updateMeal(meal.id, items)}
                 onOpenPicker={recipes.length > 0 ? () => setPickerSlot(meal.id) : null}
+                onOpenFoodSearch={() => setFoodSlot(meal.id)}
               />
             ))}
           </div>
@@ -575,6 +584,14 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
           recipes={recipes}
           onSelect={handleRecipeSelect}
           onClose={() => setPickerSlot(null)}
+        />
+      )}
+
+      {/* Food search modal */}
+      {foodSlot && (
+        <FoodSearch
+          onAdd={(item) => updateMeal(foodSlot, [...(entry.meals[foodSlot] || []), item])}
+          onClose={() => setFoodSlot(null)}
         />
       )}
 
