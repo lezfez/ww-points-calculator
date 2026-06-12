@@ -105,7 +105,7 @@ export default function App() {
     const payload = { id, required_role: draft.required_role ?? original.required_role, enabled: draft.enabled ?? original.enabled };
     setAdminFlagSaving(true);
     try {
-      const res = await adminFetch("/api/admin-set-flag", { method: "POST", body: JSON.stringify(payload) });
+      const res = await adminFetch("/api/admin?action=set-flag", { method: "POST", body: JSON.stringify(payload) });
       if (!res.ok) throw new Error();
       await reloadFlags();
       setAdminFlagDraft(p => { const n = { ...p }; delete n[id]; return n; });
@@ -121,7 +121,7 @@ export default function App() {
     setAdminUserLoading(true);
     try {
       const token = await getToken();
-      const res = await fetch(`/api/admin-get-users?query=${encodeURIComponent(adminUserQuery)}`, {
+      const res = await fetch(`/api/admin?action=users&query=${encodeURIComponent(adminUserQuery)}`, {
         headers: { "Authorization": `Bearer ${token}` },
       });
       const data = await res.json();
@@ -141,7 +141,7 @@ export default function App() {
     if (!role) return;
     setAdminRoleSaving(p => ({ ...p, [userId]: true }));
     try {
-      const res = await adminFetch("/api/admin-set-role", { method: "POST", body: JSON.stringify({ userId, role }) });
+      const res = await adminFetch("/api/admin?action=set-role", { method: "POST", body: JSON.stringify({ userId, role }) });
       if (!res.ok) throw new Error();
       setAdminUsers(prev => prev.map(u => u.id === userId ? { ...u, role } : u));
     } catch {
@@ -152,7 +152,7 @@ export default function App() {
 
   const doBootstrap = async () => {
     try {
-      const res = await adminFetch("/api/admin-bootstrap", { method: "POST" });
+      const res = await adminFetch("/api/admin?action=bootstrap", { method: "POST" });
       const data = await res.json();
       const msg = data.message || data.error || "Unbekannte Antwort";
       setBootstrapMsg(data.detail ? `${msg} (${data.detail})` : msg);
