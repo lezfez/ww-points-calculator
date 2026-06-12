@@ -1,4 +1,5 @@
 import RoleBadge from "../RoleBadge";
+import AdminFoods from "../AdminFoods";
 import { C, FB, FH, card, sectionLabel, inputStyle, primaryBtn } from "../../styles/theme";
 import { FLAG_DEFS } from "../../lib/featureFlags";
 import { ROLE_LABELS, ROLE_OPTIONS } from "../../lib/roles";
@@ -237,6 +238,9 @@ export default function TabAdmin({
           );
         })()}
       </div>
+
+      {/* Lebensmitteldatenbank */}
+      <AdminFoods />
 
       {/* Admin Bootstrap */}
       <div style={{ ...card, borderColor: C.adminBorder, background: C.adminBg }}>
