@@ -4,9 +4,12 @@ import { calcDailyBudget } from "../../lib/points";
 import ScoreBlock from "../ScoreBlock";
 import DonutChart from "../DonutChart";
 import WeekStrip from "../WeekStrip";
+import StatsView from "../StatsView";
+import RecipePicker from "../RecipePicker";
 import { useUserProfile } from "../../hooks/useUserProfile";
 import { useDailyJournal } from "../../hooks/useDailyJournal";
 import { useWeeklyJournal } from "../../hooks/useWeeklyJournal";
+import { useStats } from "../../hooks/useStats";
 
 // ─── helpers ───────────────────────────────────────────────
 const MEALS = [
@@ -41,7 +44,7 @@ function addDays(dateStr, n) {
 function mealCoins(items) { return (items || []).reduce((s, i) => s + (parseInt(i.coins) || 0), 0); }
 
 // ─── MealSlot ──────────────────────────────────────────────
-function MealSlot({ meal, items = [], onChange }) {
+function MealSlot({ meal, items = [], onChange, onOpenPicker }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState({ name: "", coins: "" });
   const uid = useId();
@@ -101,7 +104,7 @@ function MealSlot({ meal, items = [], onChange }) {
             <input
               className="app-input"
               type="number" min="0"
-              style={{ ...inputStyle, width: 64, padding: "8px 8px", fontSize: 13, textAlign: "center" }}
+              style={{ ...inputStyle, width: 56, padding: "8px 6px", fontSize: 13, textAlign: "center" }}
               placeholder="🪙"
               value={draft.coins}
               onChange={e => setDraft(p => ({ ...p, coins: e.target.value }))}
@@ -110,9 +113,17 @@ function MealSlot({ meal, items = [], onChange }) {
             />
             <button
               onClick={addItem}
-              style={{ padding: "8px 14px", borderRadius: 9, border: "none", background: C.green, color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", flexShrink: 0 }}>
+              style={{ padding: "8px 12px", borderRadius: 9, border: "none", background: C.green, color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", flexShrink: 0 }}>
               +
             </button>
+            {onOpenPicker && (
+              <button
+                onClick={onOpenPicker}
+                title="Aus Rezepten wählen"
+                style={{ padding: "8px 10px", borderRadius: 9, border: `1.5px solid ${C.border}`, background: C.surface2, fontSize: 15, cursor: "pointer", flexShrink: 0 }}>
+                📖
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -303,17 +314,26 @@ function BudgetSetup({ onSave }) {
 }
 
 // ─── Main TabBudget ────────────────────────────────────────
-export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSignedIn }) {
+export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSignedIn, recipes = [] }) {
   const [date, setDate] = useState(toISODate(new Date()));
   const [showSettings, setShowSettings] = useState(false);
+  const [activeView, setActiveView] = useState("journal"); // "journal" | "stats"
+  const [pickerSlot, setPickerSlot] = useState(null); // meal id or null
 
   const { profile, loading: profileLoading, updateProfile } = useUserProfile();
   const { entry, weeklyUsed, loading: journalLoading, saveState, updateEntry, updateMeal } = useDailyJournal(date);
   const { week, streak, reload: reloadWeek } = useWeeklyJournal(date);
+  const { data: statsData, loading: statsLoading, reload: reloadStats } = useStats();
 
   useEffect(() => {
-    if (saveState === "saved") reloadWeek();
+    if (saveState === "saved") { reloadWeek(); reloadStats(); }
   }, [saveState]);
+
+  const handleRecipeSelect = (recipe) => {
+    if (!pickerSlot) return;
+    const newItem = { id: Date.now(), name: recipe.name, coins: recipe.coins || 0 };
+    updateMeal(pickerSlot, [...(entry.meals[pickerSlot] || []), newItem]);
+  };
 
   if (locked) {
     return (
@@ -373,6 +393,31 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
 
   return (
     <div className="tab-content">
+
+      {/* Journal / Statistiken toggle */}
+      <div style={{ display: "flex", background: C.surface2, borderRadius: 12, padding: 4, marginBottom: 16, gap: 4 }}>
+        {[["journal", "📒 Journal"], ["stats", "📊 Statistiken"]].map(([id, label]) => (
+          <button key={id} onClick={() => setActiveView(id)}
+            style={{
+              flex: 1, padding: "9px 0", borderRadius: 9, border: "none", cursor: "pointer",
+              fontFamily: FB, fontWeight: 700, fontSize: 13,
+              background: activeView === id ? C.surface : "transparent",
+              color: activeView === id ? C.green : C.muted,
+              boxShadow: activeView === id ? "0 1px 4px rgba(0,0,0,.08)" : "none",
+              transition: "all .15s",
+            }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Stats view */}
+      {activeView === "stats" && (
+        <StatsView days={statsData?.days || []} stats={statsData?.stats || {}} loading={statsLoading} />
+      )}
+
+      {/* Journal view */}
+      {activeView === "journal" && <>
 
       {/* Week strip with day selection */}
       <WeekStrip
@@ -447,6 +492,7 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
                 meal={meal}
                 items={entry.meals[meal.id] || []}
                 onChange={items => updateMeal(meal.id, items)}
+                onOpenPicker={recipes.length > 0 ? () => setPickerSlot(meal.id) : null}
               />
             ))}
           </div>
@@ -519,6 +565,17 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
         <div style={{ ...card, textAlign: "center", padding: "32px 20px", color: C.muted, fontFamily: FB, fontSize: 14 }}>
           Kein Journal für zukünftige Tage.
         </div>
+      )}
+
+      </>}
+
+      {/* Recipe picker modal */}
+      {pickerSlot && (
+        <RecipePicker
+          recipes={recipes}
+          onSelect={handleRecipeSelect}
+          onClose={() => setPickerSlot(null)}
+        />
       )}
 
     </div>

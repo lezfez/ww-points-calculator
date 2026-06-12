@@ -320,7 +320,7 @@ export default function App() {
         )}
 
         {tab === "budget" && (
-          <TabBudget locked={isTabLocked("budget")} onUpgrade={startCheckout} checkoutLoading={checkoutLoading} isSignedIn={isSignedIn} />
+          <TabBudget locked={isTabLocked("budget")} onUpgrade={startCheckout} checkoutLoading={checkoutLoading} isSignedIn={isSignedIn} recipes={recipes} />
         )}
 
         {tab === "recipes" && (
