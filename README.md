@@ -20,6 +20,7 @@ Persönliches Tages-Budget via Mifflin-St-Jeor-Formel (Grundumsatz × Aktivität
 
 ### WF Rezepte
 Rezepte von weightfriends.at mit Coins-Werten, Kategoriefilter, Textsuche und Sortierung nach Coins. Lade-, Fehler- und Leerzustände werden getrennt angezeigt; bei Supabase-Fehlern gibt es einen erneuten Ladeversuch.
+Optional können KI-generierte Rezeptbilder aus Supabase Storage angezeigt werden.
 
 ### Info
 Hintergründe zu den Formeln und zur Herleitung der weight friends Coins-Formel.
@@ -60,6 +61,8 @@ Stripe-Checkout-Rückgaben über `?premium=success` und `?premium=canceled` werd
 | `src/supabase.js` | Browser-Supabase-Client mit Anon-Key |
 | `src/styles/theme.js` | Design-Tokens für Farben, Fonts und Schatten |
 | `api/` | Vercel Serverless Functions für Stripe, Clerk und Admin-Aktionen |
+| `scripts/generate-recipe-images.mjs` | Lokaler Admin-Job: generiert Rezeptbilder, lädt sie in Supabase Storage und schreibt Bild-URLs an `recipes` |
+| `sql/setup-recipe-images.sql` | SQL-Setup für Rezeptbild-Spalten und öffentlichen Supabase-Storage-Bucket |
 | `test/points.test.js` | Charakterisierungstests für die Punkteformeln |
 | `vite.config.js` | Vite, PWA und manuelles Chunk-Splitting |
 | `ww-points-calculator/` | Legacy-Kopie, nicht aktiv für Build/Lint/Deployment |
@@ -103,6 +106,18 @@ Alle Admin-Endpoints verifizieren den Clerk JWT (`Authorization: Bearer <token>`
 ### `recipes`
 Rezepte von weightfriends.at mit `recipe_ingredients` und `recipe_steps` (separate Tabellen, via JOIN geladen).
 
+Optionale Bildfelder:
+
+```sql
+image_url          TEXT,
+image_path         TEXT,
+image_prompt       TEXT,
+image_status       TEXT CHECK (image_status IN ('pending', 'generating', 'ready', 'failed')),
+image_generated_at TIMESTAMPTZ
+```
+
+Die Bilder selbst liegen nicht in Postgres, sondern im öffentlichen Supabase-Storage-Bucket `recipe-images`. `recipes.image_url` enthält die öffentliche Bild-URL.
+
 ### `feature_flags`
 Steuert Zugriffsanforderungen pro Tab/Feature:
 
@@ -138,6 +153,12 @@ Standard-Einträge: `tab_calc`, `tab_budget`, `tab_recipes`, `tab_info`
 | `STRIPE_WEBHOOK_SECRET` | Stripe Webhook Signing Secret |
 | `STRIPE_PRICE_ID` | Stripe Price ID für das Premium-Abo |
 | `ADMIN_EMAILS` | Komma-getrennte Liste erlaubter Admin-E-Mails (z.B. `lezfez@gmail.com`) |
+| `OPENAI_API_KEY` | Server-/Admin-Key für die lokale Rezeptbild-Generierung |
+| `OPENAI_IMAGE_MODEL` | Optional, Standard: `gpt-image-1.5` |
+| `RECIPE_IMAGE_BUCKET` | Optional, Standard: `recipe-images` |
+| `RECIPE_IMAGE_SIZE` | Optional, Standard: `1024x1024` |
+| `RECIPE_IMAGE_QUALITY` | Optional, Standard: `medium` |
+| `RECIPE_IMAGE_FORMAT` | Optional, Standard: `webp` |
 
 ### Lokal (`.env.local`)
 
@@ -152,6 +173,7 @@ STRIPE_SECRET_KEY=sk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 STRIPE_PRICE_ID=price_...
 ADMIN_EMAILS=deine@email.com
+OPENAI_API_KEY=sk-proj_...
 ```
 
 ---
@@ -169,6 +191,42 @@ Für lokale Stripe Webhooks:
 ```bash
 stripe listen --forward-to localhost:5173/api/stripe-webhook
 ```
+
+## Rezeptbilder generieren
+
+Die Bildgenerierung ist als lokaler Admin-Job umgesetzt. Sie nutzt den Supabase Service-Role-Key und den OpenAI API-Key, daher läuft sie nicht im Browser.
+
+Einmalig das Datenbank-Setup ausführen:
+
+```bash
+# Inhalt von sql/setup-recipe-images.sql im Supabase SQL Editor ausführen
+```
+
+Prompts für die ersten fünf fehlenden/fehlgeschlagenen Bilder prüfen:
+
+```bash
+npm run generate:recipe-images -- --dry-run
+```
+
+Einzelnes Rezept generieren:
+
+```bash
+npm run generate:recipe-images -- --recipe-id 3
+```
+
+Alle fehlenden oder fehlgeschlagenen Rezeptbilder generieren:
+
+```bash
+npm run generate:recipe-images -- --all
+```
+
+Bereits vorhandene Bilder werden standardmäßig übersprungen. Mit `--force` werden sie neu generiert und im Storage überschrieben:
+
+```bash
+npm run generate:recipe-images -- --recipe-id 3 --force
+```
+
+Das Script lädt die Datei in den Bucket `recipe-images`, speichert `image_url`, `image_path`, `image_prompt`, `image_status` und `image_generated_at` in `recipes` und die App zeigt `image_url` automatisch in den Rezeptkarten an.
 
 ---
 

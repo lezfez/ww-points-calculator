@@ -3,26 +3,28 @@ import { useState, useEffect } from "react";
 const DISMISS_KEY = "installPromptDismissedUntil";
 const DISMISS_DAYS = 7;
 
+function getIsIOS() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+}
+
+function getIsStandalone() {
+  return window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone === true;
+}
+
+function getIsDismissed() {
+  const until = localStorage.getItem(DISMISS_KEY);
+  return Boolean(until && Date.now() < Number(until));
+}
+
 export function useInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [isIOS, setIsIOS] = useState(false);
-  const [isStandalone, setIsStandalone] = useState(false);
+  const [isIOS] = useState(getIsIOS);
+  const [isStandalone] = useState(getIsStandalone);
+  const [dismissed, setDismissed] = useState(false);
   const [ready, setReady] = useState(false);
 
-  const isDismissed = () => {
-    const until = localStorage.getItem(DISMISS_KEY);
-    return until && Date.now() < Number(until);
-  };
-
   useEffect(() => {
-    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      window.navigator.standalone === true;
-
-    setIsIOS(ios);
-    setIsStandalone(standalone);
-
     const handler = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -30,7 +32,10 @@ export function useInstallPrompt() {
     window.addEventListener("beforeinstallprompt", handler);
 
     // Kurze Verzögerung, damit der Banner nicht sofort aufpoppt
-    const t = setTimeout(() => setReady(true), 2500);
+    const t = setTimeout(() => {
+      setDismissed(getIsDismissed());
+      setReady(true);
+    }, 2500);
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handler);
@@ -41,7 +46,7 @@ export function useInstallPrompt() {
   const canShow =
     ready &&
     !isStandalone &&
-    !isDismissed() &&
+    !dismissed &&
     (deferredPrompt !== null || isIOS);
 
   const promptInstall = async () => {
@@ -55,6 +60,7 @@ export function useInstallPrompt() {
   const dismiss = () => {
     const until = Date.now() + DISMISS_DAYS * 24 * 60 * 60 * 1000;
     localStorage.setItem(DISMISS_KEY, String(until));
+    setDismissed(true);
     setReady(false); // schließt den Banner sofort
   };
 

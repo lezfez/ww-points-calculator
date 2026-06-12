@@ -40,10 +40,17 @@ export default async function handler(req, res) {
   }
 
   // PUT – upsert profile
-  const { daily_budget, weekly_bonus } = req.body ?? {};
+  const { daily_budget, weekly_bonus, gewicht, groesse, alter_j, geschlecht, aktivitaet, display_name, avatar_url } = req.body ?? {};
   const updates = { user_id: userId, updated_at: new Date().toISOString() };
-  if (daily_budget !== undefined) updates.daily_budget = Math.max(1, parseInt(daily_budget) || 35);
-  if (weekly_bonus !== undefined) updates.weekly_bonus = Math.max(0, parseInt(weekly_bonus) || 49);
+  if (daily_budget   !== undefined) updates.daily_budget  = Math.max(1, parseInt(daily_budget) || 35);
+  if (weekly_bonus   !== undefined) updates.weekly_bonus  = Math.max(0, parseInt(weekly_bonus) || 49);
+  if (gewicht        !== undefined) updates.gewicht       = gewicht ? parseFloat(gewicht) : null;
+  if (groesse        !== undefined) updates.groesse       = groesse ? parseFloat(groesse) : null;
+  if (alter_j        !== undefined) updates.alter_j       = alter_j ? parseInt(alter_j) : null;
+  if (geschlecht     !== undefined) updates.geschlecht    = geschlecht || null;
+  if (aktivitaet     !== undefined) updates.aktivitaet   = aktivitaet || null;
+  if (display_name   !== undefined) updates.display_name  = display_name || null;
+  if (avatar_url     !== undefined) updates.avatar_url    = avatar_url || null;
 
   const { data, error } = await supabase
     .from("user_profiles")

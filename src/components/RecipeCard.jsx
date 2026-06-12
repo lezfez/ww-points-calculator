@@ -19,6 +19,23 @@ export default function RecipeCard({ recipe, onSelect, selected }) {
       onClick={toggleRecipe}
       onKeyDown={handleKeyDown}
     >
+      {recipe.image_url && (
+        <img
+          src={recipe.image_url}
+          alt={`Rezeptbild: ${recipe.name}`}
+          loading="lazy"
+          style={{
+            display: "block",
+            width: "100%",
+            aspectRatio: "4 / 3",
+            objectFit: "cover",
+            borderRadius: 12,
+            marginBottom: 12,
+            border: `1px solid ${C.border}`,
+            background: C.surface2,
+          }}
+        />
+      )}
       <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: C.coinBg, border: `1px solid ${C.coinBorder}`, color: C.coinText, fontWeight: 700, fontFamily: FH, fontStyle: "italic", fontSize: 14, padding: "4px 12px 4px 10px", borderRadius: 999, marginBottom: 9 }}>
         🪙 {recipe.coins} Coins
       </div>

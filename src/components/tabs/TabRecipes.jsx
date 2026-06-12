@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import RecipeCard from "../RecipeCard";
-import { C, FH, FB, card, sectionLabel, inputStyle, primaryBtn, filterChip } from "../../styles/theme";
+import { C, FH, FB, card, inputStyle, primaryBtn, filterChip } from "../../styles/theme";
 import { useDebounce } from "../../hooks/useDebounce";
 
 export default function TabRecipes({ recipes, loading, error, onReload }) {

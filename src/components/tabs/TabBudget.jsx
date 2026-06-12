@@ -239,11 +239,17 @@ function WellnessRow({ item, value, onChange }) {
 }
 
 // ─── Budget-Setup (first visit) ────────────────────────────
-function BudgetSetup({ onSave }) {
-  const [calc, setCalc] = useState({ gewicht: "", groesse: "", alter: "", geschlecht: "w", aktivitaet: "sitzend" });
+function BudgetSetup({ onSave, initialProfile }) {
+  const [calc, setCalc] = useState({
+    gewicht: initialProfile?.gewicht || "",
+    groesse: initialProfile?.groesse || "",
+    alter:   initialProfile?.alter_j || "",
+    geschlecht: initialProfile?.geschlecht || "w",
+    aktivitaet: initialProfile?.aktivitaet || "sitzend",
+  });
   const [result, setResult] = useState(null);
-  const [manual, setManual] = useState("");
-  const [weekly, setWeekly] = useState("49");
+  const [manual, setManual] = useState(initialProfile?.daily_budget ? String(initialProfile.daily_budget) : "");
+  const [weekly, setWeekly] = useState(initialProfile?.weekly_bonus ? String(initialProfile.weekly_bonus) : "49");
 
   const b = k => parseFloat(calc[k]) || 0;
   const handleCalc = (k, v) => { setCalc(p => ({ ...p, [k]: v })); setResult(null); };
@@ -312,7 +318,15 @@ function BudgetSetup({ onSave }) {
           className="btn-primary"
           style={{ ...primaryBtn(true), marginTop: 6 }}
           disabled={!budget}
-          onClick={() => onSave({ daily_budget: budget, weekly_bonus: parseInt(weekly) || 49 })}>
+          onClick={() => onSave({
+            daily_budget: budget,
+            weekly_bonus: parseInt(weekly) || 49,
+            gewicht: parseFloat(calc.gewicht) || null,
+            groesse: parseFloat(calc.groesse) || null,
+            alter_j: parseInt(calc.alter) || null,
+            geschlecht: calc.geschlecht,
+            aktivitaet: calc.aktivitaet,
+          })}>
           🌿 Budget speichern & Journal starten
         </button>
       </div>
@@ -383,7 +397,7 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
             ← Zurück zum Journal
           </button>
         )}
-        <BudgetSetup onSave={async (data) => { await updateProfile(data); setShowSettings(false); }} />
+        <BudgetSetup initialProfile={profile} onSave={async (data) => { await updateProfile(data); setShowSettings(false); }} />
       </div>
     );
   }
