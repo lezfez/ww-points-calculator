@@ -18,5 +18,8 @@ export default function TabIcon({ id }) {
   if (id === "profile") return (
     <svg {...props}><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
   );
+  if (id === "foof") return (
+    <svg {...props}><path d="M7 3c3 0 5 2.3 5 5.1C12 11 9.8 14 7 14s-5-3-5-5.9C2 5.3 4 3 7 3zm10 0c2.8 0 5 2.3 5 5.1C22 11 19.8 14 17 14s-5-3-5-5.9C12 5.3 14 3 17 3z"/><path d="M5 16h14a3 3 0 013 3v2H2v-2a3 3 0 013-3z"/></svg>
+  );
   return null;
 }

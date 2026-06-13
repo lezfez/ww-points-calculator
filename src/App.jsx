@@ -11,6 +11,7 @@ import TabLocked from "./components/TabLocked";
 import TabCalc from "./components/tabs/TabCalc";
 import TabBudget from "./components/tabs/TabBudget";
 import TabProfile from "./components/tabs/TabProfile";
+import TabFoof from "./components/tabs/TabFoof";
 import TabRecipes from "./components/tabs/TabRecipes";
 import TabInfo from "./components/tabs/TabInfo";
 import TabAdmin from "./components/tabs/TabAdmin";
@@ -496,6 +497,7 @@ export default function App() {
     { id: "recipes", label: "Rezepte" },
     { id: "info",    label: "Info" },
     { id: "profile", label: "Profil" },
+    { id: "foof",    label: "Foof" },
     ...(userRole === "admin" ? [{ id: "admin", label: "Admin" }] : []),
   ].filter(t => t.id === "admin" || isTabEnabled(t.id)), [flags, userRole]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -666,6 +668,12 @@ export default function App() {
           isTabLocked("profile")
             ? <TabLocked tabId="profile" flags={flags} onSignIn={() => setShowSignIn(true)} onUpgrade={startCheckout} checkoutLoading={checkoutLoading} premiumPriceLabel={premiumPriceLabel} />
             : <TabProfile isSignedIn={isSignedIn} onSignIn={() => setShowSignIn(true)} />
+        )}
+
+        {currentTab === "foof" && (
+          isTabLocked("foof")
+            ? <TabLocked tabId="foof" flags={flags} onSignIn={() => setShowSignIn(true)} onUpgrade={startCheckout} checkoutLoading={checkoutLoading} premiumPriceLabel={premiumPriceLabel} />
+            : <TabFoof isSignedIn={isSignedIn} onSignIn={() => setShowSignIn(true)} />
         )}
 
         {currentTab === "recipes" && (

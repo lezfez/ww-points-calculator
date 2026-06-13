@@ -12,6 +12,10 @@ async function getUserId(token) {
   return payload.sub;
 }
 
+function normalizeBarcode(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
 function calcCoins({ kcal, gesF, zucker, protein, bst, salz }) {
   function clamp(v, lo, hi) { return Math.min(Math.max(v, lo), hi); }
   const raw = (kcal || 0) * 0.022
@@ -69,18 +73,36 @@ export default async function handler(req, res) {
 
   const q = (req.query.q || "").trim();
   if (!q || q.length < 2) return res.json({ foods: [] });
+  const barcodeQuery = normalizeBarcode(q);
+  const escapedQuery = q.replaceAll(",", " ");
 
   const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
     auth: { persistSession: false },
   });
 
   // 1. Search cache
-  const { data: cached } = await supabase
+  let cacheQuery = supabase
     .from("foods")
     .select("*")
-    .ilike("name", `%${q}%`)
     .order("name")
     .limit(20);
+
+  if (barcodeQuery.length >= 8) {
+    cacheQuery = cacheQuery.or(`name.ilike.%${escapedQuery}%,brand.ilike.%${escapedQuery}%,barcode.eq.${barcodeQuery}`);
+  } else {
+    cacheQuery = cacheQuery.or(`name.ilike.%${escapedQuery}%,brand.ilike.%${escapedQuery}%`);
+  }
+
+  const { data: cached } = await cacheQuery;
+
+  const cachedBarcodeHits = barcodeQuery.length >= 8
+    ? (cached || []).filter((f) => String(f.barcode || "") === barcodeQuery)
+    : [];
+
+  if (cachedBarcodeHits.length > 0) {
+    const rest = (cached || []).filter((f) => String(f.barcode || "") !== barcodeQuery);
+    return res.json({ foods: [...cachedBarcodeHits, ...rest].slice(0, 20), source: "cache" });
+  }
 
   if (cached && cached.length >= 5) {
     return res.json({ foods: cached, source: "cache" });

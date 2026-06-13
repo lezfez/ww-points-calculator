@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { C, FH, FB } from "../styles/theme";
 import { useFoodSearch } from "../hooks/useFoodSearch";
 
@@ -62,7 +62,76 @@ function PortionRow({ food, onAdd }) {
 export default function FoodSearch({ onAdd, onClose }) {
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannerError, setScannerError] = useState("");
+  const [barcodeManualOpen, setBarcodeManualOpen] = useState(false);
+  const [barcodeInput, setBarcodeInput] = useState("");
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const scanIntervalRef = useRef(null);
   const { results, loading, search, clear } = useFoodSearch();
+
+  const stopScanner = useCallback(() => {
+    if (scanIntervalRef.current) {
+      clearInterval(scanIntervalRef.current);
+      scanIntervalRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    setScannerOpen(false);
+  }, []);
+
+  useEffect(() => {
+    return () => stopScanner();
+  }, [stopScanner]);
+
+  const startScanner = useCallback(async () => {
+    setScannerError("");
+    setScannerOpen(true);
+
+    if (typeof window === "undefined" || !("BarcodeDetector" in window)) {
+      setScannerError("Scanner wird auf diesem Geraet/Browser nicht unterstuetzt.");
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+      });
+      streamRef.current = stream;
+
+      if (!videoRef.current) {
+        setScannerError("Kamera-Preview konnte nicht gestartet werden.");
+        return;
+      }
+
+      videoRef.current.srcObject = stream;
+      await videoRef.current.play();
+
+      const detector = new window.BarcodeDetector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"] });
+      scanIntervalRef.current = setInterval(async () => {
+        if (!videoRef.current || videoRef.current.readyState < 2) return;
+        try {
+          const codes = await detector.detect(videoRef.current);
+          if (!codes || codes.length === 0) return;
+          const raw = String(codes[0].rawValue || "");
+          const normalized = raw.replace(/\D/g, "");
+          if (normalized.length < 8) return;
+
+          setQuery(normalized);
+          setExpanded(null);
+          search(normalized);
+          stopScanner();
+        } catch {
+          // ignore transient detector errors
+        }
+      }, 300);
+    } catch {
+      setScannerError("Kamera konnte nicht gestartet werden. Bitte Berechtigung pruefen.");
+    }
+  }, [search, stopScanner]);
 
   const handleChange = (e) => {
     const v = e.target.value;
@@ -71,6 +140,15 @@ export default function FoodSearch({ onAdd, onClose }) {
     search(v);
     if (!v) clear();
   };
+
+  const runBarcodeSearch = useCallback(() => {
+    const normalized = String(barcodeInput || "").replace(/\D/g, "");
+    if (normalized.length < 8) return;
+    setQuery(normalized);
+    setExpanded(null);
+    search(normalized);
+    setBarcodeManualOpen(false);
+  }, [barcodeInput, search]);
 
   const handleAdd = (food, grams, coins) => {
     const label = grams === 100 ? "" : ` (${grams}g)`;
@@ -104,7 +182,7 @@ export default function FoodSearch({ onAdd, onClose }) {
         </div>
 
         {/* Search input */}
-        <div style={{ padding: "0 16px 10px" }}>
+        <div style={{ padding: "0 16px 10px", display: "flex", gap: 8 }}>
           <input
             className="app-input"
             placeholder="z.B. Vollmilch, Haferflocken, Tofu…"
@@ -117,7 +195,118 @@ export default function FoodSearch({ onAdd, onClose }) {
               fontFamily: FB, fontSize: 14, color: C.text, boxSizing: "border-box",
             }}
           />
+          <button
+            onClick={() => setBarcodeManualOpen((v) => !v)}
+            style={{
+              borderRadius: 10,
+              border: `1.5px solid ${barcodeManualOpen ? C.green : C.border}`,
+              background: barcodeManualOpen ? C.greenPale : C.surface,
+              color: barcodeManualOpen ? C.green : C.sub,
+              fontFamily: FB,
+              fontWeight: 700,
+              fontSize: 12,
+              cursor: "pointer",
+              minWidth: 86,
+              padding: "0 10px",
+              flexShrink: 0,
+            }}
+          >
+            {barcodeManualOpen ? "Zu" : "Code"}
+          </button>
+          <button
+            onClick={scannerOpen ? stopScanner : startScanner}
+            style={{
+              borderRadius: 10,
+              border: `1.5px solid ${scannerOpen ? C.green : C.border}`,
+              background: scannerOpen ? C.greenPale : C.surface,
+              color: scannerOpen ? C.green : C.sub,
+              fontFamily: FB,
+              fontWeight: 700,
+              fontSize: 12,
+              cursor: "pointer",
+              minWidth: 86,
+              padding: "0 10px",
+              flexShrink: 0,
+            }}
+          >
+            {scannerOpen ? "Stop" : "Scan"}
+          </button>
         </div>
+
+        {barcodeManualOpen && (
+          <div style={{ padding: "0 16px 12px" }}>
+            <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, background: C.surface, padding: 10 }}>
+              <div style={{ fontFamily: FB, fontSize: 11, color: C.muted, marginBottom: 8 }}>
+                Barcode manuell eingeben (EAN/GTIN):
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  className="app-input"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  placeholder="z.B. 9002490203541"
+                  value={barcodeInput}
+                  onChange={(e) => setBarcodeInput(e.target.value.replace(/\D/g, ""))}
+                  onKeyDown={(e) => e.key === "Enter" && runBarcodeSearch()}
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    borderRadius: 10,
+                    border: `1.5px solid ${C.border}`,
+                    background: C.surface2,
+                    fontFamily: FB,
+                    fontSize: 16,
+                    color: C.text,
+                    boxSizing: "border-box",
+                    letterSpacing: ".03em",
+                  }}
+                />
+                <button
+                  onClick={runBarcodeSearch}
+                  disabled={String(barcodeInput || "").replace(/\D/g, "").length < 8}
+                  style={{
+                    borderRadius: 10,
+                    border: "none",
+                    background: C.green,
+                    color: "#fff",
+                    fontFamily: FB,
+                    fontWeight: 700,
+                    fontSize: 12,
+                    cursor: "pointer",
+                    minWidth: 78,
+                    padding: "0 10px",
+                    opacity: String(barcodeInput || "").replace(/\D/g, "").length < 8 ? 0.5 : 1,
+                  }}
+                >
+                  Suchen
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {scannerOpen && (
+          <div style={{ padding: "0 16px 12px" }}>
+            <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, background: C.surface, padding: 10 }}>
+              <div style={{ fontFamily: FB, fontSize: 11, color: C.muted, marginBottom: 8 }}>
+                Barcode vor die Kamera halten (EAN/UPC).
+              </div>
+              {!scannerError && (
+                <video
+                  ref={videoRef}
+                  muted
+                  playsInline
+                  style={{ width: "100%", borderRadius: 8, background: "#111", aspectRatio: "4 / 3", objectFit: "cover" }}
+                />
+              )}
+              {scannerError && (
+                <div style={{ fontFamily: FB, fontSize: 12, color: "#B91C1C", lineHeight: 1.5 }}>
+                  {scannerError}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Results */}
         <div style={{ overflowY: "auto", padding: "0 16px 28px", flex: 1 }}>

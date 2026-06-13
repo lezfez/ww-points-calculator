@@ -21,6 +21,10 @@ function calcCoins({ kcal, gesF, zucker, protein, bst, salz }) {
   return Math.max(0, Math.round(raw));
 }
 
+function normalizeBarcode(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
 const BASE_URL = "https://world.openfoodfacts.org";
 const OFF_FIELDS = "id,code,product_name,product_name_de,product_name_en,brands,nutriments,serving_size,serving_quantity";
 
@@ -97,6 +101,8 @@ export default async function handler(req, res) {
   // ── GET: list local foods or search OFF ──────────────────
   if (req.method === "GET") {
     const { q = "", page = "1", off } = req.query;
+    const queryText = String(q || "").trim();
+    const barcodeQuery = normalizeBarcode(queryText);
     const pageNum = Math.max(1, parseInt(page) || 1);
     const pageSize = 25;
 
@@ -133,7 +139,14 @@ export default async function handler(req, res) {
 
     // Local DB search
     let query = supabase.from("foods").select("*", { count: "exact" }).order("name");
-    if (q) query = query.ilike("name", `%${q}%`);
+    if (queryText) {
+      const escaped = queryText.replaceAll(",", " ");
+      if (barcodeQuery.length >= 8) {
+        query = query.or(`name.ilike.%${escaped}%,brand.ilike.%${escaped}%,barcode.eq.${barcodeQuery}`);
+      } else {
+        query = query.or(`name.ilike.%${escaped}%,brand.ilike.%${escaped}%`);
+      }
+    }
     query = query.range((pageNum - 1) * pageSize, pageNum * pageSize - 1);
     const { data, count, error } = await query;
     if (error) return res.status(500).json({ error: error.message });
@@ -157,11 +170,12 @@ export default async function handler(req, res) {
     }
 
     // Manual single food
-    const { name, brand, kcal_100g, protein_100g, carbs_100g, sugar_100g, fat_100g, sat_fat_100g, fiber_100g, salt_100g, serving_g, serving_label } = body;
+    const { name, brand, barcode, kcal_100g, protein_100g, carbs_100g, sugar_100g, fat_100g, sat_fat_100g, fiber_100g, salt_100g, serving_g, serving_label } = body;
     if (!name) return res.status(400).json({ error: "name fehlt" });
     const coins_100g = calcCoins({ kcal: kcal_100g, gesF: sat_fat_100g, zucker: sugar_100g, protein: protein_100g, bst: fiber_100g, salz: salt_100g });
+    const normalizedBarcode = normalizeBarcode(barcode) || null;
     const { data, error } = await supabase.from("foods").insert({
-      name, brand: brand || null, kcal_100g, protein_100g, carbs_100g, sugar_100g,
+      name, brand: brand || null, barcode: normalizedBarcode, kcal_100g, protein_100g, carbs_100g, sugar_100g,
       fat_100g, sat_fat_100g, fiber_100g, salt_100g, coins_100g,
       serving_g: serving_g || null, serving_label: serving_label || null, source: "manual",
     }).select().single();
@@ -174,9 +188,12 @@ export default async function handler(req, res) {
     const id = parseInt(req.query.id);
     if (!id) return res.status(400).json({ error: "id fehlt" });
     const body = req.body ?? {};
+    const normalizedBarcode = body.barcode === undefined ? undefined : (normalizeBarcode(body.barcode) || null);
     const coins_100g = calcCoins({ kcal: body.kcal_100g, gesF: body.sat_fat_100g, zucker: body.sugar_100g, protein: body.protein_100g, bst: body.fiber_100g, salz: body.salt_100g });
+    const payload = { ...body, coins_100g };
+    if (normalizedBarcode !== undefined) payload.barcode = normalizedBarcode;
     const { data, error } = await supabase.from("foods")
-      .update({ ...body, coins_100g })
+      .update(payload)
       .eq("id", id).select().single();
     if (error) return res.status(500).json({ error: error.message });
     return res.json(data);

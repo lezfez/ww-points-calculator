@@ -69,6 +69,11 @@ function EditRow({ food, onSave, onCancel }) {
             value={draft.brand || ""} onChange={e => set("brand", e.target.value)} />
         </div>
       </div>
+      <div style={{ marginBottom: 10 }}>
+        <div style={{ fontFamily: FB, fontSize: 10, color: C.muted, marginBottom: 3 }}>Barcode (EAN/GTIN)</div>
+        <input className="app-input" style={{ ...inputStyle, padding: "7px 10px", fontSize: 12 }}
+          value={draft.barcode || ""} onChange={e => set("barcode", e.target.value.replace(/\D/g, ""))} placeholder="z.B. 9002490203541" />
+      </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginBottom: 10 }}>
         {NUTR_FIELDS.map(f => (
           <div key={f.id}>
@@ -182,6 +187,7 @@ function LocalDB({ authFetch, onStatsChange }) {
                 <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                   <span style={{ fontFamily: FB, fontWeight: 700, fontSize: 13, color: C.text }}>{food.name}</span>
                   {food.brand && <span style={{ fontSize: 11, color: C.muted, fontFamily: FB }}>· {food.brand}</span>}
+                  {food.barcode && <span style={{ fontSize: 10, color: C.muted, fontFamily: FB }}>· #{food.barcode}</span>}
                   <span style={{ fontSize: 10, background: food.source === "manual" ? "#FEF3C7" : C.surface2, color: food.source === "manual" ? "#B45309" : C.muted, borderRadius: 999, padding: "1px 7px", fontFamily: FB }}>
                     {food.source === "manual" ? "manuell" : "OFF"}
                   </span>
@@ -237,7 +243,7 @@ function LocalDB({ authFetch, onStatsChange }) {
 
 // ─── Manual Add Form ────────────────────────────────────────
 function ManualAddForm({ authFetch, onSaved, onCancel }) {
-  const empty = { name: "", brand: "", kcal_100g: "", protein_100g: "", carbs_100g: "", sugar_100g: "", fat_100g: "", sat_fat_100g: "", fiber_100g: "", salt_100g: "", serving_g: "", serving_label: "" };
+  const empty = { name: "", brand: "", barcode: "", kcal_100g: "", protein_100g: "", carbs_100g: "", sugar_100g: "", fat_100g: "", sat_fat_100g: "", fiber_100g: "", salt_100g: "", serving_g: "", serving_label: "" };
   const [draft, setDraft] = useState(empty);
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setDraft(p => ({ ...p, [k]: v }));
@@ -264,6 +270,10 @@ function ManualAddForm({ authFetch, onSaved, onCancel }) {
           <div style={{ fontFamily: FB, fontSize: 10, color: C.muted, marginBottom: 2 }}>Marke</div>
           <input className="app-input" style={{ ...inputStyle, padding: "7px 10px", fontSize: 12 }} placeholder="Optional" value={draft.brand} onChange={e => set("brand", e.target.value)} />
         </div>
+      </div>
+      <div style={{ marginBottom: 8 }}>
+        <div style={{ fontFamily: FB, fontSize: 10, color: C.muted, marginBottom: 2 }}>Barcode (EAN/GTIN)</div>
+        <input className="app-input" style={{ ...inputStyle, padding: "7px 10px", fontSize: 12 }} placeholder="Optional" value={draft.barcode} onChange={e => set("barcode", e.target.value.replace(/\D/g, ""))} />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginBottom: 8 }}>
         {NUTR_FIELDS.map(f => (
