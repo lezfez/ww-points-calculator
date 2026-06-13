@@ -88,6 +88,27 @@ button, a { touch-action: manipulation; }
 /* ══ MOBILE BOTTOM NAV ══ */
 .bottom-nav { display: none; }
 
+/* Food search modal layering and viewport fit */
+.food-search-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1200;
+}
+
+.food-search-sheet {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  width: min(860px, calc(100vw - 24px));
+  max-height: calc(100dvh - 84px);
+  border-radius: 20px;
+  box-shadow: 0 -6px 40px rgba(0, 0, 0, 0.18);
+  z-index: 1201;
+  overflow: hidden;
+}
+
 @media (max-width: 767px) {
   /* Top-Nav auf Mobile ausblenden */
   .nav-top { display: none !important; }
@@ -114,6 +135,16 @@ button, a { touch-action: manipulation; }
     box-shadow: 0 -2px 16px rgba(28,27,24,.08);
     padding-bottom: env(safe-area-inset-bottom, 0px);
     z-index: 300;
+  }
+
+  .food-search-sheet {
+    left: 0;
+    right: 0;
+    bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+    transform: none;
+    width: 100%;
+    max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 72px - env(safe-area-inset-bottom, 0px));
+    border-radius: 20px 20px 0 0;
   }
 
   .bottom-nav-btn {

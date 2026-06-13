@@ -160,13 +160,12 @@ export default function FoodSearch({ onAdd, onClose }) {
   return (
     <>
       <div onClick={onClose}
-        style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 200 }} />
+        className="food-search-overlay" />
 
-      <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 201,
-        background: C.bg, borderRadius: "20px 20px 0 0",
-        boxShadow: "0 -6px 40px rgba(0,0,0,.18)",
-        maxHeight: "80vh", display: "flex", flexDirection: "column",
+      <div className="food-search-sheet" style={{
+        background: C.bg,
+        display: "flex",
+        flexDirection: "column",
       }}>
         {/* Handle */}
         <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 0" }}>
