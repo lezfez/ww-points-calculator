@@ -292,7 +292,7 @@ export default async function handler(req, res) {
     const action = req.query.action;
 
     if (action === "recipe-text") {
-      const { recipeId, shortDescriptionHtml, instructionsHtml } = req.body ?? {};
+      const { recipeId, titleText, shortDescriptionHtml, instructionsHtml, ingredientsText } = req.body ?? {};
       const parsedId = Number.parseInt(recipeId, 10);
 
       if (!parsedId) {
@@ -301,6 +301,15 @@ export default async function handler(req, res) {
 
       const shortDescriptionSanitized = sanitizeRecipeHtml(shortDescriptionHtml);
       const instructionsSanitized = sanitizeRecipeHtml(instructionsHtml);
+      const normalizedTitle = String(titleText || "").trim();
+
+      if (!normalizedTitle) {
+        return res.status(400).json({ error: "Titel darf nicht leer sein." });
+      }
+
+      if (normalizedTitle.length > 180) {
+        return res.status(400).json({ error: "Titel ist zu lang (max. 180 Zeichen)." });
+      }
 
       if (shortDescriptionSanitized.length > 4000) {
         return res.status(400).json({ error: "Kurzbeschreibung ist zu lang (max. 4000 Zeichen HTML)." });
@@ -310,14 +319,21 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Zubereitung ist zu lang (max. 30000 Zeichen HTML)." });
       }
 
+      const ingredients = String(ingredientsText || "")
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(Boolean)
+        .slice(0, 400);
+
       const { data, error } = await supabase
         .from("recipes")
         .update({
+          name: normalizedTitle,
           short_description_html: shortDescriptionSanitized || null,
           instructions_html: instructionsSanitized || null,
         })
         .eq("id", parsedId)
-        .select("id, short_description_html, instructions_html")
+        .select("id, name, short_description_html, instructions_html")
         .single();
 
       if (error) {
@@ -325,6 +341,34 @@ export default async function handler(req, res) {
           return res.status(500).json({ error: "Spalten fuer Rezepttexte fehlen. Bitte SQL-Migration ausfuehren." });
         }
         return res.status(500).json({ error: error.message });
+      }
+
+      const { error: deleteIngredientsError } = await supabase
+        .from("recipe_ingredients")
+        .delete()
+        .eq("recipe_id", parsedId);
+
+      if (deleteIngredientsError) {
+        if (deleteIngredientsError.code === "42P01") {
+          return res.status(500).json({ error: "Tabelle recipe_ingredients fehlt. Bitte SQL-Migration ausfuehren." });
+        }
+        return res.status(500).json({ error: deleteIngredientsError.message });
+      }
+
+      if (ingredients.length > 0) {
+        const ingredientRows = ingredients.map((ingredient, index) => ({
+          recipe_id: parsedId,
+          ingredient,
+          position: index + 1,
+        }));
+
+        const { error: insertIngredientsError } = await supabase
+          .from("recipe_ingredients")
+          .insert(ingredientRows);
+
+        if (insertIngredientsError) {
+          return res.status(500).json({ error: insertIngredientsError.message });
+        }
       }
 
       const nowIso = new Date().toISOString();
@@ -348,8 +392,10 @@ export default async function handler(req, res) {
           changedBy: adminUser.id,
           changeSummary: "Rezepttexte aktualisiert",
           content: {
+            name: normalizedTitle,
             short_description_html: shortDescriptionSanitized || null,
             instructions_html: instructionsSanitized || null,
+            ingredients_count: ingredients.length,
             status: editorialMetaError ? null : "draft",
           },
         });
@@ -359,8 +405,10 @@ export default async function handler(req, res) {
 
       auditAdminAction("recipe-text-update", adminUser, {
         recipeId: parsedId,
+        titleLength: normalizedTitle.length,
         shortDescriptionLength: shortDescriptionSanitized.length,
         instructionsLength: instructionsSanitized.length,
+        ingredientsCount: ingredients.length,
       });
 
       return res.json({ success: true, recipe: data });

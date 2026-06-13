@@ -274,12 +274,12 @@ export default function App() {
     }
   }, [adminFetch, reloadRecipes]);
 
-  const saveRecipeTexts = useCallback(async (recipeId, { shortDescriptionHtml, instructionsHtml }) => {
+  const saveRecipeTexts = useCallback(async (recipeId, { titleText, shortDescriptionHtml, instructionsHtml, ingredientsText }) => {
     setAdminRecipeTextSaving(prev => ({ ...prev, [recipeId]: true }));
     try {
       const res = await adminFetch("/api/admin-recipes?action=recipe-text", {
         method: "PUT",
-        body: JSON.stringify({ recipeId, shortDescriptionHtml, instructionsHtml }),
+        body: JSON.stringify({ recipeId, titleText, shortDescriptionHtml, instructionsHtml, ingredientsText }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Speichern fehlgeschlagen");

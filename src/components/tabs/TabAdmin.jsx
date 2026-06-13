@@ -130,8 +130,10 @@ export default function TabAdmin({
   const getDraftForRecipe = (recipe) => recipeCategoryDraft[recipe.id] ?? recipe.kategorien ?? [];
 
   const getTextDraftForRecipe = (recipe) => recipeTextDraft[recipe.id] ?? {
+    titleText: recipe.name || "",
     shortDescriptionHtml: recipe.shortDescriptionHtml || "",
     instructionsHtml: recipe.instructionsHtml || "",
+    ingredientsText: Array.isArray(recipe.zutaten) ? recipe.zutaten.join("\n") : "",
   };
 
   const toggleDraftCategory = (recipe, slug) => {
@@ -168,8 +170,10 @@ export default function TabAdmin({
   const saveRecipeTexts = async (recipe) => {
     const draft = getTextDraftForRecipe(recipe);
     const ok = await onSaveRecipeTexts(recipe.id, {
+      titleText: draft.titleText,
       shortDescriptionHtml: draft.shortDescriptionHtml,
       instructionsHtml: draft.instructionsHtml,
+      ingredientsText: draft.ingredientsText,
     });
     if (ok) {
       setRecipeTextDraft(prev => {
@@ -573,8 +577,10 @@ export default function TabAdmin({
               const dirty = JSON.stringify([...draft].sort()) !== JSON.stringify([...(recipe.kategorien || [])].sort());
               const saving = !!recipeCategorySaving?.[recipe.id];
               const textDraft = getTextDraftForRecipe(recipe);
-              const textDirty = (textDraft.shortDescriptionHtml || "") !== (recipe.shortDescriptionHtml || "")
-                || (textDraft.instructionsHtml || "") !== (recipe.instructionsHtml || "");
+              const textDirty = String(textDraft.titleText || "") !== String(recipe.name || "")
+                || (textDraft.shortDescriptionHtml || "") !== (recipe.shortDescriptionHtml || "")
+                || (textDraft.instructionsHtml || "") !== (recipe.instructionsHtml || "")
+                || (textDraft.ingredientsText || "") !== ((Array.isArray(recipe.zutaten) ? recipe.zutaten.join("\n") : ""));
               const textSaving = !!recipeTextSaving?.[recipe.id];
               const textEditorOpen = openRecipeTextEditorId === recipe.id;
               const historyOpen = openRecipeHistoryId === recipe.id;
@@ -639,6 +645,16 @@ export default function TabAdmin({
                   {textEditorOpen && (
                     <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
                       <div style={{ fontSize: 11, fontWeight: 700, color: C.sub, marginBottom: 6, fontFamily: FB }}>
+                        Titel
+                      </div>
+                      <input
+                        className="app-input"
+                        value={textDraft.titleText}
+                        onChange={(e) => setTextDraftField(recipe, "titleText", e.target.value)}
+                        style={{ ...inputStyle, width: "100%", marginBottom: 12 }}
+                      />
+
+                      <div style={{ fontSize: 11, fontWeight: 700, color: C.sub, marginBottom: 6, fontFamily: FB }}>
                         Kurzbeschreibung (HTML)
                       </div>
                       <Editor
@@ -655,6 +671,17 @@ export default function TabAdmin({
                           block_formats: "Absatz=p; Zwischenueberschrift=h3",
                           content_style: "body { font-family: Raleway, sans-serif; font-size: 14px; line-height: 1.6; }",
                         }}
+                      />
+
+                      <div style={{ fontSize: 11, fontWeight: 700, color: C.sub, marginTop: 12, marginBottom: 6, fontFamily: FB }}>
+                        Zutaten (eine Zeile pro Zutat)
+                      </div>
+                      <textarea
+                        className="app-input"
+                        rows={8}
+                        value={textDraft.ingredientsText}
+                        onChange={(e) => setTextDraftField(recipe, "ingredientsText", e.target.value)}
+                        style={{ ...inputStyle, width: "100%", minHeight: 150, resize: "vertical", fontSize: 13, lineHeight: 1.5 }}
                       />
 
                       <div style={{ fontSize: 11, fontWeight: 700, color: C.sub, marginTop: 12, marginBottom: 6, fontFamily: FB }}>
