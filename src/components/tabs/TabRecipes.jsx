@@ -12,11 +12,15 @@ export default function TabRecipes({ recipes, loading, error, onReload }) {
   const debouncedSearch = useDebounce(search, 300);
 
   const kategorien = useMemo(() =>
-    ["Alle", ...Array.from(new Set(recipes.map(r => r.kategorie)))], [recipes]);
+    [
+      "Alle",
+      ...Array.from(new Set(recipes.flatMap(r => r.kategorienLabels || []))),
+    ],
+  [recipes]);
 
   const filteredRecipes = useMemo(() => {
     const filtered = recipes.filter(r =>
-      (kat === "Alle" || r.kategorie === kat) &&
+      (kat === "Alle" || (r.kategorienLabels || []).includes(kat)) &&
       (debouncedSearch === "" || r.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
         r.zutaten.some(z => z.toLowerCase().includes(debouncedSearch.toLowerCase())))
     );

@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import RoleBadge from "../RoleBadge";
 import AdminFoods from "../AdminFoods";
 import { C, FB, FH, card, sectionLabel, inputStyle, primaryBtn } from "../../styles/theme";
@@ -18,7 +19,43 @@ export default function TabAdmin({
   roleSaving, roleSelected, onRoleSelected, onApplyRole,
   bootstrapMsg, onBootstrap,
   recipes, imageGenLoading, imageGenPerRecipe, imageGenMsg, onGenerateImage, onGenerateAllImages,
+  recipeCategoryQuery, onRecipeCategoryQueryChange,
+  recipeCategoriesCatalog, recipeCategoriesLoading, recipeCategoriesError, onReloadRecipeCategories,
+  recipeCategorySaving, recipeCategoryMsg, onSaveRecipeCategories,
 }) {
+  const [recipeCategoryDraft, setRecipeCategoryDraft] = useState({});
+
+  const filteredRecipes = useMemo(() => {
+    const needle = recipeCategoryQuery.trim().toLowerCase();
+    if (!needle) return recipes;
+    return recipes.filter(r =>
+      r.name?.toLowerCase().includes(needle) ||
+      (r.kategorienLabels || []).some(cat => cat.toLowerCase().includes(needle))
+    );
+  }, [recipes, recipeCategoryQuery]);
+
+  const getDraftForRecipe = (recipe) => recipeCategoryDraft[recipe.id] ?? recipe.kategorien ?? [];
+
+  const toggleDraftCategory = (recipe, slug) => {
+    const current = getDraftForRecipe(recipe);
+    const next = current.includes(slug)
+      ? current.filter(s => s !== slug)
+      : [...current, slug];
+    setRecipeCategoryDraft(prev => ({ ...prev, [recipe.id]: next }));
+  };
+
+  const saveRecipeCategories = async (recipe) => {
+    const toSave = getDraftForRecipe(recipe);
+    const ok = await onSaveRecipeCategories(recipe.id, toSave);
+    if (ok) {
+      setRecipeCategoryDraft(prev => {
+        const next = { ...prev };
+        delete next[recipe.id];
+        return next;
+      });
+    }
+  };
+
   return (
     <div className="tab-content">
 
@@ -237,6 +274,86 @@ export default function TabAdmin({
             </>
           );
         })()}
+      </div>
+
+      {/* Rezept-Kategorien */}
+      <div style={card}>
+        <div style={{ ...sectionLabel, color: C.adminText }}>Rezept-Kategorien</div>
+        <p style={{ fontSize: 12, color: C.sub, marginBottom: 14, lineHeight: 1.6, fontFamily: FB }}>
+          Weise Rezepten eine oder mehrere Kategorien zu oder korrigiere bestehende Zuordnungen.
+        </p>
+
+        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+          <input
+            className="app-input"
+            style={{ ...inputStyle, flex: 1 }}
+            placeholder="Rezept oder Kategorie suchen..."
+            value={recipeCategoryQuery}
+            onChange={e => onRecipeCategoryQueryChange(e.target.value)}
+          />
+          <button
+            onClick={onReloadRecipeCategories}
+            disabled={recipeCategoriesLoading}
+            style={{ padding: "10px 14px", borderRadius: 9, border: `1px solid ${C.border}`, background: C.surface2, color: C.sub, fontSize: 12, fontWeight: 700, fontFamily: FB, cursor: "pointer", minHeight: 44, opacity: recipeCategoriesLoading ? .6 : 1 }}>
+            {recipeCategoriesLoading ? "..." : "Katalog laden"}
+          </button>
+        </div>
+
+        {recipeCategoriesError && (
+          <div style={{ marginBottom: 10, padding: "8px 14px", borderRadius: 9, background: "#FEE2E2", color: "#991B1B", fontSize: 13, fontWeight: 600, fontFamily: FB }}>
+            ✗ {recipeCategoriesError}
+          </div>
+        )}
+
+        {recipeCategoryMsg && (
+          <div style={{ marginBottom: 10, padding: "8px 14px", borderRadius: 9, background: recipeCategoryMsg.type === "ok" ? C.greenPale : "#FEE2E2", color: recipeCategoryMsg.type === "ok" ? C.green2 : "#991B1B", fontSize: 13, fontWeight: 600, fontFamily: FB }}>
+            {recipeCategoryMsg.type === "ok" ? "✓ " : "✗ "}{recipeCategoryMsg.text}
+          </div>
+        )}
+
+        {recipeCategoriesCatalog.length === 0 ? (
+          <div style={{ color: C.muted, fontFamily: FB, fontSize: 13, padding: "8px 2px" }}>
+            Keine aktiven Kategorien vorhanden.
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {filteredRecipes.map(recipe => {
+              const draft = getDraftForRecipe(recipe);
+              const dirty = JSON.stringify([...draft].sort()) !== JSON.stringify([...(recipe.kategorien || [])].sort());
+              const saving = !!recipeCategorySaving?.[recipe.id];
+
+              return (
+                <div key={recipe.id} style={{ padding: "10px 12px", background: C.surface2, borderRadius: 10, border: `1px solid ${dirty ? C.premBorder : C.border}` }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+                    <div style={{ flex: "1 1 220px", minWidth: 180, fontSize: 13, fontWeight: 700, color: C.text, fontFamily: FB }}>
+                      {recipe.name}
+                    </div>
+                    <button
+                      onClick={() => saveRecipeCategories(recipe)}
+                      disabled={!dirty || saving}
+                      style={{ padding: "6px 12px", borderRadius: 8, border: "none", background: dirty ? C.green : C.surface, color: dirty ? "#fff" : C.muted, fontSize: 12, fontWeight: 700, fontFamily: FB, cursor: dirty ? "pointer" : "default", opacity: saving ? .6 : 1 }}>
+                      {saving ? "..." : "Speichern"}
+                    </button>
+                  </div>
+
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {recipeCategoriesCatalog.map(cat => {
+                      const selected = draft.includes(cat.slug);
+                      return (
+                        <button
+                          key={`${recipe.id}-${cat.slug}`}
+                          onClick={() => toggleDraftCategory(recipe, cat.slug)}
+                          style={{ padding: "5px 10px", borderRadius: 999, border: `1px solid ${selected ? C.green : C.border}`, background: selected ? C.greenPale : C.surface, color: selected ? C.green2 : C.sub, fontSize: 11, fontWeight: 700, fontFamily: FB, cursor: "pointer" }}>
+                          {selected ? "● " : "○ "}{cat.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Lebensmitteldatenbank */}

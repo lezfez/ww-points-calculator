@@ -34,6 +34,12 @@ export default function App() {
   const [adminUserLoading, setAdminUserLoading] = useState(false);
   const [adminRoleSaving, setAdminRoleSaving]   = useState({});
   const [adminRoleSelected, setAdminRoleSelected] = useState({});
+  const [adminRecipeCategoryQuery, setAdminRecipeCategoryQuery] = useState("");
+  const [adminRecipeCategoriesCatalog, setAdminRecipeCategoriesCatalog] = useState([]);
+  const [adminRecipeCategoriesLoading, setAdminRecipeCategoriesLoading] = useState(false);
+  const [adminRecipeCategoriesError, setAdminRecipeCategoriesError] = useState(null);
+  const [adminRecipeCategorySaving, setAdminRecipeCategorySaving] = useState({});
+  const [adminRecipeCategoryMsg, setAdminRecipeCategoryMsg] = useState(null);
 
   // Image generation state
   const [imageGenLoading, setImageGenLoading]       = useState(false);
@@ -149,6 +155,47 @@ export default function App() {
     }
     setAdminRoleSaving(p => ({ ...p, [userId]: false }));
   };
+
+  const loadRecipeCategories = useCallback(async () => {
+    setAdminRecipeCategoriesLoading(true);
+    setAdminRecipeCategoriesError(null);
+    try {
+      const res = await adminFetch("/api/admin-recipes?action=categories");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Kategorien konnten nicht geladen werden.");
+      setAdminRecipeCategoriesCatalog(data.categories || []);
+    } catch (e) {
+      setAdminRecipeCategoriesCatalog([]);
+      setAdminRecipeCategoriesError(e?.message || "Kategorien konnten nicht geladen werden.");
+    }
+    setAdminRecipeCategoriesLoading(false);
+  }, [adminFetch]);
+
+  const saveRecipeCategories = useCallback(async (recipeId, kategorien) => {
+    setAdminRecipeCategorySaving(prev => ({ ...prev, [recipeId]: true }));
+    try {
+      const res = await adminFetch("/api/admin-recipes", {
+        method: "PUT",
+        body: JSON.stringify({ recipeId, kategorien }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Speichern fehlgeschlagen");
+      await reloadRecipes();
+      setAdminRecipeCategoryMsg({ type: "ok", text: "Kategorien gespeichert" });
+      setTimeout(() => setAdminRecipeCategoryMsg(null), 2500);
+      return true;
+    } catch (e) {
+      setAdminRecipeCategoryMsg({ type: "err", text: e?.message || "Speichern fehlgeschlagen" });
+      setTimeout(() => setAdminRecipeCategoryMsg(null), 3500);
+      return false;
+    } finally {
+      setAdminRecipeCategorySaving(prev => ({ ...prev, [recipeId]: false }));
+    }
+  }, [adminFetch, reloadRecipes]);
+
+  useEffect(() => {
+    if (userRole === "admin") loadRecipeCategories();
+  }, [userRole, loadRecipeCategories]);
 
   const doBootstrap = async () => {
     try {
@@ -354,6 +401,15 @@ export default function App() {
             recipes={recipes}
             imageGenLoading={imageGenLoading} imageGenPerRecipe={imageGenPerRecipe} imageGenMsg={imageGenMsg}
             onGenerateImage={generateRecipeImage} onGenerateAllImages={generateAllImages}
+            recipeCategoryQuery={adminRecipeCategoryQuery}
+            onRecipeCategoryQueryChange={setAdminRecipeCategoryQuery}
+            recipeCategoriesCatalog={adminRecipeCategoriesCatalog}
+            recipeCategoriesLoading={adminRecipeCategoriesLoading}
+            recipeCategoriesError={adminRecipeCategoriesError}
+            onReloadRecipeCategories={loadRecipeCategories}
+            recipeCategorySaving={adminRecipeCategorySaving}
+            recipeCategoryMsg={adminRecipeCategoryMsg}
+            onSaveRecipeCategories={saveRecipeCategories}
           />
         )}
 

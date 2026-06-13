@@ -43,7 +43,7 @@ export default function RecipeCard({ recipe, onSelect, selected }) {
         {recipe.name}
       </div>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-        {[recipe.kategorie, `⏱ ${recipe.zeit}`, `👥 ${recipe.portionen} Port.`].map(tag => (
+        {[recipe.kategorie, `⏱ ${recipe.zeit}`, `👥 ${recipe.portionen} Port.`].filter(Boolean).map(tag => (
           <span key={tag} style={{ padding: "4px 10px", borderRadius: 999, background: C.surface2, color: C.sub, fontSize: 11, fontWeight: 600, fontFamily: FB }}>{tag}</span>
         ))}
         <span style={{ marginLeft: "auto", fontSize: 12, color: selected ? C.green : C.muted, fontWeight: 700 }}>

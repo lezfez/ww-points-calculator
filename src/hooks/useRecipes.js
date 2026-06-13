@@ -10,9 +10,46 @@ const RECIPE_SELECT_WITH_IMAGES = `id, name, coins, portionen, zeit, kategorie, 
   recipe_ingredients(ingredient, position),
   recipe_steps(step_text, position)`;
 
+const RECIPE_SELECT_WITH_IMAGES_AND_CATEGORIES = `id, name, coins, portionen, zeit, kategorie, kategorien, hinweis, url,
+  image_url, image_path, image_prompt, image_status, image_generated_at,
+  recipe_ingredients(ingredient, position),
+  recipe_steps(step_text, position)`;
+
+function slugifyCategory(value) {
+  return String(value || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function labelFromSlug(slug) {
+  return String(slug || "")
+    .split("-")
+    .filter(Boolean)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 function mapRecipe(r) {
+  const legacyLabels = String(r.kategorie || "")
+    .split(",")
+    .map(v => v.trim())
+    .filter(Boolean);
+
+  const categorySlugs = Array.isArray(r.kategorien)
+    ? [...new Set(r.kategorien.map(slugifyCategory).filter(Boolean))]
+    : [...new Set(legacyLabels.map(slugifyCategory).filter(Boolean))];
+
+  const categoryLabels = legacyLabels.length > 0
+    ? legacyLabels
+    : categorySlugs.map(labelFromSlug);
+
   return {
     ...r,
+    kategorien: categorySlugs,
+    kategorienLabels: categoryLabels,
+    kategorie: categoryLabels.join(", "),
     zutaten: [...(r.recipe_ingredients || [])]
       .sort((a, b) => a.position - b.position)
       .map(i => i.ingredient),
@@ -29,13 +66,23 @@ export function useRecipes() {
   const [error, setError] = useState(null);
 
   const fetchRecipes = useCallback(async () => {
-    const imageQuery = await supabase
+    const fullQuery = await supabase
       .from("recipes")
-      .select(RECIPE_SELECT_WITH_IMAGES)
+      .select(RECIPE_SELECT_WITH_IMAGES_AND_CATEGORIES)
       .order("id");
 
-    let data = imageQuery.data;
-    let error = imageQuery.error;
+    let data = fullQuery.data;
+    let error = fullQuery.error;
+
+    if (error?.code === "42703") {
+      const imageFallbackQuery = await supabase
+        .from("recipes")
+        .select(RECIPE_SELECT_WITH_IMAGES)
+        .order("id");
+
+      data = imageFallbackQuery.data;
+      error = imageFallbackQuery.error;
+    }
 
     if (error?.code === "42703") {
       const fallbackQuery = await supabase
