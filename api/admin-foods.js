@@ -5,6 +5,13 @@ const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+function isLocalDevBypass(req) {
+  const host = String(req.headers.host || "").toLowerCase();
+  const isLocalHost = host.includes("localhost") || host.includes("127.0.0.1");
+  const isDevEnv = process.env.NODE_ENV !== "production";
+  return isDevEnv && isLocalHost;
+}
+
 async function requireAdmin(token) {
   const payload = await verifyToken(token, {
     secretKey: process.env.CLERK_SECRET_KEY,
@@ -66,6 +73,19 @@ function mapOFFProduct(p, sourceLabel) {
   };
 }
 
+function hasUsableNutrition(p) {
+  return [
+    p.kcal_100g,
+    p.protein_100g,
+    p.carbs_100g,
+    p.sugar_100g,
+    p.fat_100g,
+    p.sat_fat_100g,
+    p.fiber_100g,
+    p.salt_100g,
+  ].some((v) => Number.isFinite(v));
+}
+
 async function searchOFF(q, { params, label }) {
   const endpoint = `${BASE_URL}/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=20&lc=de&fields=${OFF_FIELDS}${params}`;
   const res = await fetch(endpoint, { headers: { "User-Agent": "WW-Points-Calculator-Admin/1.0" } });
@@ -74,7 +94,7 @@ async function searchOFF(q, { params, label }) {
   return (data.products || [])
     .filter(p => p.product_name_de || p.product_name || p.product_name_en)
     .map(p => mapOFFProduct(p, label))
-    .filter(p => p.kcal_100g != null);
+    .filter(hasUsableNutrition);
 }
 
 function mergeAndDedup(arrays) {
@@ -92,9 +112,18 @@ function mergeAndDedup(arrays) {
 
 export default async function handler(req, res) {
   const token = req.headers.authorization?.split(" ")[1];
-  if (!token) return res.status(401).json({ error: "Nicht authentifiziert" });
-  try { await requireAdmin(token); }
-  catch { return res.status(403).json({ error: "Nur für Admins" }); }
+  const devBypass = isLocalDevBypass(req);
+  if (!token && !devBypass) return res.status(401).json({ error: "Nicht authentifiziert" });
+  if (!devBypass) {
+    try {
+      await requireAdmin(token);
+    } catch {
+      return res.status(403).json({ error: "Nur für Admins" });
+    }
+  } else if (token) {
+    // In local dev, allow access even if Clerk role/token setup is incomplete.
+    try { await requireAdmin(token); } catch {}
+  }
 
   const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, { auth: { persistSession: false } });
 

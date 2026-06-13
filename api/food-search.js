@@ -4,6 +4,13 @@ import { createClient } from "@supabase/supabase-js";
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+function isLocalDevBypass(req) {
+  const host = String(req.headers.host || "").toLowerCase();
+  const isLocalHost = host.includes("localhost") || host.includes("127.0.0.1");
+  const isDevEnv = process.env.NODE_ENV !== "production";
+  return isDevEnv && isLocalHost;
+}
+
 async function getUserId(token) {
   const payload = await verifyToken(token, {
     secretKey: process.env.CLERK_SECRET_KEY,
@@ -71,14 +78,33 @@ function mapOFFProduct(p) {
   };
 }
 
+function hasUsableNutrition(p) {
+  return [
+    p.kcal_100g,
+    p.protein_100g,
+    p.carbs_100g,
+    p.sugar_100g,
+    p.fat_100g,
+    p.sat_fat_100g,
+    p.fiber_100g,
+    p.salt_100g,
+  ].some((v) => Number.isFinite(v));
+}
+
 export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).end();
 
   const token = req.headers.authorization?.split(" ")[1];
-  if (!token) return res.status(401).json({ error: "Nicht authentifiziert" });
+  const devBypass = isLocalDevBypass(req);
+  if (!token && !devBypass) return res.status(401).json({ error: "Nicht authentifiziert" });
 
-  try { await getUserId(token); }
-  catch { return res.status(401).json({ error: "Ungültiges Token" }); }
+  if (token) {
+    try {
+      await getUserId(token);
+    } catch {
+      if (!devBypass) return res.status(401).json({ error: "Ungültiges Token" });
+    }
+  }
 
   const q = (req.query.q || "").trim();
   if (!q || q.length < 2) return res.json({ foods: [] });
@@ -131,7 +157,7 @@ export default async function handler(req, res) {
       const prods = (result.value.products || [])
         .filter(p => p.product_name_de || p.product_name || p.product_name_en)
         .map(mapOFFProduct)
-        .filter(p => p.kcal_100g != null);
+        .filter(hasUsableNutrition);
       for (const p of prods) {
         const key = p.off_id || `${p.name}__${p.brand}`;
         if (!seen.has(key)) seen.set(key, p);
