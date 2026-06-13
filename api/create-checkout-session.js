@@ -1,13 +1,33 @@
 import Stripe from "stripe";
+import { createClerkClient, verifyToken } from "@clerk/backend";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 const APP_URL = process.env.APP_URL || "https://ww-points-calculator.vercel.app";
+
+async function getVerifiedUser(token) {
+  const payload = await verifyToken(token, {
+    secretKey: process.env.CLERK_SECRET_KEY,
+    clockSkewInMs: 60000,
+  });
+  return clerk.users.getUser(payload.sub);
+}
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const { userId, userEmail } = req.body;
-  if (!userId) return res.status(400).json({ error: "userId required" });
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return res.status(401).json({ error: "Nicht authentifiziert" });
+
+  let user;
+  try {
+    user = await getVerifiedUser(token);
+  } catch {
+    return res.status(401).json({ error: "Ungueltiges Token" });
+  }
+
+  const userId = user.id;
+  const userEmail = user.primaryEmailAddress?.emailAddress || undefined;
 
   try {
     const session = await stripe.checkout.sessions.create({
@@ -17,7 +37,7 @@ export default async function handler(req, res) {
       success_url: `${APP_URL}?premium=success`,
       cancel_url: `${APP_URL}?premium=canceled`,
       client_reference_id: userId,
-      customer_email: userEmail,
+      ...(userEmail ? { customer_email: userEmail } : {}),
     });
     res.json({ url: session.url });
   } catch (err) {

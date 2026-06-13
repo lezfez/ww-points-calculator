@@ -13,6 +13,34 @@ async function getRawBody(req) {
   });
 }
 
+async function findUserByStripeRefs({ customerId, subscriptionId }) {
+  const pageSize = 100;
+  let offset = 0;
+
+  while (true) {
+    const page = await clerk.users.getUserList({
+      limit: pageSize,
+      offset,
+      orderBy: "-created_at",
+    });
+
+    const users = page?.data || [];
+    const found = users.find(u => {
+      const meta = u.publicMetadata || {};
+      return (
+        (customerId && meta.stripeCustomerId === customerId) ||
+        (subscriptionId && meta.stripeSubscriptionId === subscriptionId)
+      );
+    });
+    if (found) return found;
+
+    if (users.length < pageSize) break;
+    offset += pageSize;
+  }
+
+  return null;
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
@@ -30,22 +58,35 @@ export default async function handler(req, res) {
     const session = event.data.object;
     const userId = session.client_reference_id;
     if (userId) {
+      const existing = await clerk.users.getUser(userId);
+      const existingRole = existing.publicMetadata?.role;
       await clerk.users.updateUserMetadata(userId, {
-        publicMetadata: { isPremium: true, stripeCustomerId: session.customer },
+        publicMetadata: {
+          ...existing.publicMetadata,
+          isPremium: true,
+          stripeCustomerId: session.customer || null,
+          stripeSubscriptionId: session.subscription || null,
+          role: existingRole === "admin" ? "admin" : "premium",
+        },
       });
     }
   }
 
   if (event.type === "customer.subscription.deleted") {
     const subscription = event.data.object;
-    // Find user by stripeCustomerId stored in publicMetadata
-    const users = await clerk.users.getUserList({
-      limit: 1,
-      query: subscription.customer,
+    const user = await findUserByStripeRefs({
+      customerId: subscription.customer || null,
+      subscriptionId: subscription.id || null,
     });
-    if (users?.data?.[0]) {
-      await clerk.users.updateUserMetadata(users.data[0].id, {
-        publicMetadata: { isPremium: false },
+    if (user) {
+      const existingRole = user.publicMetadata?.role;
+      await clerk.users.updateUserMetadata(user.id, {
+        publicMetadata: {
+          ...user.publicMetadata,
+          isPremium: false,
+          stripeSubscriptionId: null,
+          role: existingRole === "admin" ? "admin" : "user",
+        },
       });
     }
   }

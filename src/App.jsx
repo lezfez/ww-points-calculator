@@ -91,10 +91,15 @@ export default function App() {
     setCheckoutLoading(true);
     setCheckoutMsg(null);
     try {
+      const token = await getToken();
+      if (!token) throw new Error("Kein Session-Token – bitte neu einloggen.");
       const res = await fetch("/api/create-checkout-session", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.id, userEmail: user.primaryEmailAddress?.emailAddress }),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({}),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.url) throw new Error(data.error || "Checkout konnte nicht gestartet werden.");
