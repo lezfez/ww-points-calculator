@@ -1,5 +1,6 @@
 import { createClerkClient, verifyToken } from "@clerk/backend";
 import { createClient } from "@supabase/supabase-js";
+import sanitizeHtml from "sanitize-html";
 
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -98,6 +99,49 @@ function validateCategoryPayload(payload, { requireSlug = false } = {}) {
   return { errors, clean };
 }
 
+const RECIPE_HTML_SANITIZE_OPTIONS = {
+  allowedTags: [
+    "p", "br", "strong", "b", "em", "i", "u", "ul", "ol", "li",
+    "h2", "h3", "h4", "blockquote", "a",
+  ],
+  allowedAttributes: {
+    a: ["href", "target", "rel"],
+  },
+  allowedSchemes: ["http", "https", "mailto"],
+  transformTags: {
+    a: sanitizeHtml.simpleTransform("a", { rel: "noopener noreferrer nofollow", target: "_blank" }, true),
+  },
+};
+
+function sanitizeRecipeHtml(value) {
+  const dirty = String(value || "");
+  const cleaned = sanitizeHtml(dirty, RECIPE_HTML_SANITIZE_OPTIONS).trim();
+  return cleaned;
+}
+
+function normalizeRecipeStatus(value) {
+  const status = String(value || "").trim().toLowerCase();
+  if (status === "draft" || status === "published") return status;
+  return null;
+}
+
+async function appendRecipeHistory(supabase, { recipeId, action, changedBy, changeSummary, content }) {
+  const payload = {
+    recipe_id: recipeId,
+    action,
+    changed_by: changedBy || "unknown",
+    change_summary: changeSummary || null,
+    content: content || {},
+  };
+
+  const { error } = await supabase.from("recipe_history").insert(payload);
+  if (!error) return;
+
+  // Keep text/category updates working even when Phase-2 migration is not yet applied.
+  if (error.code === "42P01" || error.code === "42703") return;
+  throw error;
+}
+
 export default async function handler(req, res) {
   const token = req.headers.authorization?.split(" ")[1];
   if (!token) return res.status(401).json({ error: "Nicht authentifiziert" });
@@ -115,6 +159,60 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     const action = req.query.action;
+
+    if (action === "recipe-statuses") {
+      const { data, error } = await supabase
+        .from("recipes")
+        .select("id, status, edited_at, published_at")
+        .order("id", { ascending: true });
+
+      if (error) {
+        if (error.code === "42703") {
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from("recipes")
+            .select("id")
+            .order("id", { ascending: true });
+
+          if (fallbackError) return res.status(500).json({ error: fallbackError.message });
+
+          return res.json({
+            statuses: (fallbackData || []).map(row => ({
+              id: row.id,
+              status: "published",
+              edited_at: null,
+              published_at: null,
+            })),
+          });
+        }
+        return res.status(500).json({ error: error.message });
+      }
+
+      return res.json({ statuses: data || [] });
+    }
+
+    if (action === "recipe-history") {
+      const recipeId = Number.parseInt(req.query.recipeId, 10);
+      if (!recipeId) return res.status(400).json({ error: "recipeId fehlt" });
+
+      const limit = Math.min(50, Math.max(1, Number.parseInt(req.query.limit, 10) || 20));
+
+      const { data, error } = await supabase
+        .from("recipe_history")
+        .select("id, recipe_id, action, changed_by, changed_at, change_summary")
+        .eq("recipe_id", recipeId)
+        .order("changed_at", { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        if (error.code === "42P01") {
+          return res.status(500).json({ error: "Tabelle recipe_history fehlt. Bitte SQL-Migration ausfuehren." });
+        }
+        return res.status(500).json({ error: error.message });
+      }
+
+      return res.json({ history: data || [] });
+    }
+
     if (action !== "categories") return res.status(400).json({ error: "Unbekannte action" });
 
     const includeInactive = req.query.includeInactive === "1" || req.query.includeInactive === "true";
@@ -192,6 +290,135 @@ export default async function handler(req, res) {
 
   if (req.method === "PUT") {
     const action = req.query.action;
+
+    if (action === "recipe-text") {
+      const { recipeId, shortDescriptionHtml, instructionsHtml } = req.body ?? {};
+      const parsedId = Number.parseInt(recipeId, 10);
+
+      if (!parsedId) {
+        return res.status(400).json({ error: "recipeId fehlt" });
+      }
+
+      const shortDescriptionSanitized = sanitizeRecipeHtml(shortDescriptionHtml);
+      const instructionsSanitized = sanitizeRecipeHtml(instructionsHtml);
+
+      if (shortDescriptionSanitized.length > 4000) {
+        return res.status(400).json({ error: "Kurzbeschreibung ist zu lang (max. 4000 Zeichen HTML)." });
+      }
+
+      if (instructionsSanitized.length > 30000) {
+        return res.status(400).json({ error: "Zubereitung ist zu lang (max. 30000 Zeichen HTML)." });
+      }
+
+      const { data, error } = await supabase
+        .from("recipes")
+        .update({
+          short_description_html: shortDescriptionSanitized || null,
+          instructions_html: instructionsSanitized || null,
+        })
+        .eq("id", parsedId)
+        .select("id, short_description_html, instructions_html")
+        .single();
+
+      if (error) {
+        if (error.code === "42703") {
+          return res.status(500).json({ error: "Spalten fuer Rezepttexte fehlen. Bitte SQL-Migration ausfuehren." });
+        }
+        return res.status(500).json({ error: error.message });
+      }
+
+      const nowIso = new Date().toISOString();
+      const { error: editorialMetaError } = await supabase
+        .from("recipes")
+        .update({
+          status: "draft",
+          edited_at: nowIso,
+          edited_by: adminUser.id,
+        })
+        .eq("id", parsedId);
+
+      if (editorialMetaError && editorialMetaError.code !== "42703") {
+        return res.status(500).json({ error: editorialMetaError.message });
+      }
+
+      try {
+        await appendRecipeHistory(supabase, {
+          recipeId: parsedId,
+          action: "edited",
+          changedBy: adminUser.id,
+          changeSummary: "Rezepttexte aktualisiert",
+          content: {
+            short_description_html: shortDescriptionSanitized || null,
+            instructions_html: instructionsSanitized || null,
+            status: editorialMetaError ? null : "draft",
+          },
+        });
+      } catch (historyError) {
+        return res.status(500).json({ error: historyError.message });
+      }
+
+      auditAdminAction("recipe-text-update", adminUser, {
+        recipeId: parsedId,
+        shortDescriptionLength: shortDescriptionSanitized.length,
+        instructionsLength: instructionsSanitized.length,
+      });
+
+      return res.json({ success: true, recipe: data });
+    }
+
+    if (action === "recipe-publish") {
+      const { recipeId, status, changeSummary } = req.body ?? {};
+      const parsedId = Number.parseInt(recipeId, 10);
+      const normalizedStatus = normalizeRecipeStatus(status);
+
+      if (!parsedId) return res.status(400).json({ error: "recipeId fehlt" });
+      if (!normalizedStatus) return res.status(400).json({ error: "status muss draft oder published sein" });
+
+      const nowIso = new Date().toISOString();
+      const update = {
+        status: normalizedStatus,
+        edited_at: nowIso,
+        edited_by: adminUser.id,
+      };
+      if (normalizedStatus === "published") update.published_at = nowIso;
+
+      const { data, error } = await supabase
+        .from("recipes")
+        .update(update)
+        .eq("id", parsedId)
+        .select("id, status, edited_at, published_at")
+        .single();
+
+      if (error) {
+        if (error.code === "42703") {
+          return res.status(500).json({ error: "Spalten fuer Rezept-Workflow fehlen. Bitte SQL-Migration ausfuehren." });
+        }
+        return res.status(500).json({ error: error.message });
+      }
+
+      try {
+        await appendRecipeHistory(supabase, {
+          recipeId: parsedId,
+          action: normalizedStatus === "published" ? "published" : "drafted",
+          changedBy: adminUser.id,
+          changeSummary: String(changeSummary || "").trim() || (normalizedStatus === "published" ? "Rezept veroeffentlicht" : "Rezept als Entwurf markiert"),
+          content: {
+            status: normalizedStatus,
+            edited_at: data?.edited_at || nowIso,
+            published_at: data?.published_at || null,
+          },
+        });
+      } catch (historyError) {
+        return res.status(500).json({ error: historyError.message });
+      }
+
+      auditAdminAction("recipe-status-update", adminUser, {
+        recipeId: parsedId,
+        status: normalizedStatus,
+      });
+
+      return res.json({ success: true, recipe: data });
+    }
 
     if (action === "category") {
       const payload = req.body ?? {};

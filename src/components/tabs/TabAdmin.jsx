@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Editor } from "@tinymce/tinymce-react";
 import RoleBadge from "../RoleBadge";
 import AdminFoods from "../AdminFoods";
 import { C, FB, FH, card, sectionLabel, inputStyle, primaryBtn } from "../../styles/theme";
@@ -39,12 +40,31 @@ export default function TabAdmin({
   recipeCategoryQuery, onRecipeCategoryQueryChange,
   recipeCategoriesCatalog, recipeCategoriesLoading, recipeCategoriesError, onReloadRecipeCategories,
   recipeCategorySaving, recipeCategoryMsg, onSaveRecipeCategories,
+  recipeTextSaving, recipeTextMsg, onSaveRecipeTexts,
+  recipeWorkflowMsg, recipeStatusById, recipePublishSaving,
+  recipeHistoryById, recipeHistoryLoading, onLoadRecipeHistory, onPublishRecipe,
   categorySaving, categoryCreateSaving, categoryMsg, onCreateCategory, onUpdateCategory, onDeleteCategory,
 }) {
   const [recipeCategoryDraft, setRecipeCategoryDraft] = useState({});
+  const [recipeTextDraft, setRecipeTextDraft] = useState({});
   const [categoryDraft, setCategoryDraft] = useState({});
   const [newCategory, setNewCategory] = useState({ slug: "", label: "", sort_order: 0, is_active: true });
+  const [openRecipeTextEditorId, setOpenRecipeTextEditorId] = useState(null);
+  const [openRecipeHistoryId, setOpenRecipeHistoryId] = useState(null);
   const [activeSubtab, setActiveSubtab] = useState(getInitialAdminSubtab);
+
+  const formatDateTime = (value) => {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "-";
+    return date.toLocaleString("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   const filteredRecipes = useMemo(() => {
     const needle = recipeCategoryQuery.trim().toLowerCase();
@@ -65,6 +85,11 @@ export default function TabAdmin({
     [recipeCategoryDraft]
   );
 
+  const hasUnsavedRecipeTextDrafts = useMemo(
+    () => Object.keys(recipeTextDraft).length > 0,
+    [recipeTextDraft]
+  );
+
   const hasUnsavedCategoryDrafts = useMemo(() => {
     return Object.entries(categoryDraft).some(([slug, draft]) => {
       const category = recipeCategoriesCatalog.find(cat => cat.slug === slug);
@@ -82,7 +107,7 @@ export default function TabAdmin({
       || newCategory.is_active !== true;
   }, [newCategory]);
 
-  const hasAdminDirtyChanges = hasUnsavedRecipeDrafts || hasUnsavedCategoryDrafts || isNewCategoryDirty;
+  const hasAdminDirtyChanges = hasUnsavedRecipeDrafts || hasUnsavedRecipeTextDrafts || hasUnsavedCategoryDrafts || isNewCategoryDirty;
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -104,6 +129,11 @@ export default function TabAdmin({
 
   const getDraftForRecipe = (recipe) => recipeCategoryDraft[recipe.id] ?? recipe.kategorien ?? [];
 
+  const getTextDraftForRecipe = (recipe) => recipeTextDraft[recipe.id] ?? {
+    shortDescriptionHtml: recipe.shortDescriptionHtml || "",
+    instructionsHtml: recipe.instructionsHtml || "",
+  };
+
   const toggleDraftCategory = (recipe, slug) => {
     const current = getDraftForRecipe(recipe);
     const next = current.includes(slug)
@@ -117,6 +147,32 @@ export default function TabAdmin({
     const ok = await onSaveRecipeCategories(recipe.id, toSave);
     if (ok) {
       setRecipeCategoryDraft(prev => {
+        const next = { ...prev };
+        delete next[recipe.id];
+        return next;
+      });
+    }
+  };
+
+  const setTextDraftField = (recipe, field, value) => {
+    const base = getTextDraftForRecipe(recipe);
+    setRecipeTextDraft(prev => ({
+      ...prev,
+      [recipe.id]: {
+        ...base,
+        [field]: value,
+      },
+    }));
+  };
+
+  const saveRecipeTexts = async (recipe) => {
+    const draft = getTextDraftForRecipe(recipe);
+    const ok = await onSaveRecipeTexts(recipe.id, {
+      shortDescriptionHtml: draft.shortDescriptionHtml,
+      instructionsHtml: draft.instructionsHtml,
+    });
+    if (ok) {
+      setRecipeTextDraft(prev => {
         const next = { ...prev };
         delete next[recipe.id];
         return next;
@@ -239,7 +295,7 @@ export default function TabAdmin({
 
         {hasAdminDirtyChanges && (
           <div style={{ marginTop: 10, padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.premBorder}`, background: "#FFFBF0", color: C.sub, fontSize: 12, fontWeight: 600, fontFamily: FB }}>
-            Ungespeicherte Änderungen in Kategorien/Rezept-Zuordnung. Beim Wechseln wird vorher gewarnt.
+            Ungespeicherte Änderungen in Rezept-Zuordnungen, Rezepttexten oder Kategorien. Beim Wechseln wird vorher gewarnt.
           </div>
         )}
       </div>
@@ -494,6 +550,18 @@ export default function TabAdmin({
           </div>
         )}
 
+        {recipeTextMsg && (
+          <div style={{ marginBottom: 10, padding: "8px 14px", borderRadius: 9, background: recipeTextMsg.type === "ok" ? C.greenPale : "#FEE2E2", color: recipeTextMsg.type === "ok" ? C.green2 : "#991B1B", fontSize: 13, fontWeight: 600, fontFamily: FB }}>
+            {recipeTextMsg.type === "ok" ? "✓ " : "✗ "}{recipeTextMsg.text}
+          </div>
+        )}
+
+        {recipeWorkflowMsg && (
+          <div style={{ marginBottom: 10, padding: "8px 14px", borderRadius: 9, background: recipeWorkflowMsg.type === "ok" ? C.greenPale : "#FEE2E2", color: recipeWorkflowMsg.type === "ok" ? C.green2 : "#991B1B", fontSize: 13, fontWeight: 600, fontFamily: FB }}>
+            {recipeWorkflowMsg.type === "ok" ? "✓ " : "✗ "}{recipeWorkflowMsg.text}
+          </div>
+        )}
+
         {activeRecipeCategoriesCatalog.length === 0 ? (
           <div style={{ color: C.muted, fontFamily: FB, fontSize: 13, padding: "8px 2px" }}>
             Keine aktiven Kategorien vorhanden. Pflege den Katalog im Tab Kategorien.
@@ -504,6 +572,18 @@ export default function TabAdmin({
               const draft = getDraftForRecipe(recipe);
               const dirty = JSON.stringify([...draft].sort()) !== JSON.stringify([...(recipe.kategorien || [])].sort());
               const saving = !!recipeCategorySaving?.[recipe.id];
+              const textDraft = getTextDraftForRecipe(recipe);
+              const textDirty = (textDraft.shortDescriptionHtml || "") !== (recipe.shortDescriptionHtml || "")
+                || (textDraft.instructionsHtml || "") !== (recipe.instructionsHtml || "");
+              const textSaving = !!recipeTextSaving?.[recipe.id];
+              const textEditorOpen = openRecipeTextEditorId === recipe.id;
+              const historyOpen = openRecipeHistoryId === recipe.id;
+              const statusMeta = recipeStatusById?.[recipe.id] || {};
+              const recipeStatus = statusMeta.status || "published";
+              const isPublished = recipeStatus === "published";
+              const publishSaving = !!recipePublishSaving?.[recipe.id];
+              const historyLoading = !!recipeHistoryLoading?.[recipe.id];
+              const historyEntries = recipeHistoryById?.[recipe.id] || [];
 
               return (
                 <div key={recipe.id} style={{ padding: "10px 12px", background: C.surface2, borderRadius: 10, border: `1px solid ${dirty ? C.premBorder : C.border}` }}>
@@ -511,6 +591,29 @@ export default function TabAdmin({
                     <div style={{ flex: "1 1 220px", minWidth: 180, fontSize: 13, fontWeight: 700, color: C.text, fontFamily: FB }}>
                       {recipe.name}
                     </div>
+                    <span style={{ padding: "4px 10px", borderRadius: 999, border: `1px solid ${isPublished ? C.green : C.premBorder}`, background: isPublished ? C.greenPale : "#FFFBF0", color: isPublished ? C.green2 : "#92400E", fontSize: 11, fontWeight: 700, fontFamily: FB }}>
+                      {isPublished ? "Status: Veröffentlicht" : "Status: Entwurf"}
+                    </span>
+                    <button
+                      onClick={() => setOpenRecipeTextEditorId(prev => prev === recipe.id ? null : recipe.id)}
+                      style={{ padding: "6px 12px", borderRadius: 8, border: `1px solid ${textEditorOpen ? C.green : C.border}`, background: textEditorOpen ? C.greenPale : C.surface, color: textEditorOpen ? C.green2 : C.sub, fontSize: 12, fontWeight: 700, fontFamily: FB, cursor: "pointer" }}>
+                      {textEditorOpen ? "Texteditor schließen" : "Texte bearbeiten"}
+                    </button>
+                    <button
+                      onClick={async () => {
+                        const next = historyOpen ? null : recipe.id;
+                        setOpenRecipeHistoryId(next);
+                        if (next) await onLoadRecipeHistory(recipe.id);
+                      }}
+                      style={{ padding: "6px 12px", borderRadius: 8, border: `1px solid ${historyOpen ? C.green : C.border}`, background: historyOpen ? C.greenPale : C.surface, color: historyOpen ? C.green2 : C.sub, fontSize: 12, fontWeight: 700, fontFamily: FB, cursor: "pointer" }}>
+                      {historyOpen ? "Historie schließen" : "Historie"}
+                    </button>
+                    <button
+                      onClick={() => onPublishRecipe(recipe.id, isPublished ? "draft" : "published")}
+                      disabled={publishSaving}
+                      style={{ padding: "6px 12px", borderRadius: 8, border: "none", background: isPublished ? "#F59E0B" : C.green, color: "#fff", fontSize: 12, fontWeight: 700, fontFamily: FB, cursor: "pointer", opacity: publishSaving ? .6 : 1 }}>
+                      {publishSaving ? "..." : (isPublished ? "Als Entwurf" : "Veröffentlichen")}
+                    </button>
                     <button
                       onClick={() => saveRecipeCategories(recipe)}
                       disabled={!dirty || saving}
@@ -532,6 +635,91 @@ export default function TabAdmin({
                       );
                     })}
                   </div>
+
+                  {textEditorOpen && (
+                    <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: C.sub, marginBottom: 6, fontFamily: FB }}>
+                        Kurzbeschreibung (HTML)
+                      </div>
+                      <Editor
+                        apiKey="no-api-key"
+                        value={textDraft.shortDescriptionHtml}
+                        onEditorChange={(value) => setTextDraftField(recipe, "shortDescriptionHtml", value)}
+                        init={{
+                          menubar: false,
+                          statusbar: false,
+                          height: 180,
+                          plugins: ["advlist", "autolink", "lists", "link", "charmap", "searchreplace", "visualblocks", "code", "fullscreen", "wordcount"],
+                          toolbar: "undo redo | bold italic underline | bullist numlist | link | removeformat | code",
+                          block_formats: "Absatz=p; Zwischenueberschrift=h3",
+                          content_style: "body { font-family: Raleway, sans-serif; font-size: 14px; line-height: 1.6; }",
+                        }}
+                      />
+
+                      <div style={{ fontSize: 11, fontWeight: 700, color: C.sub, marginTop: 12, marginBottom: 6, fontFamily: FB }}>
+                        Zubereitung (HTML)
+                      </div>
+                      <Editor
+                        apiKey="no-api-key"
+                        value={textDraft.instructionsHtml}
+                        onEditorChange={(value) => setTextDraftField(recipe, "instructionsHtml", value)}
+                        init={{
+                          menubar: false,
+                          statusbar: false,
+                          height: 260,
+                          plugins: ["advlist", "autolink", "lists", "link", "charmap", "searchreplace", "visualblocks", "code", "fullscreen", "wordcount"],
+                          toolbar: "undo redo | blocks | bold italic underline | bullist numlist | link | removeformat | code",
+                          block_formats: "Absatz=p; Schritt=h3; Hinweis=blockquote",
+                          content_style: "body { font-family: Raleway, sans-serif; font-size: 14px; line-height: 1.7; }",
+                        }}
+                      />
+
+                      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+                        <button
+                          onClick={() => saveRecipeTexts(recipe)}
+                          disabled={!textDirty || textSaving}
+                          style={{ padding: "8px 14px", borderRadius: 9, border: "none", background: textDirty ? C.green : C.surface, color: textDirty ? "#fff" : C.muted, fontSize: 12, fontWeight: 700, fontFamily: FB, cursor: textDirty ? "pointer" : "default", opacity: textSaving ? .6 : 1 }}>
+                          {textSaving ? "..." : "Texte speichern"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {historyOpen && (
+                    <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px dashed ${C.border}` }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: C.sub, marginBottom: 8, fontFamily: FB }}>
+                        Änderungshistorie
+                      </div>
+
+                      <div style={{ fontSize: 11, color: C.muted, fontFamily: FB, marginBottom: 8 }}>
+                        Zuletzt bearbeitet: {formatDateTime(statusMeta.editedAt)} · Zuletzt veröffentlicht: {formatDateTime(statusMeta.publishedAt)}
+                      </div>
+
+                      {historyLoading ? (
+                        <div style={{ fontSize: 12, color: C.muted, fontFamily: FB }}>Lade Historie...</div>
+                      ) : historyEntries.length === 0 ? (
+                        <div style={{ fontSize: 12, color: C.muted, fontFamily: FB }}>Noch keine Historie vorhanden.</div>
+                      ) : (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          {historyEntries.map(entry => (
+                            <div key={entry.id} style={{ padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}`, background: C.surface }}>
+                              <div style={{ fontSize: 12, fontWeight: 700, color: C.text, fontFamily: FB }}>
+                                {entry.action} · {formatDateTime(entry.changed_at)}
+                              </div>
+                              <div style={{ fontSize: 11, color: C.muted, fontFamily: FB }}>
+                                von {entry.changed_by || "unbekannt"}
+                              </div>
+                              {entry.change_summary && (
+                                <div style={{ fontSize: 11, color: C.sub, fontFamily: FB, marginTop: 4 }}>
+                                  {entry.change_summary}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}

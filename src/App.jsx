@@ -40,6 +40,13 @@ export default function App() {
   const [adminRecipeCategoriesError, setAdminRecipeCategoriesError] = useState(null);
   const [adminRecipeCategorySaving, setAdminRecipeCategorySaving] = useState({});
   const [adminRecipeCategoryMsg, setAdminRecipeCategoryMsg] = useState(null);
+  const [adminRecipeTextSaving, setAdminRecipeTextSaving] = useState({});
+  const [adminRecipeTextMsg, setAdminRecipeTextMsg] = useState(null);
+  const [adminRecipeWorkflowMsg, setAdminRecipeWorkflowMsg] = useState(null);
+  const [adminRecipeStatusById, setAdminRecipeStatusById] = useState({});
+  const [adminRecipePublishSaving, setAdminRecipePublishSaving] = useState({});
+  const [adminRecipeHistoryById, setAdminRecipeHistoryById] = useState({});
+  const [adminRecipeHistoryLoading, setAdminRecipeHistoryLoading] = useState({});
   const [adminCategorySaving, setAdminCategorySaving] = useState({});
   const [adminCategoryCreateSaving, setAdminCategoryCreateSaving] = useState(false);
   const [adminCategoryMsg, setAdminCategoryMsg] = useState(null);
@@ -267,9 +274,107 @@ export default function App() {
     }
   }, [adminFetch, reloadRecipes]);
 
+  const saveRecipeTexts = useCallback(async (recipeId, { shortDescriptionHtml, instructionsHtml }) => {
+    setAdminRecipeTextSaving(prev => ({ ...prev, [recipeId]: true }));
+    try {
+      const res = await adminFetch("/api/admin-recipes?action=recipe-text", {
+        method: "PUT",
+        body: JSON.stringify({ recipeId, shortDescriptionHtml, instructionsHtml }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Speichern fehlgeschlagen");
+      await reloadRecipes();
+      setAdminRecipeTextMsg({ type: "ok", text: "Rezepttexte gespeichert" });
+      setTimeout(() => setAdminRecipeTextMsg(null), 2500);
+      return true;
+    } catch (e) {
+      setAdminRecipeTextMsg({ type: "err", text: e?.message || "Speichern fehlgeschlagen" });
+      setTimeout(() => setAdminRecipeTextMsg(null), 3500);
+      return false;
+    } finally {
+      setAdminRecipeTextSaving(prev => ({ ...prev, [recipeId]: false }));
+    }
+  }, [adminFetch, reloadRecipes]);
+
+  const loadRecipeStatuses = useCallback(async () => {
+    try {
+      const res = await adminFetch("/api/admin-recipes?action=recipe-statuses");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Status konnten nicht geladen werden.");
+
+      const map = {};
+      (data.statuses || []).forEach(row => {
+        map[row.id] = {
+          status: row.status || "published",
+          editedAt: row.edited_at || null,
+          publishedAt: row.published_at || null,
+        };
+      });
+      setAdminRecipeStatusById(map);
+    } catch {
+      setAdminRecipeStatusById({});
+    }
+  }, [adminFetch]);
+
+  const loadRecipeHistory = useCallback(async (recipeId) => {
+    if (!recipeId) return;
+    setAdminRecipeHistoryLoading(prev => ({ ...prev, [recipeId]: true }));
+    try {
+      const res = await adminFetch(`/api/admin-recipes?action=recipe-history&recipeId=${encodeURIComponent(recipeId)}`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Historie konnte nicht geladen werden.");
+      setAdminRecipeHistoryById(prev => ({ ...prev, [recipeId]: data.history || [] }));
+    } catch (e) {
+      setAdminRecipeWorkflowMsg({ type: "err", text: e?.message || "Historie konnte nicht geladen werden." });
+      setTimeout(() => setAdminRecipeWorkflowMsg(null), 3500);
+    } finally {
+      setAdminRecipeHistoryLoading(prev => ({ ...prev, [recipeId]: false }));
+    }
+  }, [adminFetch]);
+
+  const publishRecipe = useCallback(async (recipeId, status) => {
+    if (!recipeId) return false;
+    setAdminRecipePublishSaving(prev => ({ ...prev, [recipeId]: true }));
+    try {
+      const res = await adminFetch("/api/admin-recipes?action=recipe-publish", {
+        method: "PUT",
+        body: JSON.stringify({ recipeId, status }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Status konnte nicht gespeichert werden.");
+
+      setAdminRecipeStatusById(prev => ({
+        ...prev,
+        [recipeId]: {
+          status: data?.recipe?.status || status,
+          editedAt: data?.recipe?.edited_at || null,
+          publishedAt: data?.recipe?.published_at || null,
+        },
+      }));
+
+      await loadRecipeHistory(recipeId);
+
+      setAdminRecipeWorkflowMsg({
+        type: "ok",
+        text: status === "published" ? "Rezept veroeffentlicht" : "Rezept als Entwurf markiert",
+      });
+      setTimeout(() => setAdminRecipeWorkflowMsg(null), 2500);
+      return true;
+    } catch (e) {
+      setAdminRecipeWorkflowMsg({ type: "err", text: e?.message || "Status konnte nicht gespeichert werden." });
+      setTimeout(() => setAdminRecipeWorkflowMsg(null), 3500);
+      return false;
+    } finally {
+      setAdminRecipePublishSaving(prev => ({ ...prev, [recipeId]: false }));
+    }
+  }, [adminFetch, loadRecipeHistory]);
+
   useEffect(() => {
-    if (userRole === "admin") loadRecipeCategories();
-  }, [userRole, loadRecipeCategories]);
+    if (userRole === "admin") {
+      loadRecipeCategories();
+      loadRecipeStatuses();
+    }
+  }, [userRole, loadRecipeCategories, loadRecipeStatuses]);
 
   const doBootstrap = async () => {
     try {
@@ -484,6 +589,16 @@ export default function App() {
             recipeCategorySaving={adminRecipeCategorySaving}
             recipeCategoryMsg={adminRecipeCategoryMsg}
             onSaveRecipeCategories={saveRecipeCategories}
+            recipeTextSaving={adminRecipeTextSaving}
+            recipeTextMsg={adminRecipeTextMsg}
+            onSaveRecipeTexts={saveRecipeTexts}
+            recipeWorkflowMsg={adminRecipeWorkflowMsg}
+            recipeStatusById={adminRecipeStatusById}
+            recipePublishSaving={adminRecipePublishSaving}
+            recipeHistoryById={adminRecipeHistoryById}
+            recipeHistoryLoading={adminRecipeHistoryLoading}
+            onLoadRecipeHistory={loadRecipeHistory}
+            onPublishRecipe={publishRecipe}
             categorySaving={adminCategorySaving}
             categoryCreateSaving={adminCategoryCreateSaving}
             categoryMsg={adminCategoryMsg}

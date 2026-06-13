@@ -5,12 +5,29 @@ const BASE_RECIPE_SELECT = `id, name, coins, portionen, zeit, kategorie, hinweis
   recipe_ingredients(ingredient, position),
   recipe_steps(step_text, position)`;
 
+const RECIPE_SELECT_WITH_TEXTS = `id, name, coins, portionen, zeit, kategorie, hinweis, url,
+  short_description_html, instructions_html,
+  recipe_ingredients(ingredient, position),
+  recipe_steps(step_text, position)`;
+
 const RECIPE_SELECT_WITH_IMAGES = `id, name, coins, portionen, zeit, kategorie, hinweis, url,
   image_url, image_path, image_prompt, image_status, image_generated_at,
   recipe_ingredients(ingredient, position),
   recipe_steps(step_text, position)`;
 
+const RECIPE_SELECT_WITH_IMAGES_AND_TEXTS = `id, name, coins, portionen, zeit, kategorie, hinweis, url,
+  short_description_html, instructions_html,
+  image_url, image_path, image_prompt, image_status, image_generated_at,
+  recipe_ingredients(ingredient, position),
+  recipe_steps(step_text, position)`;
+
 const RECIPE_SELECT_WITH_IMAGES_AND_CATEGORIES = `id, name, coins, portionen, zeit, kategorie, kategorien, hinweis, url,
+  short_description_html, instructions_html,
+  image_url, image_path, image_prompt, image_status, image_generated_at,
+  recipe_ingredients(ingredient, position),
+  recipe_steps(step_text, position)`;
+
+const RECIPE_SELECT_WITH_IMAGES_AND_CATEGORIES_NO_TEXTS = `id, name, coins, portionen, zeit, kategorie, kategorien, hinweis, url,
   image_url, image_path, image_prompt, image_status, image_generated_at,
   recipe_ingredients(ingredient, position),
   recipe_steps(step_text, position)`;
@@ -31,6 +48,24 @@ function labelFromSlug(slug) {
     .join(" ");
 }
 
+function escapeHtml(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function plainTextToHtmlParagraphs(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  return text
+    .split(/\n{2,}/)
+    .map(part => `<p>${escapeHtml(part).replace(/\n/g, "<br>")}</p>`)
+    .join("");
+}
+
 function mapRecipe(r) {
   const legacyLabels = String(r.kategorie || "")
     .split(",")
@@ -45,18 +80,30 @@ function mapRecipe(r) {
     ? legacyLabels
     : categorySlugs.map(labelFromSlug);
 
+  const sortedSteps = [...(r.recipe_steps || [])]
+    .sort((a, b) => a.position - b.position)
+    .map(s => s.step_text)
+    .filter(Boolean);
+
+  const legacyPreparationText = sortedSteps.join(" ");
+  const shortDescriptionHtml = typeof r.short_description_html === "string"
+    ? r.short_description_html
+    : "";
+  const instructionsHtml = typeof r.instructions_html === "string"
+    ? r.instructions_html
+    : "";
+
   return {
     ...r,
     kategorien: categorySlugs,
     kategorienLabels: categoryLabels,
     kategorie: categoryLabels.join(", "),
+    shortDescriptionHtml: shortDescriptionHtml || plainTextToHtmlParagraphs(r.hinweis),
+    instructionsHtml: instructionsHtml || plainTextToHtmlParagraphs(legacyPreparationText),
     zutaten: [...(r.recipe_ingredients || [])]
       .sort((a, b) => a.position - b.position)
       .map(i => i.ingredient),
-    zubereitung: [...(r.recipe_steps || [])]
-      .sort((a, b) => a.position - b.position)
-      .map(s => s.step_text)
-      .join(" "),
+    zubereitung: legacyPreparationText,
   };
 }
 
@@ -75,6 +122,26 @@ export function useRecipes() {
     let error = fullQuery.error;
 
     if (error?.code === "42703") {
+      const imageAndTextFallbackQuery = await supabase
+        .from("recipes")
+        .select(RECIPE_SELECT_WITH_IMAGES_AND_TEXTS)
+        .order("id");
+
+      data = imageAndTextFallbackQuery.data;
+      error = imageAndTextFallbackQuery.error;
+    }
+
+    if (error?.code === "42703") {
+      const imageAndCategoriesFallbackQuery = await supabase
+        .from("recipes")
+        .select(RECIPE_SELECT_WITH_IMAGES_AND_CATEGORIES_NO_TEXTS)
+        .order("id");
+
+      data = imageAndCategoriesFallbackQuery.data;
+      error = imageAndCategoriesFallbackQuery.error;
+    }
+
+    if (error?.code === "42703") {
       const imageFallbackQuery = await supabase
         .from("recipes")
         .select(RECIPE_SELECT_WITH_IMAGES)
@@ -82,6 +149,16 @@ export function useRecipes() {
 
       data = imageFallbackQuery.data;
       error = imageFallbackQuery.error;
+    }
+
+    if (error?.code === "42703") {
+      const textFallbackQuery = await supabase
+        .from("recipes")
+        .select(RECIPE_SELECT_WITH_TEXTS)
+        .order("id");
+
+      data = textFallbackQuery.data;
+      error = textFallbackQuery.error;
     }
 
     if (error?.code === "42703") {

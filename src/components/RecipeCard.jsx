@@ -2,6 +2,9 @@ import { C, FH, FB, sh } from "../styles/theme";
 
 export default function RecipeCard({ recipe, onSelect, selected }) {
   const toggleRecipe = () => onSelect(selected ? null : recipe.id);
+  const hasShortDescriptionHtml = !!String(recipe.shortDescriptionHtml || "").trim();
+  const hasInstructionsHtml = !!String(recipe.instructionsHtml || "").trim();
+
   const handleKeyDown = (e) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -52,12 +55,27 @@ export default function RecipeCard({ recipe, onSelect, selected }) {
       </div>
       {selected && (
         <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
+          {hasShortDescriptionHtml && (
+            <div
+              style={{ margin: "0 0 12px", lineHeight: 1.7, fontSize: 13, color: C.text, fontFamily: FB }}
+              onClick={e => e.stopPropagation()}
+              dangerouslySetInnerHTML={{ __html: recipe.shortDescriptionHtml }}
+            />
+          )}
           <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", color: C.muted, marginBottom: 8, fontFamily: FB }}>Zutaten</div>
           <ul style={{ margin: "0 0 14px", padding: "0 0 0 18px", lineHeight: 1.9, textAlign: "left", fontSize: 13, color: C.text, fontFamily: FB }}>
             {recipe.zutaten.map(z => <li key={z}>{z}</li>)}
           </ul>
           <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", color: C.muted, marginBottom: 8, fontFamily: FB }}>Zubereitung</div>
-          <p style={{ margin: "0 0 12px", lineHeight: 1.8, fontSize: 13, color: C.text, fontFamily: FB }}>{recipe.zubereitung}</p>
+          {hasInstructionsHtml ? (
+            <div
+              style={{ margin: "0 0 12px", lineHeight: 1.8, fontSize: 13, color: C.text, fontFamily: FB }}
+              onClick={e => e.stopPropagation()}
+              dangerouslySetInnerHTML={{ __html: recipe.instructionsHtml }}
+            />
+          ) : (
+            <p style={{ margin: "0 0 12px", lineHeight: 1.8, fontSize: 13, color: C.text, fontFamily: FB }}>{recipe.zubereitung}</p>
+          )}
           {recipe.hinweis && (
             <div style={{ background: C.greenPale, border: `1px solid rgba(34,139,34,.15)`, borderRadius: 9, padding: "8px 12px", fontSize: 12, color: C.green2, marginBottom: 12, fontFamily: FB }}>
               ℹ️ {recipe.hinweis}
