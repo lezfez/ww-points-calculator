@@ -19,6 +19,20 @@ async function requireAdmin(token) {
   return user;
 }
 
+function auditAdminAction(action, actor, details) {
+  try {
+    console.info("[admin-audit]", {
+      action,
+      actorId: actor?.id || null,
+      actorEmail: actor?.emailAddresses?.[0]?.emailAddress || null,
+      timestamp: new Date().toISOString(),
+      details,
+    });
+  } catch {
+    // Optional audit logging must never break admin actions.
+  }
+}
+
 export default async function handler(req, res) {
   const token = req.headers.authorization?.split(" ")[1];
   if (!token) return res.status(401).json({ error: "Nicht authentifiziert" });
@@ -80,6 +94,13 @@ export default async function handler(req, res) {
 
     const { error } = await supabase.from("feature_flags").update(updates).eq("id", id);
     if (error) return res.status(500).json({ error: error.message });
+
+    auditAdminAction("set-flag", adminUser, {
+      flagId: id,
+      required_role: updates.required_role,
+      enabled: updates.enabled,
+    });
+
     return res.json({ success: true });
   }
 
@@ -96,6 +117,13 @@ export default async function handler(req, res) {
     await clerk.users.updateUserMetadata(userId, {
       publicMetadata: { ...target.publicMetadata, role, isPremium: role === "premium" || role === "admin" },
     });
+
+    auditAdminAction("set-role", adminUser, {
+      targetUserId: userId,
+      targetUserEmail: target.emailAddresses?.[0]?.emailAddress || null,
+      role,
+    });
+
     return res.json({ success: true });
   }
 

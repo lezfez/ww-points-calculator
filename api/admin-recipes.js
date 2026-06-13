@@ -12,6 +12,21 @@ async function requireAdmin(token) {
   });
   const user = await clerk.users.getUser(payload.sub);
   if (user.publicMetadata?.role !== "admin") throw new Error("Forbidden");
+  return user;
+}
+
+function auditAdminAction(action, actor, details) {
+  try {
+    console.info("[admin-audit]", {
+      action,
+      actorId: actor?.id || null,
+      actorEmail: actor?.emailAddresses?.[0]?.emailAddress || null,
+      timestamp: new Date().toISOString(),
+      details,
+    });
+  } catch {
+    // Optional audit logging must never break admin actions.
+  }
 }
 
 function normalizeSlug(value) {
@@ -22,12 +37,74 @@ function normalizeSlug(value) {
     .replace(/^-+|-+$/g, "");
 }
 
+function isValidBoolean(value) {
+  return typeof value === "boolean";
+}
+
+function parseSortOrder(value) {
+  if (value === undefined || value === null || value === "") return 0;
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isInteger(parsed)) return null;
+  if (parsed < 0 || parsed > 9999) return null;
+  return parsed;
+}
+
+function validateCategoryPayload(payload, { requireSlug = false } = {}) {
+  const errors = [];
+  const clean = {};
+
+  const slugInput = payload?.slug;
+  const labelInput = payload?.label;
+
+  if (slugInput !== undefined || requireSlug) {
+    const normalizedSlug = normalizeSlug(slugInput);
+    if (!normalizedSlug) {
+      errors.push("slug ist erforderlich");
+    } else if (normalizedSlug.length < 2 || normalizedSlug.length > 64) {
+      errors.push("slug muss 2-64 Zeichen haben");
+    } else {
+      clean.slug = normalizedSlug;
+    }
+  }
+
+  if (labelInput !== undefined) {
+    const label = String(labelInput || "").trim();
+    if (!label) {
+      errors.push("label ist erforderlich");
+    } else if (label.length < 2 || label.length > 80) {
+      errors.push("label muss 2-80 Zeichen haben");
+    } else {
+      clean.label = label;
+    }
+  }
+
+  if (payload?.sort_order !== undefined) {
+    const sortOrder = parseSortOrder(payload.sort_order);
+    if (sortOrder === null) {
+      errors.push("sort_order muss eine ganze Zahl zwischen 0 und 9999 sein");
+    } else {
+      clean.sort_order = sortOrder;
+    }
+  }
+
+  if (payload?.is_active !== undefined) {
+    if (!isValidBoolean(payload.is_active)) {
+      errors.push("is_active muss true oder false sein");
+    } else {
+      clean.is_active = payload.is_active;
+    }
+  }
+
+  return { errors, clean };
+}
+
 export default async function handler(req, res) {
   const token = req.headers.authorization?.split(" ")[1];
   if (!token) return res.status(401).json({ error: "Nicht authentifiziert" });
 
+  let adminUser;
   try {
-    await requireAdmin(token);
+    adminUser = await requireAdmin(token);
   } catch {
     return res.status(403).json({ error: "Nur fuer Admins" });
   }
@@ -40,12 +117,19 @@ export default async function handler(req, res) {
     const action = req.query.action;
     if (action !== "categories") return res.status(400).json({ error: "Unbekannte action" });
 
-    const { data, error } = await supabase
+    const includeInactive = req.query.includeInactive === "1" || req.query.includeInactive === "true";
+
+    let query = supabase
       .from("recipe_categories")
       .select("slug, label, sort_order, is_active")
-      .eq("is_active", true)
       .order("sort_order", { ascending: true })
       .order("label", { ascending: true });
+
+    if (!includeInactive) {
+      query = query.eq("is_active", true);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       if (error.code === "42P01") {
@@ -57,7 +141,108 @@ export default async function handler(req, res) {
     return res.json({ categories: data || [] });
   }
 
+  if (req.method === "POST") {
+    const action = req.query.action;
+    if (action !== "category") return res.status(400).json({ error: "Unbekannte action" });
+
+    const payload = req.body ?? {};
+    const { errors, clean } = validateCategoryPayload(payload, { requireSlug: false });
+
+    const derivedSlug = clean.slug || normalizeSlug(clean.label || "");
+    if (!derivedSlug) errors.push("slug oder label ist erforderlich");
+
+    if (!clean.label) errors.push("label ist erforderlich");
+
+    if (errors.length) {
+      return res.status(400).json({ error: errors.join("; ") });
+    }
+
+    const row = {
+      slug: derivedSlug,
+      label: clean.label,
+      sort_order: clean.sort_order ?? 0,
+      is_active: clean.is_active ?? true,
+    };
+
+    const { data, error } = await supabase
+      .from("recipe_categories")
+      .insert(row)
+      .select("slug, label, sort_order, is_active")
+      .single();
+
+    if (error) {
+      if (error.code === "42P01") {
+        return res.status(500).json({ error: "Tabelle recipe_categories fehlt. Bitte SQL-Migration ausfuehren." });
+      }
+      if (error.code === "23505") {
+        return res.status(409).json({ error: "Kategorie-Slug existiert bereits." });
+      }
+      return res.status(500).json({ error: error.message });
+    }
+
+    auditAdminAction("category-create", adminUser, {
+      slug: data?.slug || row.slug,
+      label: data?.label || row.label,
+      sort_order: data?.sort_order ?? row.sort_order,
+      is_active: data?.is_active ?? row.is_active,
+    });
+
+    return res.status(201).json({ success: true, category: data });
+  }
+
   if (req.method === "PUT") {
+    const action = req.query.action;
+
+    if (action === "category") {
+      const payload = req.body ?? {};
+      const targetSlug = normalizeSlug(payload.slug);
+      if (!targetSlug) return res.status(400).json({ error: "slug fehlt" });
+
+      const { errors, clean } = validateCategoryPayload(payload, { requireSlug: false });
+      if (errors.length) return res.status(400).json({ error: errors.join("; ") });
+
+      const update = {};
+      if (clean.label !== undefined) update.label = clean.label;
+      if (clean.sort_order !== undefined) update.sort_order = clean.sort_order;
+      if (clean.is_active !== undefined) update.is_active = clean.is_active;
+
+      if (!Object.keys(update).length) {
+        return res.status(400).json({ error: "Keine gueltigen Felder zum Aktualisieren angegeben." });
+      }
+
+      const { data, error } = await supabase
+        .from("recipe_categories")
+        .update(update)
+        .eq("slug", targetSlug)
+        .select("slug, label, sort_order, is_active")
+        .single();
+
+      if (error) {
+        if (error.code === "42P01") {
+          return res.status(500).json({ error: "Tabelle recipe_categories fehlt. Bitte SQL-Migration ausfuehren." });
+        }
+        if (error.code === "PGRST116") {
+          return res.status(404).json({ error: "Kategorie nicht gefunden." });
+        }
+        return res.status(500).json({ error: error.message });
+      }
+
+      if (!data) {
+        return res.status(404).json({ error: "Kategorie nicht gefunden." });
+      }
+
+      auditAdminAction("category-update", adminUser, {
+        slug: targetSlug,
+        update,
+      });
+
+      return res.json({ success: true, category: data });
+    }
+
+    if (action && action !== "recipe-categories") {
+      return res.status(400).json({ error: "Unbekannte action" });
+    }
+
     const { recipeId, kategorien } = req.body ?? {};
     const parsedId = Number.parseInt(recipeId, 10);
     if (!parsedId) return res.status(400).json({ error: "recipeId fehlt" });
@@ -103,6 +288,11 @@ export default async function handler(req, res) {
       }
       return res.status(500).json({ error: error.message });
     }
+
+    auditAdminAction("recipe-category-assignment", adminUser, {
+      recipeId: parsedId,
+      kategorien: normalized,
+    });
 
     return res.json({ success: true, recipe: data });
   }

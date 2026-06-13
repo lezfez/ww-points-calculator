@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import RoleBadge from "../RoleBadge";
 import AdminFoods from "../AdminFoods";
 import { C, FB, FH, card, sectionLabel, inputStyle, primaryBtn } from "../../styles/theme";
@@ -12,6 +12,23 @@ const IMAGE_STATUS_LABEL = {
   pending:    { icon: "○",  label: "Ausstehend",    color: "#9E9E90" },
 };
 
+const ADMIN_SUBTABS = [
+  { id: "zugriff", label: "Zugriff" },
+  { id: "users", label: "Users" },
+  { id: "kategorien", label: "Kategorien" },
+  { id: "rezepte", label: "Rezepte" },
+  { id: "bilder", label: "Bilder" },
+  { id: "foods", label: "Foods" },
+  { id: "bootstrap", label: "Bootstrap" },
+];
+
+const ADMIN_SUBTAB_IDS = new Set(ADMIN_SUBTABS.map(tab => tab.id));
+
+function getInitialAdminSubtab() {
+  const urlValue = new URLSearchParams(window.location.search).get("adminTab");
+  return ADMIN_SUBTAB_IDS.has(urlValue) ? urlValue : "zugriff";
+}
+
 export default function TabAdmin({
   flags, flagsLoading, flagsError, onReloadFlags,
   flagDraft, onFlagDraftChange, flagSaving, flagMsg, onSaveFlag,
@@ -22,8 +39,12 @@ export default function TabAdmin({
   recipeCategoryQuery, onRecipeCategoryQueryChange,
   recipeCategoriesCatalog, recipeCategoriesLoading, recipeCategoriesError, onReloadRecipeCategories,
   recipeCategorySaving, recipeCategoryMsg, onSaveRecipeCategories,
+  categorySaving, categoryCreateSaving, categoryMsg, onCreateCategory, onUpdateCategory,
 }) {
   const [recipeCategoryDraft, setRecipeCategoryDraft] = useState({});
+  const [categoryDraft, setCategoryDraft] = useState({});
+  const [newCategory, setNewCategory] = useState({ slug: "", label: "", sort_order: 0, is_active: true });
+  const [activeSubtab, setActiveSubtab] = useState(getInitialAdminSubtab);
 
   const filteredRecipes = useMemo(() => {
     const needle = recipeCategoryQuery.trim().toLowerCase();
@@ -33,6 +54,53 @@ export default function TabAdmin({
       (r.kategorienLabels || []).some(cat => cat.toLowerCase().includes(needle))
     );
   }, [recipes, recipeCategoryQuery]);
+
+  const activeRecipeCategoriesCatalog = useMemo(
+    () => recipeCategoriesCatalog.filter(cat => cat.is_active !== false),
+    [recipeCategoriesCatalog]
+  );
+
+  const hasUnsavedRecipeDrafts = useMemo(
+    () => Object.keys(recipeCategoryDraft).length > 0,
+    [recipeCategoryDraft]
+  );
+
+  const hasUnsavedCategoryDrafts = useMemo(() => {
+    return Object.entries(categoryDraft).some(([slug, draft]) => {
+      const category = recipeCategoriesCatalog.find(cat => cat.slug === slug);
+      if (!category) return false;
+      return draft.label !== (category.label || "")
+        || Number(draft.sort_order) !== Number(category.sort_order ?? 0)
+        || !!draft.is_active !== (category.is_active !== false);
+    });
+  }, [categoryDraft, recipeCategoriesCatalog]);
+
+  const isNewCategoryDirty = useMemo(() => {
+    return String(newCategory.slug || "").trim() !== ""
+      || String(newCategory.label || "").trim() !== ""
+      || Number(newCategory.sort_order || 0) !== 0
+      || newCategory.is_active !== true;
+  }, [newCategory]);
+
+  const hasAdminDirtyChanges = hasUnsavedRecipeDrafts || hasUnsavedCategoryDrafts || isNewCategoryDirty;
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const current = url.searchParams.get("adminTab");
+    if (current === activeSubtab) return;
+    url.searchParams.set("adminTab", activeSubtab);
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }, [activeSubtab]);
+
+  useEffect(() => {
+    if (!hasAdminDirtyChanges) return;
+    const handleBeforeUnload = (event) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasAdminDirtyChanges]);
 
   const getDraftForRecipe = (recipe) => recipeCategoryDraft[recipe.id] ?? recipe.kategorien ?? [];
 
@@ -56,6 +124,60 @@ export default function TabAdmin({
     }
   };
 
+  const getDraftForCategory = (category) => categoryDraft[category.slug] ?? {
+    label: category.label || "",
+    sort_order: category.sort_order ?? 0,
+    is_active: category.is_active !== false,
+  };
+
+  const setCategoryDraftField = (slug, field, value) => {
+    const original = recipeCategoriesCatalog.find(cat => cat.slug === slug);
+    if (!original) return;
+    const base = getDraftForCategory(original);
+    setCategoryDraft(prev => ({
+      ...prev,
+      [slug]: { ...base, [field]: value },
+    }));
+  };
+
+  const saveCategory = async (category) => {
+    const draft = getDraftForCategory(category);
+    const patch = {
+      label: String(draft.label || "").trim(),
+      sort_order: Number.isFinite(Number(draft.sort_order)) ? Number(draft.sort_order) : 0,
+      is_active: !!draft.is_active,
+    };
+    const ok = await onUpdateCategory(category.slug, patch);
+    if (ok) {
+      setCategoryDraft(prev => {
+        const next = { ...prev };
+        delete next[category.slug];
+        return next;
+      });
+    }
+  };
+
+  const createCategory = async () => {
+    const ok = await onCreateCategory({
+      slug: newCategory.slug,
+      label: newCategory.label,
+      sort_order: Number.isFinite(Number(newCategory.sort_order)) ? Number(newCategory.sort_order) : 0,
+      is_active: !!newCategory.is_active,
+    });
+    if (ok) {
+      setNewCategory({ slug: "", label: "", sort_order: 0, is_active: true });
+    }
+  };
+
+  const changeSubtab = (nextSubtab) => {
+    if (nextSubtab === activeSubtab) return;
+    if (hasAdminDirtyChanges) {
+      const ok = window.confirm("Es gibt ungespeicherte Admin-Änderungen. Trotzdem den Unterbereich wechseln?");
+      if (!ok) return;
+    }
+    setActiveSubtab(nextSubtab);
+  };
+
   return (
     <div className="tab-content">
 
@@ -68,7 +190,49 @@ export default function TabAdmin({
         </div>
       </div>
 
+      <div style={{ ...card, padding: "12px 14px", background: C.surface2 }}>
+        <div
+          role="tablist"
+          aria-label="Admin Unterbereiche"
+          style={{ display: "flex", gap: 8, flexWrap: "wrap" }}
+        >
+          {ADMIN_SUBTABS.map(tab => {
+            const active = activeSubtab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => changeSubtab(tab.id)}
+                style={{
+                  padding: "7px 12px",
+                  borderRadius: 999,
+                  border: `1px solid ${active ? C.green : C.border}`,
+                  background: active ? C.greenPale : C.surface,
+                  color: active ? C.green2 : C.sub,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  fontFamily: FB,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {hasAdminDirtyChanges && (
+          <div style={{ marginTop: 10, padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.premBorder}`, background: "#FFFBF0", color: C.sub, fontSize: 12, fontWeight: 600, fontFamily: FB }}>
+            Ungespeicherte Änderungen in Kategorien/Rezept-Zuordnung. Beim Wechseln wird vorher gewarnt.
+          </div>
+        )}
+      </div>
+
       {/* Feature Flags */}
+      {activeSubtab === "zugriff" && (
       <div style={card}>
         <div style={{ ...sectionLabel, color: C.adminText }}>Zugriffssteuerung – Feature Flags</div>
         <p style={{ fontSize: 12, color: C.sub, marginBottom: 16, lineHeight: 1.6, fontFamily: FB }}>
@@ -143,8 +307,10 @@ export default function TabAdmin({
           </div>
         )}
       </div>
+      )}
 
       {/* Benutzerverwaltung */}
+      {activeSubtab === "users" && (
       <div style={card}>
         <div style={{ ...sectionLabel, color: C.adminText }}>Benutzerverwaltung</div>
         <p style={{ fontSize: 12, color: C.sub, marginBottom: 14, lineHeight: 1.6, fontFamily: FB }}>
@@ -201,8 +367,10 @@ export default function TabAdmin({
           <div style={{ color: C.muted, fontFamily: FB, fontSize: 13, textAlign: "center", padding: "16px 0" }}>Keine Benutzer gefunden.</div>
         )}
       </div>
+      )}
 
       {/* Rezeptbilder */}
+      {activeSubtab === "bilder" && (
       <div style={card}>
         <div style={{ ...sectionLabel, color: C.adminText }}>Rezeptbilder (KI-Generierung)</div>
         {recipes && (() => {
@@ -275,12 +443,14 @@ export default function TabAdmin({
           );
         })()}
       </div>
+      )}
 
-      {/* Rezept-Kategorien */}
+      {/* Rezept-Zuordnung */}
+      {activeSubtab === "rezepte" && (
       <div style={card}>
-        <div style={{ ...sectionLabel, color: C.adminText }}>Rezept-Kategorien</div>
+        <div style={{ ...sectionLabel, color: C.adminText }}>Rezept-Zuordnung</div>
         <p style={{ fontSize: 12, color: C.sub, marginBottom: 14, lineHeight: 1.6, fontFamily: FB }}>
-          Weise Rezepten eine oder mehrere Kategorien zu oder korrigiere bestehende Zuordnungen.
+          Weise Rezepten eine oder mehrere aktive Kategorien zu oder korrigiere bestehende Zuordnungen.
         </p>
 
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
@@ -311,9 +481,9 @@ export default function TabAdmin({
           </div>
         )}
 
-        {recipeCategoriesCatalog.length === 0 ? (
+        {activeRecipeCategoriesCatalog.length === 0 ? (
           <div style={{ color: C.muted, fontFamily: FB, fontSize: 13, padding: "8px 2px" }}>
-            Keine aktiven Kategorien vorhanden.
+            Keine aktiven Kategorien vorhanden. Pflege den Katalog im Tab Kategorien.
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -337,7 +507,7 @@ export default function TabAdmin({
                   </div>
 
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {recipeCategoriesCatalog.map(cat => {
+                    {activeRecipeCategoriesCatalog.map(cat => {
                       const selected = draft.includes(cat.slug);
                       return (
                         <button
@@ -355,11 +525,154 @@ export default function TabAdmin({
           </div>
         )}
       </div>
+      )}
+
+      {/* Kategorien-Katalog */}
+      {activeSubtab === "kategorien" && (
+      <div style={card}>
+        <div style={{ ...sectionLabel, color: C.adminText }}>Kategorien-Katalog</div>
+        <p style={{ fontSize: 12, color: C.sub, marginBottom: 14, lineHeight: 1.6, fontFamily: FB }}>
+          Verwalte Stammdaten der Rezept-Kategorien: Label, Sortierung und Aktivstatus.
+        </p>
+
+        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+          <button
+            onClick={onReloadRecipeCategories}
+            disabled={recipeCategoriesLoading}
+            style={{ padding: "10px 14px", borderRadius: 9, border: `1px solid ${C.border}`, background: C.surface2, color: C.sub, fontSize: 12, fontWeight: 700, fontFamily: FB, cursor: "pointer", minHeight: 44, opacity: recipeCategoriesLoading ? .6 : 1 }}>
+            {recipeCategoriesLoading ? "..." : "Katalog laden"}
+          </button>
+        </div>
+
+        {recipeCategoriesError && (
+          <div style={{ marginBottom: 10, padding: "8px 14px", borderRadius: 9, background: "#FEE2E2", color: "#991B1B", fontSize: 13, fontWeight: 600, fontFamily: FB }}>
+            ✗ {recipeCategoriesError}
+          </div>
+        )}
+
+        {categoryMsg && (
+          <div style={{ marginBottom: 10, padding: "8px 14px", borderRadius: 9, background: categoryMsg.type === "ok" ? C.greenPale : "#FEE2E2", color: categoryMsg.type === "ok" ? C.green2 : "#991B1B", fontSize: 13, fontWeight: 600, fontFamily: FB }}>
+            {categoryMsg.type === "ok" ? "✓ " : "✗ "}{categoryMsg.text}
+          </div>
+        )}
+
+        <div style={{ padding: "10px 12px", background: C.surface2, borderRadius: 10, border: `1px solid ${C.border}`, marginBottom: 10 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.sub, fontFamily: FB, marginBottom: 8 }}>Neue Kategorie</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "end" }}>
+            <div style={{ flex: "1 1 120px", minWidth: 100 }}>
+              <div style={{ fontSize: 10, color: C.muted, fontFamily: FB, marginBottom: 3 }}>Slug</div>
+              <input
+                className="app-input"
+                style={{ ...inputStyle, padding: "7px 10px", fontSize: 12 }}
+                placeholder="z.B. low-carb"
+                value={newCategory.slug}
+                onChange={e => setNewCategory(prev => ({ ...prev, slug: e.target.value }))}
+              />
+            </div>
+            <div style={{ flex: "2 1 200px", minWidth: 180 }}>
+              <div style={{ fontSize: 10, color: C.muted, fontFamily: FB, marginBottom: 3 }}>Label</div>
+              <input
+                className="app-input"
+                style={{ ...inputStyle, padding: "7px 10px", fontSize: 12 }}
+                placeholder="z.B. Low Carb"
+                value={newCategory.label}
+                onChange={e => setNewCategory(prev => ({ ...prev, label: e.target.value }))}
+              />
+            </div>
+            <div style={{ width: 92 }}>
+              <div style={{ fontSize: 10, color: C.muted, fontFamily: FB, marginBottom: 3 }}>Sort.</div>
+              <input
+                type="number"
+                className="app-input"
+                style={{ ...inputStyle, padding: "7px 10px", fontSize: 12 }}
+                value={newCategory.sort_order}
+                onChange={e => setNewCategory(prev => ({ ...prev, sort_order: e.target.value }))}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setNewCategory(prev => ({ ...prev, is_active: !prev.is_active }))}
+              style={{ padding: "7px 10px", borderRadius: 9, border: `1px solid ${newCategory.is_active ? C.green : C.border}`, background: newCategory.is_active ? C.greenPale : C.surface, color: newCategory.is_active ? C.green2 : C.sub, fontSize: 12, fontWeight: 700, fontFamily: FB, cursor: "pointer", minHeight: 36 }}>
+              {newCategory.is_active ? "● Aktiv" : "○ Inaktiv"}
+            </button>
+            <button
+              type="button"
+              onClick={createCategory}
+              disabled={categoryCreateSaving}
+              style={{ padding: "8px 14px", borderRadius: 9, border: "none", background: C.green, color: "#fff", fontSize: 12, fontWeight: 700, fontFamily: FB, cursor: "pointer", minHeight: 36, opacity: categoryCreateSaving ? .6 : 1 }}>
+              {categoryCreateSaving ? "..." : "Anlegen"}
+            </button>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {recipeCategoriesCatalog.map(category => {
+            const draft = getDraftForCategory(category);
+            const dirty = draft.label !== (category.label || "")
+              || Number(draft.sort_order) !== Number(category.sort_order ?? 0)
+              || !!draft.is_active !== (category.is_active !== false);
+            const saving = !!categorySaving?.[category.slug];
+
+            return (
+              <div key={category.slug} style={{ padding: "10px 12px", background: C.surface2, borderRadius: 10, border: `1px solid ${dirty ? C.premBorder : C.border}` }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "end", flexWrap: "wrap" }}>
+                  <div style={{ width: 150 }}>
+                    <div style={{ fontSize: 10, color: C.muted, fontFamily: FB, marginBottom: 3 }}>Slug</div>
+                    <div style={{ fontSize: 12, color: C.sub, fontFamily: FB, fontWeight: 700 }}>{category.slug}</div>
+                  </div>
+                  <div style={{ flex: "2 1 200px", minWidth: 180 }}>
+                    <div style={{ fontSize: 10, color: C.muted, fontFamily: FB, marginBottom: 3 }}>Label</div>
+                    <input
+                      className="app-input"
+                      style={{ ...inputStyle, padding: "7px 10px", fontSize: 12 }}
+                      value={draft.label}
+                      onChange={e => setCategoryDraftField(category.slug, "label", e.target.value)}
+                    />
+                  </div>
+                  <div style={{ width: 92 }}>
+                    <div style={{ fontSize: 10, color: C.muted, fontFamily: FB, marginBottom: 3 }}>Sort.</div>
+                    <input
+                      type="number"
+                      className="app-input"
+                      style={{ ...inputStyle, padding: "7px 10px", fontSize: 12 }}
+                      value={draft.sort_order}
+                      onChange={e => setCategoryDraftField(category.slug, "sort_order", e.target.value)}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCategoryDraftField(category.slug, "is_active", !draft.is_active)}
+                    style={{ padding: "7px 10px", borderRadius: 9, border: `1px solid ${draft.is_active ? C.green : C.border}`, background: draft.is_active ? C.greenPale : C.surface, color: draft.is_active ? C.green2 : C.sub, fontSize: 12, fontWeight: 700, fontFamily: FB, cursor: "pointer", minHeight: 36 }}>
+                    {draft.is_active ? "● Aktiv" : "○ Inaktiv"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => saveCategory(category)}
+                    disabled={!dirty || saving}
+                    style={{ padding: "8px 14px", borderRadius: 9, border: "none", background: dirty ? C.green : C.surface, color: dirty ? "#fff" : C.muted, fontSize: 12, fontWeight: 700, fontFamily: FB, cursor: dirty ? "pointer" : "default", minHeight: 36, opacity: saving ? .6 : 1 }}>
+                    {saving ? "..." : "Speichern"}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+
+          {recipeCategoriesCatalog.length === 0 && !recipeCategoriesLoading && (
+            <div style={{ color: C.muted, fontFamily: FB, fontSize: 13, padding: "8px 2px" }}>
+              Keine Kategorien vorhanden.
+            </div>
+          )}
+        </div>
+      </div>
+      )}
 
       {/* Lebensmitteldatenbank */}
+      {activeSubtab === "foods" && (
       <AdminFoods />
+      )}
 
       {/* Admin Bootstrap */}
+      {activeSubtab === "bootstrap" && (
       <div style={{ ...card, borderColor: C.adminBorder, background: C.adminBg }}>
         <div style={{ ...sectionLabel, color: C.adminText }}>Admin einrichten</div>
         <p style={{ fontSize: 13, color: C.sub, marginBottom: 14, fontFamily: FB, lineHeight: 1.6 }}>
@@ -373,6 +686,7 @@ export default function TabAdmin({
           <div style={{ marginTop: 10, fontSize: 13, color: C.sub, fontFamily: FB }}>{bootstrapMsg}</div>
         )}
       </div>
+      )}
 
     </div>
   );

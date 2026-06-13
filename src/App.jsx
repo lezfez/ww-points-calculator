@@ -40,6 +40,9 @@ export default function App() {
   const [adminRecipeCategoriesError, setAdminRecipeCategoriesError] = useState(null);
   const [adminRecipeCategorySaving, setAdminRecipeCategorySaving] = useState({});
   const [adminRecipeCategoryMsg, setAdminRecipeCategoryMsg] = useState(null);
+  const [adminCategorySaving, setAdminCategorySaving] = useState({});
+  const [adminCategoryCreateSaving, setAdminCategoryCreateSaving] = useState(false);
+  const [adminCategoryMsg, setAdminCategoryMsg] = useState(null);
 
   // Image generation state
   const [imageGenLoading, setImageGenLoading]       = useState(false);
@@ -165,7 +168,7 @@ export default function App() {
     setAdminRecipeCategoriesLoading(true);
     setAdminRecipeCategoriesError(null);
     try {
-      const res = await adminFetch("/api/admin-recipes?action=categories");
+      const res = await adminFetch("/api/admin-recipes?action=categories&includeInactive=1");
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Kategorien konnten nicht geladen werden.");
       setAdminRecipeCategoriesCatalog(data.categories || []);
@@ -175,6 +178,50 @@ export default function App() {
     }
     setAdminRecipeCategoriesLoading(false);
   }, [adminFetch]);
+
+  const createRecipeCategory = useCallback(async ({ slug, label, sort_order, is_active }) => {
+    setAdminCategoryCreateSaving(true);
+    try {
+      const res = await adminFetch("/api/admin-recipes?action=category", {
+        method: "POST",
+        body: JSON.stringify({ slug, label, sort_order, is_active }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Kategorie konnte nicht angelegt werden.");
+      await loadRecipeCategories();
+      setAdminCategoryMsg({ type: "ok", text: "Kategorie angelegt" });
+      setTimeout(() => setAdminCategoryMsg(null), 2500);
+      return true;
+    } catch (e) {
+      setAdminCategoryMsg({ type: "err", text: e?.message || "Kategorie konnte nicht angelegt werden." });
+      setTimeout(() => setAdminCategoryMsg(null), 3500);
+      return false;
+    } finally {
+      setAdminCategoryCreateSaving(false);
+    }
+  }, [adminFetch, loadRecipeCategories]);
+
+  const updateRecipeCategory = useCallback(async (slug, patch) => {
+    setAdminCategorySaving(prev => ({ ...prev, [slug]: true }));
+    try {
+      const res = await adminFetch("/api/admin-recipes?action=category", {
+        method: "PUT",
+        body: JSON.stringify({ slug, ...patch }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Kategorie konnte nicht gespeichert werden.");
+      await loadRecipeCategories();
+      setAdminCategoryMsg({ type: "ok", text: "Kategorie gespeichert" });
+      setTimeout(() => setAdminCategoryMsg(null), 2500);
+      return true;
+    } catch (e) {
+      setAdminCategoryMsg({ type: "err", text: e?.message || "Kategorie konnte nicht gespeichert werden." });
+      setTimeout(() => setAdminCategoryMsg(null), 3500);
+      return false;
+    } finally {
+      setAdminCategorySaving(prev => ({ ...prev, [slug]: false }));
+    }
+  }, [adminFetch, loadRecipeCategories]);
 
   const saveRecipeCategories = useCallback(async (recipeId, kategorien) => {
     setAdminRecipeCategorySaving(prev => ({ ...prev, [recipeId]: true }));
@@ -415,6 +462,11 @@ export default function App() {
             recipeCategorySaving={adminRecipeCategorySaving}
             recipeCategoryMsg={adminRecipeCategoryMsg}
             onSaveRecipeCategories={saveRecipeCategories}
+            categorySaving={adminCategorySaving}
+            categoryCreateSaving={adminCategoryCreateSaving}
+            categoryMsg={adminCategoryMsg}
+            onCreateCategory={createRecipeCategory}
+            onUpdateCategory={updateRecipeCategory}
           />
         )}
 
