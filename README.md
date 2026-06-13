@@ -317,6 +317,51 @@ npm run dev        # Vite Dev-Server (kein API-Zugriff)
 vercel dev         # Vite + Serverless Functions lokal
 ```
 
+## Supabase Migrationsworkflow (CLI)
+
+Dieses Repo ist jetzt fuer versionierte Supabase-Migrationen vorbereitet.
+
+- Konfiguration: `supabase/config.toml`
+- Migrationen: `supabase/migrations/`
+- Bereits ueberfuehrte SQLs:
+  - `supabase/migrations/20260613090000_setup_recipe_images.sql`
+  - `supabase/migrations/20260613091000_setup_recipe_categories_jsonb.sql`
+
+### Einmalig einrichten
+
+1. Supabase CLI installieren (z. B. per Homebrew):
+
+```bash
+brew install supabase/tap/supabase
+```
+
+2. Projekt-Ref setzen (aus dem Supabase-Projekt):
+
+```bash
+export SUPABASE_PROJECT_REF=dein-project-ref
+```
+
+3. Login + Link zum Remote-Projekt:
+
+```bash
+npx supabase login
+npm run db:link
+```
+
+### Migrationen anwenden
+
+```bash
+npm run db:push
+```
+
+### Neue Migration anlegen
+
+```bash
+npm run db:migration:new -- add_new_feature
+```
+
+Danach SQL in der erzeugten Datei unter `supabase/migrations/` ergaenzen und mit `npm run db:push` deployen.
+
 Die aktive App liegt im Repository-Root. Der verschachtelte Ordner `ww-points-calculator/` ist eine Legacy-Kopie und wird nicht für Build, Lint oder Deployment verwendet.
 
 Für lokale Stripe Webhooks:

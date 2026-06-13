@@ -9,7 +9,11 @@
     "lint": "eslint .",
     "test": "node --test",
     "generate:recipe-images": "node scripts/generate-recipe-images.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "db:link": "npx supabase link --project-ref \"$SUPABASE_PROJECT_REF\"",
+    "db:push": "npx supabase db push",
+    "db:pull": "npx supabase db pull",
+    "db:migration:new": "npx supabase migration new"
   },
   "dependencies": {
     "@clerk/backend": "^3.5.0",
