@@ -131,13 +131,6 @@ export default function TabFood({ isSignedIn, onSignIn }) {
         </div>
 
         <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-          <button
-            className="btn-primary"
-            style={{ ...primaryBtn(true), width: "auto", padding: "10px 16px", display: "inline-block" }}
-            onClick={() => setShowSearch(true)}
-          >
-            🔎 Suchen oder Scannen
-          </button>
           <span style={{ fontFamily: FB, fontSize: 12, color: C.muted, alignSelf: "center" }}>
             {loading ? "Lade…" : `${mealItems.length} Einträge · ${mealCoins} Coins`}
           </span>
@@ -159,6 +152,35 @@ export default function TabFood({ isSignedIn, onSignIn }) {
             >
               Als Favorit
             </button>
+          </div>
+        )}
+      </div>
+
+      <div style={card}>
+        <div style={sectionLabel}>Suche &amp; Scan</div>
+        <p style={{ fontFamily: FB, fontSize: 12, color: C.muted, marginTop: 0, marginBottom: 10 }}>
+          Lebensmittel suchen oder Barcode scannen und direkt in den gewählten Slot eintragen.
+        </p>
+        {!showSearch && (
+          <button
+            className="btn-primary"
+            style={{ ...primaryBtn(true), width: "auto", padding: "10px 16px", display: "inline-block" }}
+            onClick={() => setShowSearch(true)}
+          >
+            🔎 Suche öffnen
+          </button>
+        )}
+
+        {showSearch && (
+          <div style={{ marginTop: 8 }}>
+            <FoodSearch
+              inline
+              onClose={() => setShowSearch(false)}
+              onAdd={(item) => {
+                addItemToMeal(item);
+                setShowSearch(false);
+              }}
+            />
           </div>
         )}
       </div>
@@ -194,15 +216,6 @@ export default function TabFood({ isSignedIn, onSignIn }) {
         </div>
       </div>
 
-      {showSearch && (
-        <FoodSearch
-          onClose={() => setShowSearch(false)}
-          onAdd={(item) => {
-            addItemToMeal(item);
-            setShowSearch(false);
-          }}
-        />
-      )}
     </div>
   );
 }

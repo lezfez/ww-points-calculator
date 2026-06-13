@@ -59,7 +59,7 @@ function PortionRow({ food, onAdd }) {
   );
 }
 
-export default function FoodSearch({ onAdd, onClose }) {
+export default function FoodSearch({ onAdd, onClose, inline = false }) {
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState(null);
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -157,18 +157,14 @@ export default function FoodSearch({ onAdd, onClose }) {
     onClose();
   };
 
-  return (
-    <>
-      <div onClick={onClose}
-        className="food-search-overlay" />
-
-      <div className="food-search-sheet" style={{
-        background: C.bg,
-        display: "flex",
-        flexDirection: "column",
-      }}>
+  const content = (
+    <div className={inline ? "food-search-inline" : "food-search-sheet"} style={{
+      background: C.bg,
+      display: "flex",
+      flexDirection: "column",
+    }}>
         {/* Handle */}
-        <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 0" }}>
+        <div style={{ display: "flex", justifyContent: "center", padding: inline ? "0 0 6px" : "12px 0 0" }}>
           <div style={{ width: 36, height: 4, borderRadius: 999, background: C.border }} />
         </div>
 
@@ -379,6 +375,14 @@ export default function FoodSearch({ onAdd, onClose }) {
           )}
         </div>
       </div>
+  );
+
+  if (inline) return content;
+
+  return (
+    <>
+      <div onClick={onClose} className="food-search-overlay" />
+      {content}
     </>
   );
 }
