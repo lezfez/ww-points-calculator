@@ -1,21 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { Editor } from "@tinymce/tinymce-react";
-import "tinymce/tinymce";
-import "tinymce/icons/default";
-import "tinymce/themes/silver";
-import "tinymce/models/dom";
-import "tinymce/plugins/advlist";
-import "tinymce/plugins/autolink";
-import "tinymce/plugins/lists";
-import "tinymce/plugins/link";
-import "tinymce/plugins/charmap";
-import "tinymce/plugins/searchreplace";
-import "tinymce/plugins/visualblocks";
-import "tinymce/plugins/code";
-import "tinymce/plugins/fullscreen";
-import "tinymce/plugins/wordcount";
-import "tinymce/skins/ui/oxide/skin.css";
-import "tinymce/skins/content/default/content.css";
 import RoleBadge from "../RoleBadge";
 import AdminFoods from "../AdminFoods";
 import { C, FB, FH, card, sectionLabel, inputStyle, primaryBtn } from "../../styles/theme";
@@ -658,6 +642,7 @@ export default function TabAdmin({
                         Kurzbeschreibung (HTML)
                       </div>
                       <Editor
+                        tinymceScriptSrc="https://cdn.jsdelivr.net/npm/tinymce@8/tinymce.min.js"
                         value={textDraft.shortDescriptionHtml}
                         onEditorChange={(value) => setTextDraftField(recipe, "shortDescriptionHtml", value)}
                         init={{
@@ -676,6 +661,7 @@ export default function TabAdmin({
                         Zubereitung (HTML)
                       </div>
                       <Editor
+                        tinymceScriptSrc="https://cdn.jsdelivr.net/npm/tinymce@8/tinymce.min.js"
                         value={textDraft.instructionsHtml}
                         onEditorChange={(value) => setTextDraftField(recipe, "instructionsHtml", value)}
                         init={{
