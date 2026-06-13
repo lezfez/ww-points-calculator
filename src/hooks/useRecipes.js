@@ -66,6 +66,17 @@ function plainTextToHtmlParagraphs(value) {
     .join("");
 }
 
+function withImageVersion(url, generatedAt) {
+  const raw = String(url || "").trim();
+  if (!raw) return raw;
+
+  const version = String(generatedAt || "").trim();
+  if (!version) return raw;
+
+  const separator = raw.includes("?") ? "&" : "?";
+  return `${raw}${separator}v=${encodeURIComponent(version)}`;
+}
+
 function mapRecipe(r) {
   const legacyLabels = String(r.kategorie || "")
     .split(",")
@@ -95,6 +106,7 @@ function mapRecipe(r) {
 
   return {
     ...r,
+    image_url: withImageVersion(r.image_url, r.image_generated_at),
     kategorien: categorySlugs,
     kategorienLabels: categoryLabels,
     kategorie: categoryLabels.join(", "),

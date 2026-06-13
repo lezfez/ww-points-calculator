@@ -12,6 +12,12 @@ function buildPrompt(name) {
   return `Appetizing photorealistic food photo of "${name}", editorial food photography, 3/4 overhead view, natural daylight on warm kitchen table, realistic colors, no text, no watermark, no people`;
 }
 
+function buildVersionedImagePath(id, generatedAt) {
+  const stamp = generatedAt.toISOString().replace(/[-:.TZ]/g, "");
+  const nonce = Math.random().toString(36).slice(2, 8);
+  return `${id}/${stamp}-${nonce}.jpg`;
+}
+
 async function requireAdmin(token) {
   const payload = await verifyToken(token, {
     secretKey: process.env.CLERK_SECRET_KEY,
@@ -47,7 +53,7 @@ export default async function handler(req, res) {
   });
 
   const { data: recipe, error: dbErr } = await supabase
-    .from("recipes").select("id, name").eq("id", id).single();
+    .from("recipes").select("id, name, image_path").eq("id", id).single();
 
   if (dbErr || !recipe) return res.status(404).json({ error: "Rezept nicht gefunden" });
 
@@ -75,9 +81,16 @@ export default async function handler(req, res) {
     const imgBuffer = Buffer.from(await hfRes.arrayBuffer());
     if (imgBuffer.length < 1000) throw new Error("Bild zu klein – Generierung fehlgeschlagen");
 
-    const filePath = `${id}.jpg`;
+    const generatedAt = new Date();
+    const filePath = buildVersionedImagePath(id, generatedAt);
+    const previousImagePath = recipe.image_path || null;
+
     const { error: uploadErr } = await supabase.storage
-      .from(BUCKET).upload(filePath, imgBuffer, { contentType: "image/jpeg", upsert: true });
+      .from(BUCKET).upload(filePath, imgBuffer, {
+        contentType: "image/jpeg",
+        cacheControl: "60",
+        upsert: false,
+      });
 
     if (uploadErr) throw new Error(`Storage: ${uploadErr.message}`);
 
@@ -87,8 +100,12 @@ export default async function handler(req, res) {
       image_status: "ready",
       image_path: filePath,
       image_url: urlData.publicUrl,
-      image_generated_at: new Date().toISOString(),
+      image_generated_at: generatedAt.toISOString(),
     }).eq("id", id);
+
+    if (previousImagePath && previousImagePath !== filePath) {
+      await supabase.storage.from(BUCKET).remove([previousImagePath]).catch(() => {});
+    }
 
     return res.status(200).json({ ok: true, image_url: urlData.publicUrl });
   } catch (err) {
