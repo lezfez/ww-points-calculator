@@ -493,9 +493,9 @@ export default function App() {
   const TABS = useMemo(() => [
     { id: "calc",    label: "Berechnen" },
     { id: "budget",  label: "Tagebuch" },
-    { id: "profile", label: "Profil" },
     { id: "recipes", label: "Rezepte" },
     { id: "info",    label: "Info" },
+    { id: "profile", label: "Profil" },
     ...(userRole === "admin" ? [{ id: "admin", label: "Admin" }] : []),
   ].filter(t => t.id === "admin" || isTabEnabled(t.id)), [flags, userRole]); // eslint-disable-line react-hooks/exhaustive-deps
 
