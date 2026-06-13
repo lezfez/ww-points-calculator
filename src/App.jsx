@@ -11,7 +11,7 @@ import TabLocked from "./components/TabLocked";
 import TabCalc from "./components/tabs/TabCalc";
 import TabBudget from "./components/tabs/TabBudget";
 import TabProfile from "./components/tabs/TabProfile";
-import TabFoof from "./components/tabs/TabFoof";
+import TabFood from "./components/tabs/TabFood";
 import TabRecipes from "./components/tabs/TabRecipes";
 import TabInfo from "./components/tabs/TabInfo";
 import TabAdmin from "./components/tabs/TabAdmin";
@@ -21,7 +21,8 @@ const DEFAULT_HEADER_TAGLINE = "Coins · PersonalPoints · SmartPoints · ProPoi
 const DEFAULT_PREMIUM_PRICE_LABEL = "2,99 €/Monat";
 
 const getTabFromUrl = () => {
-  return readTabFromSearch(window.location.search);
+  const tabId = readTabFromSearch(window.location.search);
+  return tabId === "foof" ? "food" : tabId;
 };
 
 const getPathWithTab = (tabId) => {
@@ -495,9 +496,9 @@ export default function App() {
     { id: "calc",    label: "Berechnen" },
     { id: "budget",  label: "Tagebuch" },
     { id: "recipes", label: "Rezepte" },
+    { id: "food",    label: "Food" },
     { id: "info",    label: "Info" },
     { id: "profile", label: "Profil" },
-    { id: "foof",    label: "Foof" },
     ...(userRole === "admin" ? [{ id: "admin", label: "Admin" }] : []),
   ].filter(t => t.id === "admin" || isTabEnabled(t.id)), [flags, userRole]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -670,10 +671,10 @@ export default function App() {
             : <TabProfile isSignedIn={isSignedIn} onSignIn={() => setShowSignIn(true)} />
         )}
 
-        {currentTab === "foof" && (
-          isTabLocked("foof")
-            ? <TabLocked tabId="foof" flags={flags} onSignIn={() => setShowSignIn(true)} onUpgrade={startCheckout} checkoutLoading={checkoutLoading} premiumPriceLabel={premiumPriceLabel} />
-            : <TabFoof isSignedIn={isSignedIn} onSignIn={() => setShowSignIn(true)} />
+        {currentTab === "food" && (
+          isTabLocked("food")
+            ? <TabLocked tabId="food" flags={flags} onSignIn={() => setShowSignIn(true)} onUpgrade={startCheckout} checkoutLoading={checkoutLoading} premiumPriceLabel={premiumPriceLabel} />
+            : <TabFood isSignedIn={isSignedIn} onSignIn={() => setShowSignIn(true)} />
         )}
 
         {currentTab === "recipes" && (

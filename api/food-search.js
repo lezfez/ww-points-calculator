@@ -16,6 +16,15 @@ function normalizeBarcode(value) {
   return String(value || "").replace(/\D/g, "");
 }
 
+function dedupeFoods(items) {
+  const map = new Map();
+  for (const item of items || []) {
+    const key = item.id || item.off_id || `${item.name}__${item.brand || ""}`;
+    if (!map.has(key)) map.set(key, item);
+  }
+  return [...map.values()];
+}
+
 function calcCoins({ kcal, gesF, zucker, protein, bst, salz }) {
   function clamp(v, lo, hi) { return Math.min(Math.max(v, lo), hi); }
   const raw = (kcal || 0) * 0.022
@@ -74,34 +83,27 @@ export default async function handler(req, res) {
   const q = (req.query.q || "").trim();
   if (!q || q.length < 2) return res.json({ foods: [] });
   const barcodeQuery = normalizeBarcode(q);
-  const escapedQuery = q.replaceAll(",", " ");
 
   const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
     auth: { persistSession: false },
   });
 
   // 1. Search cache
-  let cacheQuery = supabase
-    .from("foods")
-    .select("*")
-    .order("name")
-    .limit(20);
+  const pattern = `%${q}%`;
+  const [nameRes, brandRes, barcodeRes] = await Promise.all([
+    supabase.from("foods").select("*").ilike("name", pattern).order("name").limit(20),
+    supabase.from("foods").select("*").ilike("brand", pattern).order("name").limit(20),
+    barcodeQuery.length >= 8
+      ? supabase.from("foods").select("*").eq("barcode", barcodeQuery).order("name").limit(20)
+      : Promise.resolve({ data: [] }),
+  ]);
 
-  if (barcodeQuery.length >= 8) {
-    cacheQuery = cacheQuery.or(`name.ilike.%${escapedQuery}%,brand.ilike.%${escapedQuery}%,barcode.eq.${barcodeQuery}`);
-  } else {
-    cacheQuery = cacheQuery.or(`name.ilike.%${escapedQuery}%,brand.ilike.%${escapedQuery}%`);
-  }
-
-  const { data: cached } = await cacheQuery;
-
-  const cachedBarcodeHits = barcodeQuery.length >= 8
-    ? (cached || []).filter((f) => String(f.barcode || "") === barcodeQuery)
-    : [];
+  const cachedBarcodeHits = barcodeRes.data || [];
+  const cachedByNameOrBrand = dedupeFoods([...(nameRes.data || []), ...(brandRes.data || [])]);
+  const cached = dedupeFoods([...cachedBarcodeHits, ...cachedByNameOrBrand]).slice(0, 20);
 
   if (cachedBarcodeHits.length > 0) {
-    const rest = (cached || []).filter((f) => String(f.barcode || "") !== barcodeQuery);
-    return res.json({ foods: [...cachedBarcodeHits, ...rest].slice(0, 20), source: "cache" });
+    return res.json({ foods: cached, source: "cache" });
   }
 
   if (cached && cached.length >= 5) {

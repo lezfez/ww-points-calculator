@@ -3,7 +3,8 @@ import { C, FH, FB, card, sectionLabel, primaryBtn } from "../../styles/theme";
 import { useDailyJournal } from "../../hooks/useDailyJournal";
 import FoodSearch from "../FoodSearch";
 
-const FAVORITES_KEY = "foof:favorites";
+const FOOD_FAVORITES_KEY = "food:favorites";
+const LEGACY_FOOF_FAVORITES_KEY = "foof:favorites";
 const MEALS = [
   { id: "fruehstueck", label: "Frühstück" },
   { id: "snack1", label: "Snack 1" },
@@ -18,19 +19,29 @@ function toISODate(d) {
 
 function readFavorites() {
   try {
-    const raw = localStorage.getItem(FAVORITES_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
+    const currentRaw = localStorage.getItem(FOOD_FAVORITES_KEY);
+    if (currentRaw) {
+      const currentParsed = JSON.parse(currentRaw);
+      return Array.isArray(currentParsed) ? currentParsed : [];
+    }
+
+    const legacyRaw = localStorage.getItem(LEGACY_FOOF_FAVORITES_KEY);
+    if (!legacyRaw) return [];
+
+    const legacyParsed = JSON.parse(legacyRaw);
+    if (!Array.isArray(legacyParsed)) return [];
+    localStorage.setItem(FOOD_FAVORITES_KEY, JSON.stringify(legacyParsed));
+    return legacyParsed;
   } catch {
     return [];
   }
 }
 
 function saveFavorites(items) {
-  localStorage.setItem(FAVORITES_KEY, JSON.stringify(items));
+  localStorage.setItem(FOOD_FAVORITES_KEY, JSON.stringify(items));
 }
 
-export default function TabFoof({ isSignedIn, onSignIn }) {
+export default function TabFood({ isSignedIn, onSignIn }) {
   const [date, setDate] = useState(toISODate(new Date()));
   const [mealSlot, setMealSlot] = useState("mittag");
   const [showSearch, setShowSearch] = useState(false);
@@ -74,7 +85,7 @@ export default function TabFoof({ isSignedIn, onSignIn }) {
       <div className="tab-content" style={{ ...card, textAlign: "center", padding: "40px 24px" }}>
         <div style={{ fontSize: 40, marginBottom: 12 }}>🥗</div>
         <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 20, color: C.text, marginBottom: 8 }}>
-          Foof
+          Food
         </div>
         <p style={{ fontSize: 13, color: C.sub, fontFamily: FB, marginBottom: 14 }}>
           Bitte melde dich an, damit du Lebensmittel suchen, scannen und als Mahlzeit eintragen kannst.
@@ -88,7 +99,7 @@ export default function TabFoof({ isSignedIn, onSignIn }) {
     <div className="tab-content" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={card}>
         <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 22, color: C.text, marginBottom: 4 }}>
-          🥗 Foof
+          🥗 Food
         </div>
         <p style={{ fontFamily: FB, fontSize: 13, color: C.sub, lineHeight: 1.6, margin: 0 }}>
           Lebensmittel suchen, scannen und direkt in dein Tagebuch eintragen.
