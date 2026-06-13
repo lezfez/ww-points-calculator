@@ -33,7 +33,7 @@ export default function TabRecipes({ recipes, loading, error, onReload }) {
     <div className="tab-content">
       <div style={card}>
         <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 22, color: C.text, marginBottom: 4 }}>
-          Rezepte von weight friends
+          Rezepte
         </div>
         <div style={{ fontSize: 13, color: C.sub, marginBottom: 16, fontFamily: FB }}>
           {loading

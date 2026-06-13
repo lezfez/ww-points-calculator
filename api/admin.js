@@ -4,6 +4,8 @@ import { createClient } from "@supabase/supabase-js";
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const DEFAULT_HEADER_TAGLINE = "Coins · PersonalPoints · SmartPoints · ProPoints";
+const DEFAULT_PREMIUM_PRICE_LABEL = "2,99 €/Monat";
 
 async function getVerifiedUser(token) {
   const payload = await verifyToken(token, {
@@ -33,11 +35,58 @@ function auditAdminAction(action, actor, details) {
   }
 }
 
+function normalizeSettingValue(value, { maxLength = 160 } = {}) {
+  const normalized = String(value || "").trim();
+  if (!normalized) return null;
+  if (normalized.length > maxLength) return null;
+  return normalized;
+}
+
+async function loadPublicSettings(supabase) {
+  const { data, error } = await supabase
+    .from("app_settings")
+    .select("key, value")
+    .in("key", ["header_tagline", "premium_price_label"]);
+
+  if (error) {
+    if (error.code === "42P01") {
+      return {
+        settings: {
+          headerTagline: DEFAULT_HEADER_TAGLINE,
+          premiumPriceLabel: DEFAULT_PREMIUM_PRICE_LABEL,
+        },
+        migrationMissing: true,
+      };
+    }
+    throw error;
+  }
+
+  const map = new Map((data || []).map(row => [row.key, row.value]));
+  return {
+    settings: {
+      headerTagline: map.get("header_tagline") || DEFAULT_HEADER_TAGLINE,
+      premiumPriceLabel: map.get("premium_price_label") || DEFAULT_PREMIUM_PRICE_LABEL,
+    },
+    migrationMissing: false,
+  };
+}
+
 export default async function handler(req, res) {
+  const action = req.query.action;
+  const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, { auth: { persistSession: false } });
+
+  if (action === "public-settings") {
+    if (req.method !== "GET") return res.status(405).end();
+    try {
+      const { settings } = await loadPublicSettings(supabase);
+      return res.json({ settings });
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
   const token = req.headers.authorization?.split(" ")[1];
   if (!token) return res.status(401).json({ error: "Nicht authentifiziert" });
-
-  const action = req.query.action;
 
   // ── bootstrap: no admin role required, but email must be in whitelist ──
   if (action === "bootstrap") {
@@ -87,7 +136,6 @@ export default async function handler(req, res) {
     const { id, required_role, enabled } = req.body ?? {};
     if (!id) return res.status(400).json({ error: "id fehlt" });
 
-    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, { auth: { persistSession: false } });
     const updates = { updated_at: new Date().toISOString() };
     if (required_role !== undefined) updates.required_role = required_role;
     if (enabled !== undefined) updates.enabled = enabled;
@@ -102,6 +150,50 @@ export default async function handler(req, res) {
     });
 
     return res.json({ success: true });
+  }
+
+  if (action === "set-setting") {
+    if (req.method !== "POST") return res.status(405).end();
+    const settings = req.body?.settings || {};
+
+    const headerTagline = normalizeSettingValue(settings.headerTagline, { maxLength: 180 });
+    const premiumPriceLabel = normalizeSettingValue(settings.premiumPriceLabel, { maxLength: 60 });
+
+    if (!headerTagline) {
+      return res.status(400).json({ error: "headerTagline ist erforderlich (max. 180 Zeichen)." });
+    }
+    if (!premiumPriceLabel) {
+      return res.status(400).json({ error: "premiumPriceLabel ist erforderlich (max. 60 Zeichen)." });
+    }
+
+    const rows = [
+      { key: "header_tagline", value: headerTagline, updated_at: new Date().toISOString() },
+      { key: "premium_price_label", value: premiumPriceLabel, updated_at: new Date().toISOString() },
+    ];
+
+    const { error } = await supabase
+      .from("app_settings")
+      .upsert(rows, { onConflict: "key" });
+
+    if (error) {
+      if (error.code === "42P01") {
+        return res.status(500).json({ error: "Tabelle app_settings fehlt. Bitte SQL-Migration ausfuehren." });
+      }
+      return res.status(500).json({ error: error.message });
+    }
+
+    auditAdminAction("set-setting", adminUser, {
+      headerTagline,
+      premiumPriceLabel,
+    });
+
+    return res.json({
+      success: true,
+      settings: {
+        headerTagline,
+        premiumPriceLabel,
+      },
+    });
   }
 
   // ── set-role: update user role ───────────────────────────

@@ -1,6 +1,6 @@
 import { C, FH, FB, card, primaryBtn } from "../styles/theme";
 
-export default function TabLocked({ tabId, flags, onSignIn, onUpgrade, checkoutLoading }) {
+export default function TabLocked({ tabId, flags, onSignIn, onUpgrade, checkoutLoading, premiumPriceLabel = "2,99 €/Monat" }) {
   const requiredRole = flags?.[`tab_${tabId}`]?.required_role;
   const needsLogin = requiredRole === "user";
   return (
@@ -17,7 +17,7 @@ export default function TabLocked({ tabId, flags, onSignIn, onUpgrade, checkoutL
       {needsLogin
         ? <button onClick={onSignIn} className="btn-primary" style={{ ...primaryBtn(false), width: "auto", padding: "14px 32px", display: "inline-block" }}>Jetzt anmelden</button>
         : <button onClick={onUpgrade} disabled={checkoutLoading} className="btn-primary" style={{ ...primaryBtn(true), width: "auto", padding: "14px 32px", display: "inline-block", cursor: checkoutLoading ? "wait" : "pointer", opacity: checkoutLoading ? .75 : 1 }}>
-            {checkoutLoading ? "Weiterleitung…" : "🌿 Premium – 2,99 €/Monat"}
+            {checkoutLoading ? "Weiterleitung…" : `🌿 Premium – ${premiumPriceLabel}`}
           </button>
       }
     </div>

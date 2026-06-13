@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Editor } from "@tinymce/tinymce-react";
 import RoleBadge from "../RoleBadge";
 import AdminFoods from "../AdminFoods";
@@ -36,6 +37,7 @@ export default function TabAdmin({
   userQuery, onUserQueryChange, users, userLoading, onSearchUsers,
   roleSaving, roleSelected, onRoleSelected, onApplyRole,
   bootstrapMsg, onBootstrap,
+  bootstrapSettings, onBootstrapSettingsChange, bootstrapSettingsSaving, bootstrapSettingsMsg, onSaveBootstrapSettings,
   recipes, imageGenLoading, imageGenPerRecipe, imageGenMsg, onGenerateImage, onGenerateAllImages,
   recipeCategoryQuery, onRecipeCategoryQueryChange,
   recipeCategoriesCatalog, recipeCategoriesLoading, recipeCategoriesError, onReloadRecipeCategories,
@@ -579,12 +581,12 @@ export default function TabAdmin({
 
       {/* Rezept-Zuordnung */}
 
-      {imageModal && (
+      {imageModal && createPortal(
         <div
           role="dialog"
           aria-modal="true"
           aria-label={`Bildvorschau: ${imageModal.name}`}
-          onMouseDown={(e) => {
+          onPointerDown={(e) => {
             if (e.target === e.currentTarget) setImageModal(null);
           }}
           style={{
@@ -598,7 +600,7 @@ export default function TabAdmin({
             padding: 16,
           }}>
           <div
-            onMouseDown={e => e.stopPropagation()}
+            onPointerDown={e => e.stopPropagation()}
             style={{
               width: "min(960px, 96vw)",
               maxHeight: "94vh",
@@ -649,7 +651,8 @@ export default function TabAdmin({
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       {activeSubtab === "rezepte" && (
       <div style={card}>
@@ -1054,6 +1057,53 @@ export default function TabAdmin({
         {bootstrapMsg && (
           <div style={{ marginTop: 10, fontSize: 13, color: C.sub, fontFamily: FB }}>{bootstrapMsg}</div>
         )}
+
+        <div style={{ marginTop: 18, paddingTop: 14, borderTop: `1px solid ${C.adminBorder}` }}>
+          <div style={{ ...sectionLabel, color: C.adminText, marginBottom: 8 }}>Homepage-Texte</div>
+          <p style={{ fontSize: 12, color: C.sub, marginBottom: 10, fontFamily: FB, lineHeight: 1.6 }}>
+            Bearbeite hier den Header-Text und den Premiumpreis für die gesamte App.
+          </p>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div>
+              <div style={{ fontSize: 11, color: C.muted, fontFamily: FB, marginBottom: 4 }}>Header-Text</div>
+              <input
+                className="app-input"
+                style={{ ...inputStyle, width: "100%" }}
+                value={bootstrapSettings?.headerTagline || ""}
+                onChange={(e) => onBootstrapSettingsChange(prev => ({ ...prev, headerTagline: e.target.value }))}
+                placeholder="Coins · PersonalPoints · SmartPoints · ProPoints"
+              />
+            </div>
+
+            <div>
+              <div style={{ fontSize: 11, color: C.muted, fontFamily: FB, marginBottom: 4 }}>Premiumpreis</div>
+              <input
+                className="app-input"
+                style={{ ...inputStyle, width: "100%" }}
+                value={bootstrapSettings?.premiumPriceLabel || ""}
+                onChange={(e) => onBootstrapSettingsChange(prev => ({ ...prev, premiumPriceLabel: e.target.value }))}
+                placeholder="2,99 €/Monat"
+              />
+            </div>
+
+            <div>
+              <button
+                type="button"
+                onClick={onSaveBootstrapSettings}
+                disabled={bootstrapSettingsSaving}
+                style={{ ...primaryBtn(false), marginTop: 0, opacity: bootstrapSettingsSaving ? .7 : 1 }}>
+                {bootstrapSettingsSaving ? "Speichert..." : "Texte speichern"}
+              </button>
+            </div>
+
+            {bootstrapSettingsMsg && (
+              <div style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12, fontFamily: FB, fontWeight: 600, background: bootstrapSettingsMsg.type === "ok" ? C.greenPale : "#FEE2E2", color: bootstrapSettingsMsg.type === "ok" ? C.green2 : "#991B1B" }}>
+                {bootstrapSettingsMsg.type === "ok" ? "✓ " : "✗ "}{bootstrapSettingsMsg.text}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
       )}
 

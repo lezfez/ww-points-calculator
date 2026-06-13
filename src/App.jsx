@@ -14,6 +14,9 @@ import TabInfo from "./components/tabs/TabInfo";
 import TabAdmin from "./components/tabs/TabAdmin";
 import InstallBanner from "./components/InstallBanner";
 
+const DEFAULT_HEADER_TAGLINE = "Coins · PersonalPoints · SmartPoints · ProPoints";
+const DEFAULT_PREMIUM_PRICE_LABEL = "2,99 €/Monat";
+
 export default function App() {
   const [tab, setTab]             = useState("calc");
   const [showSignIn, setShowSignIn] = useState(false);
@@ -50,6 +53,14 @@ export default function App() {
   const [adminCategorySaving, setAdminCategorySaving] = useState({});
   const [adminCategoryCreateSaving, setAdminCategoryCreateSaving] = useState(false);
   const [adminCategoryMsg, setAdminCategoryMsg] = useState(null);
+  const [adminBootstrapSettingsDraft, setAdminBootstrapSettingsDraft] = useState({
+    headerTagline: DEFAULT_HEADER_TAGLINE,
+    premiumPriceLabel: DEFAULT_PREMIUM_PRICE_LABEL,
+  });
+  const [adminBootstrapSettingsSaving, setAdminBootstrapSettingsSaving] = useState(false);
+  const [adminBootstrapSettingsMsg, setAdminBootstrapSettingsMsg] = useState(null);
+  const [headerTagline, setHeaderTagline] = useState(DEFAULT_HEADER_TAGLINE);
+  const [premiumPriceLabel, setPremiumPriceLabel] = useState(DEFAULT_PREMIUM_PRICE_LABEL);
 
   // Image generation state
   const [imageGenLoading, setImageGenLoading]       = useState(false);
@@ -74,6 +85,32 @@ export default function App() {
   useEffect(() => {
     if (isSignedIn) queueMicrotask(() => setShowSignIn(false));
   }, [isSignedIn]);
+
+  useEffect(() => {
+    let active = true;
+
+    fetch("/api/admin?action=public-settings")
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) return null;
+        return data?.settings || null;
+      })
+      .then((settings) => {
+        if (!active || !settings) return;
+        const nextHeaderTagline = String(settings.headerTagline || DEFAULT_HEADER_TAGLINE);
+        const nextPremiumPriceLabel = String(settings.premiumPriceLabel || DEFAULT_PREMIUM_PRICE_LABEL);
+
+        setHeaderTagline(nextHeaderTagline);
+        setPremiumPriceLabel(nextPremiumPriceLabel);
+        setAdminBootstrapSettingsDraft({
+          headerTagline: nextHeaderTagline,
+          premiumPriceLabel: nextPremiumPriceLabel,
+        });
+      })
+      .catch(() => {});
+
+    return () => { active = false; };
+  }, []);
 
   const adminFetch = useCallback(async (url, options = {}) => {
     const token = await getToken();
@@ -388,6 +425,35 @@ export default function App() {
     }
   };
 
+  const saveBootstrapSettings = async () => {
+    setAdminBootstrapSettingsSaving(true);
+    try {
+      const res = await adminFetch("/api/admin?action=set-setting", {
+        method: "POST",
+        body: JSON.stringify({ settings: adminBootstrapSettingsDraft }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Einstellungen konnten nicht gespeichert werden.");
+
+      const nextHeaderTagline = String(data?.settings?.headerTagline || adminBootstrapSettingsDraft.headerTagline || DEFAULT_HEADER_TAGLINE);
+      const nextPremiumPriceLabel = String(data?.settings?.premiumPriceLabel || adminBootstrapSettingsDraft.premiumPriceLabel || DEFAULT_PREMIUM_PRICE_LABEL);
+
+      setHeaderTagline(nextHeaderTagline);
+      setPremiumPriceLabel(nextPremiumPriceLabel);
+      setAdminBootstrapSettingsDraft({
+        headerTagline: nextHeaderTagline,
+        premiumPriceLabel: nextPremiumPriceLabel,
+      });
+      setAdminBootstrapSettingsMsg({ type: "ok", text: "Einstellungen gespeichert" });
+      setTimeout(() => setAdminBootstrapSettingsMsg(null), 2500);
+    } catch (e) {
+      setAdminBootstrapSettingsMsg({ type: "err", text: e?.message || "Einstellungen konnten nicht gespeichert werden." });
+      setTimeout(() => setAdminBootstrapSettingsMsg(null), 3500);
+    } finally {
+      setAdminBootstrapSettingsSaving(false);
+    }
+  };
+
   const generateRecipeImage = useCallback(async (id) => {
     setImageGenPerRecipe(p => ({ ...p, [id]: true }));
     try {
@@ -461,7 +527,7 @@ export default function App() {
             </span>
             <button onClick={startCheckout} className="btn-primary" disabled={checkoutLoading}
               style={{ background: `linear-gradient(135deg, ${C.coin} 0%, #A34D08 100%)`, color: "#fff", border: "none", borderRadius: 9, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: checkoutLoading ? "wait" : "pointer", fontFamily: FB, whiteSpace: "nowrap", boxShadow: "0 2px 8px rgba(198,123,92,.3)", opacity: checkoutLoading ? .75 : 1 }}>
-              {checkoutLoading ? "Weiterleitung…" : "Premium – 2,99 €/Monat"}
+              {checkoutLoading ? "Weiterleitung…" : `Premium – ${premiumPriceLabel}`}
             </button>
           </div>
         )}
@@ -476,7 +542,7 @@ export default function App() {
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3 }}>
                 <div style={{ fontSize: 10, color: "rgba(255,255,255,.65)", letterSpacing: ".08em", textTransform: "uppercase", fontFamily: FB }}>
-                  Coins · PersonalPoints · SmartPoints · ProPoints
+                  {headerTagline}
                 </div>
                 {isSignedIn && (
                   <span style={{ fontSize: 10, background: "rgba(255,255,255,.15)", color: "#fff", borderRadius: 999, padding: "2px 8px", fontFamily: FB, letterSpacing: ".04em", fontWeight: 600 }}>
@@ -548,24 +614,24 @@ export default function App() {
 
         {tab === "calc" && (
           isTabLocked("calc")
-            ? <TabLocked tabId="calc" flags={flags} onSignIn={() => setShowSignIn(true)} onUpgrade={startCheckout} checkoutLoading={checkoutLoading} />
+            ? <TabLocked tabId="calc" flags={flags} onSignIn={() => setShowSignIn(true)} onUpgrade={startCheckout} checkoutLoading={checkoutLoading} premiumPriceLabel={premiumPriceLabel} />
             : <TabCalc />
         )}
 
         {tab === "budget" && (
-          <TabBudget locked={isTabLocked("budget")} onUpgrade={startCheckout} checkoutLoading={checkoutLoading} isSignedIn={isSignedIn} recipes={recipes} />
+          <TabBudget locked={isTabLocked("budget")} onUpgrade={startCheckout} checkoutLoading={checkoutLoading} isSignedIn={isSignedIn} recipes={recipes} premiumPriceLabel={premiumPriceLabel} />
         )}
 
         {tab === "recipes" && (
           isTabLocked("recipes")
-            ? <TabLocked tabId="recipes" flags={flags} onSignIn={() => setShowSignIn(true)} onUpgrade={startCheckout} checkoutLoading={checkoutLoading} />
+            ? <TabLocked tabId="recipes" flags={flags} onSignIn={() => setShowSignIn(true)} onUpgrade={startCheckout} checkoutLoading={checkoutLoading} premiumPriceLabel={premiumPriceLabel} />
             : <TabRecipes recipes={recipes} loading={recipesLoading} error={recipesError} onReload={reloadRecipes} />
         )}
 
         {tab === "info" && (
           isTabLocked("info")
-            ? <TabLocked tabId="info" flags={flags} onSignIn={() => setShowSignIn(true)} onUpgrade={startCheckout} checkoutLoading={checkoutLoading} />
-            : <TabInfo isPremium={isPremium} onUpgrade={startCheckout} checkoutLoading={checkoutLoading} />
+            ? <TabLocked tabId="info" flags={flags} onSignIn={() => setShowSignIn(true)} onUpgrade={startCheckout} checkoutLoading={checkoutLoading} premiumPriceLabel={premiumPriceLabel} />
+            : <TabInfo isPremium={isPremium} onUpgrade={startCheckout} checkoutLoading={checkoutLoading} premiumPriceLabel={premiumPriceLabel} />
         )}
 
         {tab === "admin" && userRole === "admin" && (
@@ -577,6 +643,11 @@ export default function App() {
             users={adminUsers} userLoading={adminUserLoading} onSearchUsers={searchUsers}
             roleSaving={adminRoleSaving} roleSelected={adminRoleSelected} onRoleSelected={setAdminRoleSelected} onApplyRole={applyUserRole}
             bootstrapMsg={bootstrapMsg} onBootstrap={doBootstrap}
+            bootstrapSettings={adminBootstrapSettingsDraft}
+            onBootstrapSettingsChange={setAdminBootstrapSettingsDraft}
+            bootstrapSettingsSaving={adminBootstrapSettingsSaving}
+            bootstrapSettingsMsg={adminBootstrapSettingsMsg}
+            onSaveBootstrapSettings={saveBootstrapSettings}
             recipes={recipes}
             imageGenLoading={imageGenLoading} imageGenPerRecipe={imageGenPerRecipe} imageGenMsg={imageGenMsg}
             onGenerateImage={generateRecipeImage} onGenerateAllImages={generateAllImages}

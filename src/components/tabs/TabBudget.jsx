@@ -335,7 +335,7 @@ function BudgetSetup({ onSave, initialProfile }) {
 }
 
 // ─── Main TabBudget ────────────────────────────────────────
-export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSignedIn, recipes = [] }) {
+export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSignedIn, recipes = [], premiumPriceLabel = "2,99 €/Monat" }) {
   const [date, setDate] = useState(toISODate(new Date()));
   const [showSettings, setShowSettings] = useState(false);
   const [activeView, setActiveView] = useState("journal"); // "journal" | "stats"
@@ -367,7 +367,7 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
         </p>
         <button className="btn-primary" onClick={onUpgrade} disabled={checkoutLoading}
           style={{ ...primaryBtn(true), width: "auto", padding: "14px 32px", display: "inline-block" }}>
-          {checkoutLoading ? "Weiterleitung…" : "🌿 Premium – 20 €/Monat"}
+          {checkoutLoading ? "Weiterleitung…" : `🌿 Premium – ${premiumPriceLabel}`}
         </button>
       </div>
     );

@@ -1,6 +1,6 @@
 import { C, FH, FB, card, sectionLabel, primaryBtn } from "../../styles/theme";
 
-export default function TabInfo({ isPremium, onUpgrade, checkoutLoading }) {
+export default function TabInfo({ isPremium, onUpgrade, checkoutLoading, premiumPriceLabel = "2,99 €/Monat" }) {
   return (
     <div className="tab-content">
 
@@ -41,7 +41,7 @@ export default function TabInfo({ isPremium, onUpgrade, checkoutLoading }) {
           <button onClick={onUpgrade} className="btn-primary"
             disabled={checkoutLoading}
             style={{ ...primaryBtn(true), marginTop: 0, width: "auto", padding: "12px 28px", display: "inline-block", fontSize: 14, cursor: checkoutLoading ? "wait" : "pointer", opacity: checkoutLoading ? .75 : 1 }}>
-            {checkoutLoading ? "Weiterleitung…" : "🌿 Jetzt Premium werden – 2,99 €/Monat"}
+            {checkoutLoading ? "Weiterleitung…" : `🌿 Jetzt Premium werden – ${premiumPriceLabel}`}
           </button>
         )}
         {isPremium && (
