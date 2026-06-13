@@ -1,6 +1,7 @@
 export const FLAG_DEFS = [
   { id: "tab_calc",    label: "Berechnen",   desc: "Punkte- und Coins-Rechner" },
   { id: "tab_budget",  label: "Tagebuch",    desc: "Persönliches Tagebuch (Mifflin-St-Jeor)" },
+  { id: "tab_profile", label: "Profil",      desc: "Persönliche Daten und Budget-Einstellungen" },
   { id: "tab_recipes", label: "Rezepte",     desc: "Rezepte von weightfriends.at" },
   { id: "tab_info",    label: "Info",        desc: "Informationen zu den Systemen" },
 ];

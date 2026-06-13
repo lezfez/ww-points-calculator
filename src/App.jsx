@@ -10,6 +10,7 @@ import TabIcon from "./components/TabIcon";
 import TabLocked from "./components/TabLocked";
 import TabCalc from "./components/tabs/TabCalc";
 import TabBudget from "./components/tabs/TabBudget";
+import TabProfile from "./components/tabs/TabProfile";
 import TabRecipes from "./components/tabs/TabRecipes";
 import TabInfo from "./components/tabs/TabInfo";
 import TabAdmin from "./components/tabs/TabAdmin";
@@ -492,6 +493,7 @@ export default function App() {
   const TABS = useMemo(() => [
     { id: "calc",    label: "Berechnen" },
     { id: "budget",  label: "Tagebuch" },
+    { id: "profile", label: "Profil" },
     { id: "recipes", label: "Rezepte" },
     { id: "info",    label: "Info" },
     ...(userRole === "admin" ? [{ id: "admin", label: "Admin" }] : []),
@@ -657,7 +659,13 @@ export default function App() {
         )}
 
         {currentTab === "budget" && (
-          <TabBudget locked={isTabLocked("budget")} onUpgrade={startCheckout} checkoutLoading={checkoutLoading} isSignedIn={isSignedIn} recipes={recipes} premiumPriceLabel={premiumPriceLabel} />
+          <TabBudget locked={isTabLocked("budget")} onUpgrade={startCheckout} checkoutLoading={checkoutLoading} isSignedIn={isSignedIn} recipes={recipes} premiumPriceLabel={premiumPriceLabel} onOpenProfile={() => changeTab("profile")} />
+        )}
+
+        {currentTab === "profile" && (
+          isTabLocked("profile")
+            ? <TabLocked tabId="profile" flags={flags} onSignIn={() => setShowSignIn(true)} onUpgrade={startCheckout} checkoutLoading={checkoutLoading} premiumPriceLabel={premiumPriceLabel} />
+            : <TabProfile isSignedIn={isSignedIn} onSignIn={() => setShowSignIn(true)} />
         )}
 
         {currentTab === "recipes" && (

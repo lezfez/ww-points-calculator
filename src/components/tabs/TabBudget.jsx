@@ -1,7 +1,5 @@
 import { useState, useId, useEffect } from "react";
 import { C, FH, FB, card, sectionLabel, inputStyle, labelStyle, primaryBtn } from "../../styles/theme";
-import { calcDailyBudget } from "../../lib/points";
-import ScoreBlock from "../ScoreBlock";
 import DonutChart from "../DonutChart";
 import WeekStrip from "../WeekStrip";
 import StatsView from "../StatsView";
@@ -238,111 +236,14 @@ function WellnessRow({ item, value, onChange }) {
   );
 }
 
-// ─── Budget-Setup (first visit) ────────────────────────────
-function BudgetSetup({ onSave, initialProfile }) {
-  const [calc, setCalc] = useState({
-    gewicht: initialProfile?.gewicht || "",
-    groesse: initialProfile?.groesse || "",
-    alter:   initialProfile?.alter_j || "",
-    geschlecht: initialProfile?.geschlecht || "w",
-    aktivitaet: initialProfile?.aktivitaet || "sitzend",
-  });
-  const [result, setResult] = useState(null);
-  const [manual, setManual] = useState(initialProfile?.daily_budget ? String(initialProfile.daily_budget) : "");
-  const [weekly, setWeekly] = useState(initialProfile?.weekly_bonus ? String(initialProfile.weekly_bonus) : "49");
-
-  const b = k => parseFloat(calc[k]) || 0;
-  const handleCalc = (k, v) => { setCalc(p => ({ ...p, [k]: v })); setResult(null); };
-  const compute = () => setResult(calcDailyBudget({ gewicht: b("gewicht"), groesse: b("groesse"), alter: b("alter"), geschlecht: calc.geschlecht, aktivitaet: calc.aktivitaet }));
-
-  const budget = result ? result.coins : (parseInt(manual) || null);
-
-  return (
-    <div style={card}>
-      <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 20, color: C.text, marginBottom: 4 }}>
-        Mein Tagebuch festlegen
-      </div>
-      <p style={{ fontSize: 13, color: C.sub, marginBottom: 18, lineHeight: 1.7, fontFamily: FB }}>
-        Berechne dein persönliches Budget oder trage es manuell ein.
-      </p>
-
-      <div style={{ ...sectionLabel }}>Budget berechnen</div>
-      <div className="field-grid" style={{ marginBottom: 14 }}>
-        {[{ id: "gewicht", label: "Gewicht (kg)" }, { id: "groesse", label: "Größe (cm)" }, { id: "alter", label: "Alter (Jahre)" }].map(f => (
-          <div key={f.id}>
-            <label style={labelStyle}>{f.label}</label>
-            <input type="number" className="app-input" style={inputStyle} value={calc[f.id]} placeholder="–"
-              onChange={e => handleCalc(f.id, e.target.value)} />
-          </div>
-        ))}
-        <div>
-          <label style={labelStyle}>Geschlecht</label>
-          <select className="app-select" style={inputStyle} value={calc.geschlecht} onChange={e => handleCalc("geschlecht", e.target.value)}>
-            <option value="w">Weiblich</option><option value="m">Männlich</option>
-          </select>
-        </div>
-        <div>
-          <label style={labelStyle}>Aktivitätsniveau</label>
-          <select className="app-select" style={inputStyle} value={calc.aktivitaet} onChange={e => handleCalc("aktivitaet", e.target.value)}>
-            <option value="sitzend">Überwiegend sitzend</option>
-            <option value="leicht">Leicht aktiv</option>
-            <option value="maessig">Mäßig aktiv</option>
-            <option value="aktiv">Sehr aktiv</option>
-          </select>
-        </div>
-      </div>
-      <button className="btn-primary" style={{ ...primaryBtn(false), marginBottom: 16 }} onClick={compute}>Budget berechnen</button>
-
-      {result && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center", marginBottom: 18 }}>
-          <ScoreBlock value={result.coins} label="🌿 Coins/Tag (wf)" bg={C.coinBg} textColor={C.coinText} borderColor={C.coinBorder} />
-          <ScoreBlock value={result.ww} label="WW Points/Tag" bg={C.greenPale} textColor={C.green} borderColor="rgba(34,139,34,.14)" />
-        </div>
-      )}
-
-      <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-        <div>
-          <label style={labelStyle}>Tages-Budget (Coins) {result ? `– Vorschlag: ${result.coins}` : ""}</label>
-          <input type="number" className="app-input" style={inputStyle} placeholder={result ? result.coins : "z.B. 35"}
-            value={manual || (result ? result.coins : "")} onChange={e => setManual(e.target.value)} />
-        </div>
-        <div>
-          <label style={labelStyle}>Wochenbonus (Coins)</label>
-          <input type="number" className="app-input" style={inputStyle} placeholder="49" value={weekly}
-            onChange={e => setWeekly(e.target.value)} />
-          <div style={{ fontSize: 11, color: C.muted, fontFamily: FB, marginTop: 4 }}>
-            Standard bei weight friends: 49 Bonus-Coins pro Woche
-          </div>
-        </div>
-        <button
-          className="btn-primary"
-          style={{ ...primaryBtn(true), marginTop: 6 }}
-          disabled={!budget}
-          onClick={() => onSave({
-            daily_budget: budget,
-            weekly_bonus: parseInt(weekly) || 49,
-            gewicht: parseFloat(calc.gewicht) || null,
-            groesse: parseFloat(calc.groesse) || null,
-            alter_j: parseInt(calc.alter) || null,
-            geschlecht: calc.geschlecht,
-            aktivitaet: calc.aktivitaet,
-          })}>
-          🌿 Budget speichern & Journal starten
-        </button>
-      </div>
-    </div>
-  );
-}
-
 // ─── Main TabBudget ────────────────────────────────────────
-export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSignedIn, recipes = [], premiumPriceLabel = "2,99 €/Monat" }) {
+export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSignedIn, recipes = [], premiumPriceLabel = "2,99 €/Monat", onOpenProfile }) {
   const [date, setDate] = useState(toISODate(new Date()));
-  const [showSettings, setShowSettings] = useState(false);
   const [activeView, setActiveView] = useState("journal"); // "journal" | "stats"
   const [pickerSlot, setPickerSlot] = useState(null); // meal id or null
   const [foodSlot, setFoodSlot] = useState(null);    // meal id for food search
 
-  const { profile, loading: profileLoading, updateProfile } = useUserProfile();
+  const { profile, loading: profileLoading } = useUserProfile();
   const { entry, weeklyUsed, loading: journalLoading, saveState, updateEntry, updateMeal } = useDailyJournal(date);
   const { week, streak, reload: reloadWeek } = useWeeklyJournal(date);
   const { data: statsData, loading: statsLoading, reload: reloadStats } = useStats();
@@ -387,17 +288,21 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
     <div className="tab-content" style={{ textAlign: "center", padding: "40px 0", color: C.muted, fontFamily: FB }}>Lade…</div>
   );
 
-  // First visit: no profile set → show setup
-  if (!profile?.daily_budget || showSettings) {
+  if (!profile?.daily_budget) {
     return (
       <div className="tab-content">
-        {showSettings && (
-          <button onClick={() => setShowSettings(false)}
-            style={{ background: "none", border: "none", color: C.green, fontFamily: FB, fontSize: 13, fontWeight: 700, cursor: "pointer", padding: "0 0 12px", display: "flex", alignItems: "center", gap: 4 }}>
-            ← Zurück zum Journal
+        <div style={{ ...card, textAlign: "center", padding: "32px 24px" }}>
+          <div style={{ fontSize: 42, marginBottom: 10 }}>👤</div>
+          <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 21, color: C.text, marginBottom: 8 }}>
+            Profil zuerst einrichten
+          </div>
+          <p style={{ fontSize: 13, color: C.sub, lineHeight: 1.7, fontFamily: FB, marginBottom: 14 }}>
+            Dein Tagebuch benötigt ein gespeichertes Tages-Budget. Bitte richte dein Profil einmalig im Profil-Tab ein.
+          </p>
+          <button className="btn-primary" style={{ ...primaryBtn(true), width: "auto", padding: "12px 22px", display: "inline-block" }} onClick={onOpenProfile}>
+            Zum Profil
           </button>
-        )}
-        <BudgetSetup initialProfile={profile} onSave={async (data) => { await updateProfile(data); setShowSettings(false); }} />
+        </div>
       </div>
     );
   }
@@ -462,7 +367,7 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
           <div style={{ fontFamily: FB, fontSize: 12, color: C.sub }}>
             Budget: <b style={{ color: C.text, fontFamily: FH, fontStyle: "italic" }}>{daily_budget} Coins/Tag</b>
           </div>
-          <button onClick={() => setShowSettings(true)}
+          <button onClick={onOpenProfile}
             style={{ background: "none", border: "none", color: C.green, fontFamily: FB, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
             Einstellungen ›
           </button>
