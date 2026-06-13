@@ -51,6 +51,8 @@ export default function TabAdmin({
   const [newCategory, setNewCategory] = useState({ slug: "", label: "", sort_order: 0, is_active: true });
   const [openRecipeTextEditorId, setOpenRecipeTextEditorId] = useState(null);
   const [openRecipeHistoryId, setOpenRecipeHistoryId] = useState(null);
+  const [imageSearchQuery, setImageSearchQuery] = useState("");
+  const [imageModal, setImageModal] = useState(null);
   const [activeSubtab, setActiveSubtab] = useState(getInitialAdminSubtab);
 
   const formatDateTime = (value) => {
@@ -79,6 +81,15 @@ export default function TabAdmin({
     () => recipeCategoriesCatalog.filter(cat => cat.is_active !== false),
     [recipeCategoriesCatalog]
   );
+
+  const filteredImageRecipes = useMemo(() => {
+    const needle = imageSearchQuery.trim().toLowerCase();
+    if (!needle) return recipes;
+    return recipes.filter(r =>
+      String(r.name || "").toLowerCase().includes(needle)
+      || String(r.kategorie || "").toLowerCase().includes(needle)
+    );
+  }, [recipes, imageSearchQuery]);
 
   const hasUnsavedRecipeDrafts = useMemo(
     () => Object.keys(recipeCategoryDraft).length > 0,
@@ -126,6 +137,23 @@ export default function TabAdmin({
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasAdminDirtyChanges]);
+
+  useEffect(() => {
+    if (!imageModal) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") setImageModal(null);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [imageModal]);
 
   const getDraftForRecipe = (recipe) => recipeCategoryDraft[recipe.id] ?? recipe.kategorien ?? [];
 
@@ -446,6 +474,15 @@ export default function TabAdmin({
       {activeSubtab === "bilder" && (
       <div style={card}>
         <div style={{ ...sectionLabel, color: C.adminText }}>Rezeptbilder (KI-Generierung)</div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+          <input
+            className="app-input"
+            style={{ ...inputStyle, flex: 1 }}
+            placeholder="Rezepte/Bilder suchen..."
+            value={imageSearchQuery}
+            onChange={e => setImageSearchQuery(e.target.value)}
+          />
+        </div>
         {recipes && (() => {
           const total = recipes.length;
           const ready = recipes.filter(r => r.image_status === "ready").length;
@@ -488,15 +525,32 @@ export default function TabAdmin({
               )}
 
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {recipes.map(r => {
+                {filteredImageRecipes.map(r => {
                   const st = IMAGE_STATUS_LABEL[r.image_status] || IMAGE_STATUS_LABEL.pending;
                   const isLoading = imageGenPerRecipe?.[r.id];
                   return (
                     <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: C.surface2, borderRadius: 10, border: `1px solid ${C.border}` }}>
-                      {r.image_url
-                        ? <img src={r.image_url} alt="" style={{ width: 48, height: 36, objectFit: "cover", borderRadius: 6, flexShrink: 0, border: `1px solid ${C.border}` }} />
-                        : <div style={{ width: 48, height: 36, background: C.border, borderRadius: 6, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🍽️</div>
-                      }
+                      {r.image_url ? (
+                        <button
+                          type="button"
+                          title={`Bild vergroessern: ${r.name}`}
+                          onClick={() => setImageModal({ url: r.image_url, name: r.name })}
+                          style={{
+                            width: 48,
+                            height: 36,
+                            padding: 0,
+                            borderRadius: 6,
+                            border: `1px solid ${C.border}`,
+                            background: C.surface,
+                            cursor: "zoom-in",
+                            flexShrink: 0,
+                            overflow: "hidden",
+                          }}>
+                          <img src={r.image_url} alt={`Vorschaubild: ${r.name}`} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                        </button>
+                      ) : (
+                        <div style={{ width: 48, height: 36, background: C.border, borderRadius: 6, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🍽️</div>
+                      )}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 600, fontSize: 12, color: C.text, fontFamily: FB, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</div>
                         <div style={{ fontSize: 11, color: st.color, fontFamily: FB }}>{st.icon} {st.label}</div>
@@ -511,6 +565,11 @@ export default function TabAdmin({
                     </div>
                   );
                 })}
+                {filteredImageRecipes.length === 0 && (
+                  <div style={{ textAlign: "center", padding: "18px 0", color: C.muted, fontFamily: FB, fontSize: 13 }}>
+                    Keine Rezepte passend zur Suche gefunden.
+                  </div>
+                )}
               </div>
             </>
           );
@@ -519,6 +578,79 @@ export default function TabAdmin({
       )}
 
       {/* Rezept-Zuordnung */}
+
+      {imageModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Bildvorschau: ${imageModal.name}`}
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setImageModal(null);
+          }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100000,
+            background: "rgba(0,0,0,.72)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}>
+          <div
+            onMouseDown={e => e.stopPropagation()}
+            style={{
+              width: "min(960px, 96vw)",
+              maxHeight: "94vh",
+              background: C.surface,
+              borderRadius: 14,
+              border: `1px solid ${C.border}`,
+              boxShadow: "0 18px 50px rgba(0,0,0,.35)",
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+            }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderBottom: `1px solid ${C.border}` }}>
+              <div style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: C.text, fontFamily: FB, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {imageModal.name}
+              </div>
+              <button
+                type="button"
+                onClick={() => setImageModal(null)}
+                style={{
+                  border: `1px solid ${C.border}`,
+                  background: C.surface2,
+                  color: C.sub,
+                  borderRadius: 8,
+                  padding: "6px 10px",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  fontFamily: FB,
+                  cursor: "pointer",
+                }}>
+                Schließen
+              </button>
+            </div>
+            <div style={{ padding: 12, overflow: "auto" }}>
+              <img
+                src={imageModal.url}
+                alt={`Grossansicht: ${imageModal.name}`}
+                style={{
+                  width: "100%",
+                  maxHeight: "calc(92vh - 120px)",
+                  objectFit: "contain",
+                  borderRadius: 10,
+                  border: `1px solid ${C.border}`,
+                  background: C.surface2,
+                }}
+              />
+              <div style={{ marginTop: 8, fontSize: 11, color: C.muted, fontFamily: FB }}>
+                Tipp: Mit Esc oder Klick außerhalb schließen.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {activeSubtab === "rezepte" && (
       <div style={card}>
         <div style={{ ...sectionLabel, color: C.adminText }}>Rezept-Zuordnung</div>
