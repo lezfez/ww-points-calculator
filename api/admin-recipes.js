@@ -297,5 +297,71 @@ export default async function handler(req, res) {
     return res.json({ success: true, recipe: data });
   }
 
+  if (req.method === "DELETE") {
+    const action = req.query.action;
+    if (action !== "category") return res.status(400).json({ error: "Unbekannte action" });
+
+    const targetSlug = normalizeSlug(req.query.slug || req.body?.slug);
+    if (!targetSlug) return res.status(400).json({ error: "slug fehlt" });
+
+    const { data: refs, error: refsErr, count: refsCount } = await supabase
+      .from("recipes")
+      .select("id, name", { count: "exact" })
+      .contains("kategorien", [targetSlug])
+      .limit(5);
+
+    if (refsErr) {
+      if (refsErr.code === "42703") {
+        return res.status(500).json({ error: "Spalte recipes.kategorien fehlt. Bitte SQL-Migration ausfuehren." });
+      }
+      return res.status(500).json({ error: refsErr.message });
+    }
+
+    if ((refsCount || 0) > 0) {
+      const names = (refs || []).map(r => r.name).filter(Boolean);
+      const suffix = names.length ? ` (${names.join(", ")})` : "";
+      return res.status(409).json({
+        error: `Kategorie wird noch in ${refsCount} Rezept(en) verwendet${suffix}. Bitte zuerst Zuordnungen entfernen.`,
+        usedBy: refs || [],
+        usedCount: refsCount || 0,
+      });
+    }
+
+    const { data: existing, error: existingErr } = await supabase
+      .from("recipe_categories")
+      .select("slug, label")
+      .eq("slug", targetSlug)
+      .single();
+
+    if (existingErr) {
+      if (existingErr.code === "42P01") {
+        return res.status(500).json({ error: "Tabelle recipe_categories fehlt. Bitte SQL-Migration ausfuehren." });
+      }
+      if (existingErr.code === "PGRST116") {
+        return res.status(404).json({ error: "Kategorie nicht gefunden." });
+      }
+      return res.status(500).json({ error: existingErr.message });
+    }
+
+    const { error: delErr } = await supabase
+      .from("recipe_categories")
+      .delete()
+      .eq("slug", targetSlug);
+
+    if (delErr) {
+      if (delErr.code === "42P01") {
+        return res.status(500).json({ error: "Tabelle recipe_categories fehlt. Bitte SQL-Migration ausfuehren." });
+      }
+      return res.status(500).json({ error: delErr.message });
+    }
+
+    auditAdminAction("category-delete", adminUser, {
+      slug: targetSlug,
+      label: existing?.label || null,
+    });
+
+    return res.json({ success: true, deleted: true, slug: targetSlug });
+  }
+
   return res.status(405).end();
 }

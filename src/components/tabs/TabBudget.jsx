@@ -260,7 +260,7 @@ function BudgetSetup({ onSave, initialProfile }) {
   return (
     <div style={card}>
       <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 20, color: C.text, marginBottom: 4 }}>
-        Mein Tagesbudget festlegen
+        Mein Tagebuch festlegen
       </div>
       <p style={{ fontSize: 13, color: C.sub, marginBottom: 18, lineHeight: 1.7, fontFamily: FB }}>
         Berechne dein persönliches Budget oder trage es manuell ein.

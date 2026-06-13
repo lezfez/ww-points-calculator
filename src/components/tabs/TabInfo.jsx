@@ -26,7 +26,7 @@ export default function TabInfo({ isPremium, onUpgrade, checkoutLoading }) {
         <ul style={{ fontSize: 13, lineHeight: 2.1, color: C.text, paddingLeft: 0, marginBottom: 16, fontFamily: FB, listStyle: "none" }}>
           <li style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
             <span style={{ color: C.coin, fontWeight: 700, flexShrink: 0 }}>✦</span>
-            <span><b>Persönliches Tagesbudget</b> – berechne dein individuelles Tages-Limit für Coins und WW-Punkte basierend auf deinem Körpergewicht, deiner Größe, deinem Alter und deiner Aktivität.</span>
+            <span><b>Persönliches Tagebuch</b> – berechne dein individuelles Tages-Limit für Coins und WW-Punkte basierend auf deinem Körpergewicht, deiner Größe, deinem Alter und deiner Aktivität.</span>
           </li>
           <li style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
             <span style={{ color: C.coin, fontWeight: 700, flexShrink: 0 }}>✦</span>
@@ -70,7 +70,7 @@ export default function TabInfo({ isPremium, onUpgrade, checkoutLoading }) {
         <p style={{ fontSize: 13, lineHeight: 1.85, color: C.text, fontFamily: FB }}>
           Zusätzlich gibt es <b>Bonus-Coins</b> für gesunde Verhaltensweisen (Leitsätze):
           Gemüse &amp; Obst essen, gesunde Fette, ausreichend trinken, bewusst genießen, Bewegung, Erholung.
-          Für jeden erfüllten Leitsatz +1 Coin auf das Tagesbudget.
+          Für jeden erfüllten Leitsatz +1 Coin auf das Tagebuch.
         </p>
       </div>
 
@@ -82,7 +82,7 @@ export default function TabInfo({ isPremium, onUpgrade, checkoutLoading }) {
           WW (Weight Watchers) berechnet Punkte auf Basis von kcal, gesättigten Fetten, Zucker (negativ)
           und Protein, Ballaststoffen, ungesättigten Fetten (positiv / punktsenkend).
           Über 200 ZeroPoint-Lebensmittel müssen nicht getrackt werden.
-          Das individuelle Tagesbudget basiert auf der Mifflin-St-Jeor-Formel.
+          Das individuelle Tagebuch basiert auf der Mifflin-St-Jeor-Formel.
         </p>
       </div>
 

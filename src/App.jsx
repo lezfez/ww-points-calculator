@@ -223,6 +223,28 @@ export default function App() {
     }
   }, [adminFetch, loadRecipeCategories]);
 
+  const deleteRecipeCategory = useCallback(async (slug) => {
+    setAdminCategorySaving(prev => ({ ...prev, [slug]: true }));
+    try {
+      const res = await adminFetch(`/api/admin-recipes?action=category&slug=${encodeURIComponent(slug)}`, {
+        method: "DELETE",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Kategorie konnte nicht geloescht werden.");
+      await loadRecipeCategories();
+      await reloadRecipes();
+      setAdminCategoryMsg({ type: "ok", text: "Kategorie geloescht" });
+      setTimeout(() => setAdminCategoryMsg(null), 2500);
+      return true;
+    } catch (e) {
+      setAdminCategoryMsg({ type: "err", text: e?.message || "Kategorie konnte nicht geloescht werden." });
+      setTimeout(() => setAdminCategoryMsg(null), 3500);
+      return false;
+    } finally {
+      setAdminCategorySaving(prev => ({ ...prev, [slug]: false }));
+    }
+  }, [adminFetch, loadRecipeCategories, reloadRecipes]);
+
   const saveRecipeCategories = useCallback(async (recipeId, kategorien) => {
     setAdminRecipeCategorySaving(prev => ({ ...prev, [recipeId]: true }));
     try {
@@ -289,8 +311,8 @@ export default function App() {
 
   const TABS = useMemo(() => [
     { id: "calc",    label: "Berechnen" },
-    { id: "budget",  label: "Tagesbudget" },
-    { id: "recipes", label: "WF Rezepte" },
+    { id: "budget",  label: "Tagebuch" },
+    { id: "recipes", label: "Rezepte" },
     { id: "info",    label: "Info" },
     ...(userRole === "admin" ? [{ id: "admin", label: "Admin" }] : []),
   ].filter(t => t.id === "admin" || isTabEnabled(t.id)), [flags, userRole]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -330,7 +352,7 @@ export default function App() {
         {isSignedIn && !isPremium && (
           <div style={{ background: C.premBg, borderBottom: `1px solid ${C.premBorder}`, padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
             <span style={{ fontSize: 13, color: C.premText, fontWeight: 600, fontFamily: FB }}>
-              🌿 Tagesbudget &amp; mehr freischalten
+              🌿 Tagebuch &amp; mehr freischalten
             </span>
             <button onClick={startCheckout} className="btn-primary" disabled={checkoutLoading}
               style={{ background: `linear-gradient(135deg, ${C.coin} 0%, #A34D08 100%)`, color: "#fff", border: "none", borderRadius: 9, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: checkoutLoading ? "wait" : "pointer", fontFamily: FB, whiteSpace: "nowrap", boxShadow: "0 2px 8px rgba(198,123,92,.3)", opacity: checkoutLoading ? .75 : 1 }}>
@@ -467,6 +489,7 @@ export default function App() {
             categoryMsg={adminCategoryMsg}
             onCreateCategory={createRecipeCategory}
             onUpdateCategory={updateRecipeCategory}
+            onDeleteCategory={deleteRecipeCategory}
           />
         )}
 

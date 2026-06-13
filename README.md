@@ -15,7 +15,7 @@ Berechnet alle fünf Systeme parallel aus Nährwertangaben:
 | WW ProPoints™ (2010–15) | Protein, KH, Fett, Ballaststoffe |
 | WW Classic Points (bis 2010) | kcal, Fett |
 
-### Tagesbudget (Premium)
+### Tagebuch (Premium)
 Persönliches Tages-Budget via Mifflin-St-Jeor-Formel (Grundumsatz × Aktivitätsfaktor) – gibt empfohlene Coins/Tag und WW Points/Tag aus.
 
 **Tagesjournal** mit Mahlzeit-Slots (Frühstück, Mittagessen, Abendessen, Snacks):
@@ -33,7 +33,7 @@ Persönliches Tages-Budget via Mifflin-St-Jeor-Formel (Grundumsatz × Aktivität
 
 **Lebensmittelsuche**: Pro Mahlzeit-Slot über 🔍 Lebensmittel aus der DB suchen (FoodSearch-Modal, debounced, mit Portionsrechner und Coin-Skalierung).
 
-### WF Rezepte
+### Rezepte
 Rezepte von weightfriends.at mit Coins-Werten, Kategoriefilter, Textsuche und Sortierung nach Coins. Lade-, Fehler- und Leerzustände werden getrennt angezeigt; bei Supabase-Fehlern gibt es einen erneuten Ladeversuch.
 Optional können KI-generierte Rezeptbilder aus Supabase Storage angezeigt werden.
 
@@ -70,7 +70,7 @@ Stripe-Checkout-Rückgaben über `?premium=success` und `?premium=canceled` werd
 | Pfad | Zweck |
 |---|---|
 | `src/App.jsx` | Haupt-App, Navigation, Rollenlogik, Header mit Clerk-Avatar |
-| `src/lib/points.js` | Pure Berechnungsfunktionen für Punkte und Tagesbudget |
+| `src/lib/points.js` | Pure Berechnungsfunktionen für Punkte und Tagebuch |
 | `src/lib/pointSystems.js` | Feld- und Punktesystem-Definitionen |
 | `src/lib/roles.js` | Rollenlabels, Rollenrangfolge und Zugriffshilfen |
 | `src/lib/featureFlags.js` | Definitionen der administrierbaren Feature Flags |
@@ -193,7 +193,7 @@ CREATE TABLE feature_flags (
 Standard-Einträge: `tab_calc`, `tab_budget`, `tab_recipes`, `tab_info`
 
 ### `daily_journal`
-Tagesbudget-Einträge pro User und Datum:
+Tagebuch-Einträge pro User und Datum:
 
 ```sql
 CREATE TABLE daily_journal (
@@ -437,7 +437,7 @@ Clerk wird mit deutscher Lokalisierung (`deDE`) betrieben. Im User-Profil (Clerk
 | Größe (cm) | Für Grundumsatz-Berechnung |
 | Alter (Jahre) | Für Grundumsatz-Berechnung |
 | Geschlecht | m / w / d |
-| Aktivitätslevel | Für Aktivitätsfaktor im Tagesbudget |
+| Aktivitätslevel | Für Aktivitätsfaktor im Tagebuch |
 
 `display_name` und `avatar_url` werden beim ersten API-Aufruf automatisch aus Clerk synchronisiert.
 

@@ -39,7 +39,7 @@ export default function TabAdmin({
   recipeCategoryQuery, onRecipeCategoryQueryChange,
   recipeCategoriesCatalog, recipeCategoriesLoading, recipeCategoriesError, onReloadRecipeCategories,
   recipeCategorySaving, recipeCategoryMsg, onSaveRecipeCategories,
-  categorySaving, categoryCreateSaving, categoryMsg, onCreateCategory, onUpdateCategory,
+  categorySaving, categoryCreateSaving, categoryMsg, onCreateCategory, onUpdateCategory, onDeleteCategory,
 }) {
   const [recipeCategoryDraft, setRecipeCategoryDraft] = useState({});
   const [categoryDraft, setCategoryDraft] = useState({});
@@ -166,6 +166,19 @@ export default function TabAdmin({
     });
     if (ok) {
       setNewCategory({ slug: "", label: "", sort_order: 0, is_active: true });
+    }
+  };
+
+  const deleteCategory = async (category) => {
+    const ok = window.confirm(`Kategorie ${category.label} wirklich loeschen?`);
+    if (!ok) return;
+    const deleted = await onDeleteCategory(category.slug);
+    if (deleted) {
+      setCategoryDraft(prev => {
+        const next = { ...prev };
+        delete next[category.slug];
+        return next;
+      });
     }
   };
 
@@ -651,6 +664,13 @@ export default function TabAdmin({
                     disabled={!dirty || saving}
                     style={{ padding: "8px 14px", borderRadius: 9, border: "none", background: dirty ? C.green : C.surface, color: dirty ? "#fff" : C.muted, fontSize: 12, fontWeight: 700, fontFamily: FB, cursor: dirty ? "pointer" : "default", minHeight: 36, opacity: saving ? .6 : 1 }}>
                     {saving ? "..." : "Speichern"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteCategory(category)}
+                    disabled={saving}
+                    style={{ padding: "8px 14px", borderRadius: 9, border: `1px solid ${C.border}`, background: C.surface, color: "#991B1B", fontSize: 12, fontWeight: 700, fontFamily: FB, cursor: "pointer", minHeight: 36, opacity: saving ? .6 : 1 }}>
+                    Loeschen
                   </button>
                 </div>
               </div>
