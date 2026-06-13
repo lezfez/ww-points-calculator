@@ -5,6 +5,7 @@ import { useRecipes } from "./hooks/useRecipes";
 import { useFeatureFlags } from "./hooks/useFeatureFlags";
 import { getUserRole, hasAccess, ROLE_LABELS } from "./lib/roles";
 import { C, FB, FH } from "./styles/theme";
+import { buildPathWithTab, readTabFromSearch, resolveTabSelection } from "./lib/tabRouting";
 import TabIcon from "./components/TabIcon";
 import TabLocked from "./components/TabLocked";
 import TabCalc from "./components/tabs/TabCalc";
@@ -17,8 +18,16 @@ import InstallBanner from "./components/InstallBanner";
 const DEFAULT_HEADER_TAGLINE = "Coins · PersonalPoints · SmartPoints · ProPoints";
 const DEFAULT_PREMIUM_PRICE_LABEL = "2,99 €/Monat";
 
+const getTabFromUrl = () => {
+  return readTabFromSearch(window.location.search);
+};
+
+const getPathWithTab = (tabId) => {
+  return buildPathWithTab(window.location.href, tabId);
+};
+
 export default function App() {
-  const [tab, setTab]             = useState("calc");
+  const [tab, setTab]             = useState(() => getTabFromUrl());
   const [showSignIn, setShowSignIn] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutMsg, setCheckoutMsg] = useState(() => {
@@ -488,6 +497,35 @@ export default function App() {
     ...(userRole === "admin" ? [{ id: "admin", label: "Admin" }] : []),
   ].filter(t => t.id === "admin" || isTabEnabled(t.id)), [flags, userRole]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const tabIds = useMemo(() => TABS.map((t) => t.id), [TABS]);
+
+  const currentTab = useMemo(() => {
+    return resolveTabSelection(tab, tabIds);
+  }, [tab, tabIds]);
+
+  const changeTab = useCallback((nextTab) => {
+    setTab(nextTab);
+    const nextPath = getPathWithTab(nextTab);
+    const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (nextPath !== currentPath) {
+      window.history.pushState({ tab: nextTab }, "", nextPath);
+    }
+  }, []);
+
+  useEffect(() => {
+    const onPopState = () => {
+      setTab(getTabFromUrl());
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  useEffect(() => {
+    const urlTab = getTabFromUrl();
+    if (urlTab === currentTab) return;
+    window.history.replaceState(window.history.state, "", getPathWithTab(currentTab));
+  }, [currentTab]);
+
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: FB, color: C.text }}>
 
@@ -583,8 +621,8 @@ export default function App() {
             const locked = isTabLocked(t.id);
             const isAdmin = t.id === "admin";
             return (
-              <button key={t.id} onClick={() => setTab(t.id)}
-                style={{ padding: "9px 18px", border: "none", borderRadius: 999, background: tab === t.id ? (isAdmin ? C.adminText : C.green) : "transparent", color: tab === t.id ? "#fff" : (isAdmin ? C.adminText : C.sub), fontWeight: tab === t.id ? 700 : 500, fontSize: 13, fontFamily: FB, cursor: "pointer", whiteSpace: "nowrap", transition: "background .18s, color .18s", letterSpacing: ".03em", minHeight: 44 }}>
+              <button key={t.id} onClick={() => changeTab(t.id)}
+                style={{ padding: "9px 18px", border: "none", borderRadius: 999, background: currentTab === t.id ? (isAdmin ? C.adminText : C.green) : "transparent", color: currentTab === t.id ? "#fff" : (isAdmin ? C.adminText : C.sub), fontWeight: currentTab === t.id ? 700 : 500, fontSize: 13, fontFamily: FB, cursor: "pointer", whiteSpace: "nowrap", transition: "background .18s, color .18s", letterSpacing: ".03em", minHeight: 44 }}>
                 {t.label}{locked ? " 🔒" : ""}
               </button>
             );
@@ -597,11 +635,11 @@ export default function App() {
       <nav className="bottom-nav">
         {TABS.map(t => {
           const locked  = isTabLocked(t.id);
-          const active  = tab === t.id;
+          const active  = currentTab === t.id;
           const isAdmin = t.id === "admin";
           const color   = active ? (isAdmin ? C.adminText : C.green) : C.muted;
           return (
-            <button key={t.id} className="bottom-nav-btn" onClick={() => setTab(t.id)} style={{ color, fontFamily: FB }}>
+            <button key={t.id} className="bottom-nav-btn" onClick={() => changeTab(t.id)} style={{ color, fontFamily: FB }}>
               <TabIcon id={t.id} />
               <span>{t.label}{locked ? " 🔒" : ""}</span>
             </button>
@@ -612,29 +650,29 @@ export default function App() {
       {/* Main */}
       <main className="main-content" style={{ maxWidth: 860, margin: "0 auto", padding: "22px 16px 80px" }}>
 
-        {tab === "calc" && (
+        {currentTab === "calc" && (
           isTabLocked("calc")
             ? <TabLocked tabId="calc" flags={flags} onSignIn={() => setShowSignIn(true)} onUpgrade={startCheckout} checkoutLoading={checkoutLoading} premiumPriceLabel={premiumPriceLabel} />
             : <TabCalc />
         )}
 
-        {tab === "budget" && (
+        {currentTab === "budget" && (
           <TabBudget locked={isTabLocked("budget")} onUpgrade={startCheckout} checkoutLoading={checkoutLoading} isSignedIn={isSignedIn} recipes={recipes} premiumPriceLabel={premiumPriceLabel} />
         )}
 
-        {tab === "recipes" && (
+        {currentTab === "recipes" && (
           isTabLocked("recipes")
             ? <TabLocked tabId="recipes" flags={flags} onSignIn={() => setShowSignIn(true)} onUpgrade={startCheckout} checkoutLoading={checkoutLoading} premiumPriceLabel={premiumPriceLabel} />
             : <TabRecipes recipes={recipes} loading={recipesLoading} error={recipesError} onReload={reloadRecipes} />
         )}
 
-        {tab === "info" && (
+        {currentTab === "info" && (
           isTabLocked("info")
             ? <TabLocked tabId="info" flags={flags} onSignIn={() => setShowSignIn(true)} onUpgrade={startCheckout} checkoutLoading={checkoutLoading} premiumPriceLabel={premiumPriceLabel} />
             : <TabInfo isPremium={isPremium} onUpgrade={startCheckout} checkoutLoading={checkoutLoading} premiumPriceLabel={premiumPriceLabel} />
         )}
 
-        {tab === "admin" && userRole === "admin" && (
+        {currentTab === "admin" && userRole === "admin" && (
           <TabAdmin
             flags={flags} flagsLoading={flagsLoading} flagsError={flagsError} onReloadFlags={reloadFlags}
             flagDraft={adminFlagDraft} onFlagDraftChange={setAdminFlagDraft}
@@ -680,7 +718,7 @@ export default function App() {
         )}
 
         {/* Bootstrap-Hinweis für eingeloggte Nicht-Admins */}
-        {isSignedIn && userRole !== "admin" && tab !== "admin" && (
+        {isSignedIn && userRole !== "admin" && currentTab !== "admin" && (
           <div style={{ textAlign: "center", marginTop: 8 }}>
             <button onClick={doBootstrap} style={{ fontSize: 11, color: C.muted, background: "none", border: "none", cursor: "pointer", fontFamily: FB, textDecoration: "underline" }}>
               Als Admin einrichten
