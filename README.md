@@ -418,6 +418,8 @@ Der Build splittet große Abhängigkeiten (`clerk`, `supabase`, übrige `vendor`
 
 ## Erste Admin-Einrichtung
 
+Kurzes Runbook fuer den Betrieb: [docs/OPERATIONS_ADMIN.md](docs/OPERATIONS_ADMIN.md)
+
 1. `ADMIN_EMAILS=deine@email.com` als Vercel Env-Variable setzen und neu deployen
 2. In der App einloggen
 3. Auf den kleinen "Als Admin einrichten"-Link am Seitenende klicken (ruft `/api/admin?action=bootstrap` auf)
