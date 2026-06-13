@@ -418,37 +418,16 @@ export default function AdminFoods() {
   const [stats, setStats] = useState(null);
   const [activeTab, setActiveTab] = useState("local"); // local | import
 
-  const loadStats = useCallback(async () => {
-    try {
-      const res = await authFetch("/api/admin-foods?q=&page=1");
-      const data = await res.json();
-      const foods = data.foods || [];
-      const total = data.total || 0;
-      // Get aggregated stats via a second broader call
-      const res2 = await authFetch("/api/admin-foods?q=&page=1&_stats=1");
-      const data2 = await res2.json();
-      // We compute stats from what we have; for totals we use the count
-      setStats({
-        total,
-        off: foods.filter(f => f.source === "openfoodfacts").length,
-        manual: foods.filter(f => f.source === "manual").length,
-        incomplete: foods.filter(f => f.kcal_100g == null).length,
-      });
-    } catch { /* ignore */ }
-  }, [authFetch]);
-
-  // Better stats: dedicated endpoint would be ideal, but for now approximate
   const loadFullStats = useCallback(async () => {
     try {
-      // Fetch totals with a high-limit query
-      const res = await authFetch("/api/admin-foods?q=&page=1");
+      const res = await authFetch("/api/admin-foods?_stats=1");
       const data = await res.json();
-      setStats(prev => ({
-        total: data.total ?? prev?.total ?? 0,
-        off: prev?.off ?? 0,
-        manual: prev?.manual ?? 0,
-        incomplete: prev?.incomplete ?? 0,
-      }));
+      setStats({
+        total: data.total ?? 0,
+        off: data.off ?? 0,
+        manual: data.manual ?? 0,
+        incomplete: data.incomplete ?? 0,
+      });
     } catch { /* ignore */ }
   }, [authFetch]);
 

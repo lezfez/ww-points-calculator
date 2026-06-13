@@ -100,6 +100,25 @@ export default async function handler(req, res) {
     const pageNum = Math.max(1, parseInt(page) || 1);
     const pageSize = 25;
 
+    if (req.query._stats === "1") {
+      const [{ count: total, error: totalError }, { count: offCount, error: offError }, { count: manualCount, error: manualError }, { count: incompleteCount, error: incompleteError }] = await Promise.all([
+        supabase.from("foods").select("id", { count: "exact", head: true }),
+        supabase.from("foods").select("id", { count: "exact", head: true }).eq("source", "openfoodfacts"),
+        supabase.from("foods").select("id", { count: "exact", head: true }).eq("source", "manual"),
+        supabase.from("foods").select("id", { count: "exact", head: true }).is("kcal_100g", null),
+      ]);
+
+      const error = totalError || offError || manualError || incompleteError;
+      if (error) return res.status(500).json({ error: error.message });
+
+      return res.json({
+        total: total || 0,
+        off: offCount || 0,
+        manual: manualCount || 0,
+        incomplete: incompleteCount || 0,
+      });
+    }
+
     if (off === "1") {
       if (!q || q.length < 2) return res.json({ products: [] });
       try {
