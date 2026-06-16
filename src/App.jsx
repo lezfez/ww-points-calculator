@@ -493,7 +493,7 @@ export default function App() {
   }, [recipes, generateRecipeImage]);
 
   const TABS = useMemo(() => [
-    { id: "calc",    label: "Berechnen" },
+    { id: "calc",    label: "Rechner" },
     { id: "budget",  label: "Tagebuch" },
     { id: "recipes", label: "Rezepte" },
     { id: "food",    label: "Food" },
