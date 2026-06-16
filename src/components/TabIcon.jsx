@@ -1,5 +1,5 @@
 export default function TabIcon({ id }) {
-  const props = { width: 22, height: 22, viewBox: "0 0 24 24", fill: "currentColor" };
+  const props = { width: 24, height: 24, viewBox: "0 0 24 24", fill: "currentColor" };
   if (id === "calc") return (
     <svg {...props}><rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/></svg>
   );

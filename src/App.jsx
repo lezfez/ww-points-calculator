@@ -642,7 +642,7 @@ export default function App() {
           const locked  = isTabLocked(t.id);
           const active  = currentTab === t.id;
           const isAdmin = t.id === "admin";
-          const color   = active ? (isAdmin ? C.adminText : C.green) : C.muted;
+          const color   = active ? "#FFFFFF" : "rgba(255,255,255,0.45)";
           return (
             <button key={t.id} className={`bottom-nav-btn${active ? " active" : ""}`} onClick={() => changeTab(t.id)} style={{ color, fontFamily: FB }}>
               <TabIcon id={t.id} />
