@@ -5,13 +5,6 @@ const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-function isLocalDevBypass(req) {
-  const host = String(req.headers.host || "").toLowerCase();
-  const isLocalHost = host.includes("localhost") || host.includes("127.0.0.1");
-  const isDevEnv = process.env.NODE_ENV !== "production";
-  return isDevEnv && isLocalHost;
-}
-
 async function requireAdmin(token) {
   const payload = await verifyToken(token, {
     secretKey: process.env.CLERK_SECRET_KEY,
@@ -112,17 +105,11 @@ function mergeAndDedup(arrays) {
 
 export default async function handler(req, res) {
   const token = req.headers.authorization?.split(" ")[1];
-  const devBypass = isLocalDevBypass(req);
-  if (!token && !devBypass) return res.status(401).json({ error: "Nicht authentifiziert" });
-  if (!devBypass) {
-    try {
-      await requireAdmin(token);
-    } catch {
-      return res.status(403).json({ error: "Nur für Admins" });
-    }
-  } else if (token) {
-    // In local dev, allow access even if Clerk role/token setup is incomplete.
-    try { await requireAdmin(token); } catch {}
+  if (!token) return res.status(401).json({ error: "Nicht authentifiziert" });
+  try {
+    await requireAdmin(token);
+  } catch {
+    return res.status(403).json({ error: "Nur für Admins" });
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, { auth: { persistSession: false } });

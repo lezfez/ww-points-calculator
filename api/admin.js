@@ -136,11 +136,18 @@ export default async function handler(req, res) {
     const { id, required_role, enabled } = req.body ?? {};
     if (!id) return res.status(400).json({ error: "id fehlt" });
 
-    const updates = { updated_at: new Date().toISOString() };
-    if (required_role !== undefined) updates.required_role = required_role;
-    if (enabled !== undefined) updates.enabled = enabled;
+    const validRoles = ["guest", "user", "premium", "admin"];
+    if (required_role !== undefined && !validRoles.includes(required_role)) {
+      return res.status(400).json({ error: "Ungültige Rolle" });
+    }
 
-    const { error } = await supabase.from("feature_flags").update(updates).eq("id", id);
+    const upsertRow = { id, updated_at: new Date().toISOString() };
+    if (required_role !== undefined) upsertRow.required_role = required_role;
+    if (enabled !== undefined) upsertRow.enabled = enabled;
+
+    const { error } = await supabase
+      .from("feature_flags")
+      .upsert(upsertRow, { onConflict: "id", ignoreDuplicates: false });
     if (error) return res.status(500).json({ error: error.message });
 
     auditAdminAction("set-flag", adminUser, {

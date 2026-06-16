@@ -4,13 +4,6 @@ import { createClient } from "@supabase/supabase-js";
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-function isLocalDevBypass(req) {
-  const host = String(req.headers.host || "").toLowerCase();
-  const isLocalHost = host.includes("localhost") || host.includes("127.0.0.1");
-  const isDevEnv = process.env.NODE_ENV !== "production";
-  return isDevEnv && isLocalHost;
-}
-
 async function getUserId(token) {
   const payload = await verifyToken(token, {
     secretKey: process.env.CLERK_SECRET_KEY,
@@ -95,15 +88,11 @@ export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).end();
 
   const token = req.headers.authorization?.split(" ")[1];
-  const devBypass = isLocalDevBypass(req);
-  if (!token && !devBypass) return res.status(401).json({ error: "Nicht authentifiziert" });
-
-  if (token) {
-    try {
-      await getUserId(token);
-    } catch {
-      if (!devBypass) return res.status(401).json({ error: "Ungültiges Token" });
-    }
+  if (!token) return res.status(401).json({ error: "Nicht authentifiziert" });
+  try {
+    await getUserId(token);
+  } catch {
+    return res.status(401).json({ error: "Ungültiges Token" });
   }
 
   const q = (req.query.q || "").trim();
