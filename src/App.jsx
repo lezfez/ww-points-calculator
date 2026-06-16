@@ -606,7 +606,7 @@ export default function App() {
               <div style={{ position: "relative", display: "inline-flex" }}>
                 <UserButton appearance={{ elements: { avatarBox: { width: 38, height: 38 } } }} />
                 {isPremium && (
-                  <span style={{ position: "absolute", top: -8, right: -6, fontSize: 14, lineHeight: 1, pointerEvents: "none", filter: "drop-shadow(0 1px 2px rgba(0,0,0,.4))" }}>
+                  <span style={{ position: "absolute", bottom: -4, left: -6, fontSize: 14, lineHeight: 1, pointerEvents: "none", filter: "drop-shadow(0 1px 2px rgba(0,0,0,.4))" }}>
                     🌿
                   </span>
                 )}
