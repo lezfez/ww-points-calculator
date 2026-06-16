@@ -576,7 +576,7 @@ export default function App() {
         )}
 
         {/* Header */}
-        <header className="app-header" style={{ background: `linear-gradient(135deg, ${C.green2} 0%, ${C.green} 60%, ${C.greenMid} 100%)`, padding: "14px 20px", display: "flex", alignItems: "center", gap: 14 }}>
+        <header className="app-header" style={{ background: `linear-gradient(to bottom, ${C.green2} 0%, ${C.green} 60%, ${C.greenMid} 100%)`, padding: "14px 20px", display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12 }}>
             <img src={appLogo} alt="WampeWeg" style={{ display: "block", height: 52, width: 52, flexShrink: 0 }} />
             <div style={{ minWidth: 0 }}>
