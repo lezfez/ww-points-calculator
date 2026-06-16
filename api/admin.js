@@ -152,8 +152,8 @@ export default async function handler(req, res) {
 
     auditAdminAction("set-flag", adminUser, {
       flagId: id,
-      required_role: updates.required_role,
-      enabled: updates.enabled,
+      required_role: upsertRow.required_role,
+      enabled: upsertRow.enabled,
     });
 
     return res.json({ success: true });
