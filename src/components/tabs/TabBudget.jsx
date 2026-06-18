@@ -1,4 +1,5 @@
 import { useState, useId, useEffect } from "react";
+import { useAuth } from "@clerk/clerk-react";
 import { C, FH, FB, card, sectionLabel, inputStyle, labelStyle, primaryBtn } from "../../styles/theme";
 import DonutChart from "../DonutChart";
 import WeekStrip from "../WeekStrip";
@@ -9,6 +10,7 @@ import { useUserProfile } from "../../hooks/useUserProfile";
 import { useDailyJournal } from "../../hooks/useDailyJournal";
 import { useWeeklyJournal } from "../../hooks/useWeeklyJournal";
 import { useStats } from "../../hooks/useStats";
+import { useFavorites } from "../../hooks/useFavorites";
 
 // ─── helpers ───────────────────────────────────────────────
 const MEALS = [
@@ -43,7 +45,7 @@ function addDays(dateStr, n) {
 function mealCoins(items) { return (items || []).reduce((s, i) => s + (parseInt(i.coins) || 0), 0); }
 
 // ─── MealSlot ──────────────────────────────────────────────
-function MealSlot({ meal, items = [], onChange, onOpenPicker, onOpenFoodSearch }) {
+function MealSlot({ meal, items = [], onChange, onOpenPicker, onOpenFoodSearch, onOpenFavorites }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState({ name: "", coins: "" });
   const uid = useId();
@@ -121,6 +123,14 @@ function MealSlot({ meal, items = [], onChange, onOpenPicker, onOpenFoodSearch }
               style={{ padding: "8px 10px", borderRadius: 9, border: `1.5px solid ${C.border}`, background: C.surface2, fontSize: 15, cursor: "pointer", flexShrink: 0 }}>
               🔍
             </button>
+            {onOpenFavorites && (
+              <button
+                onClick={onOpenFavorites}
+                title="Aus Favoriten wählen"
+                style={{ padding: "8px 10px", borderRadius: 9, border: `1.5px solid ${C.border}`, background: C.surface2, fontSize: 15, cursor: "pointer", flexShrink: 0 }}>
+                ❤️
+              </button>
+            )}
             {onOpenPicker && (
               <button
                 onClick={onOpenPicker}
@@ -236,17 +246,88 @@ function WellnessRow({ item, value, onChange }) {
   );
 }
 
+// ─── FavoritesPicker ──────────────────────────────────────
+function FavoritesPicker({ favorites, onSelect, onClose }) {
+  const [search, setSearch] = useState("");
+  const filtered = favorites.filter(f => !search || f.name.toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 200 }} />
+      <div style={{
+        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 201,
+        background: C.bg, borderRadius: "20px 20px 0 0",
+        boxShadow: "0 -6px 40px rgba(0,0,0,.18)",
+        maxHeight: "72vh", display: "flex", flexDirection: "column",
+      }}>
+        <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 0" }}>
+          <div style={{ width: 36, height: 4, borderRadius: 999, background: C.border }} />
+        </div>
+        <div style={{ padding: "10px 20px 10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 17, color: C.text }}>❤️ Favorit hinzufügen</span>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 22, color: C.muted, lineHeight: 1, padding: 0 }}>✕</button>
+        </div>
+        {favorites.length > 4 && (
+          <div style={{ padding: "0 16px 10px" }}>
+            <input
+              className="app-input"
+              placeholder="Favoriten filtern…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              autoFocus
+              style={{ width: "100%", padding: "9px 14px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface, fontFamily: FB, fontSize: 13, color: C.text, boxSizing: "border-box" }}
+            />
+          </div>
+        )}
+        <div style={{ overflowY: "auto", padding: "0 16px 28px", flex: 1 }}>
+          {favorites.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "28px 0", color: C.muted, fontFamily: FB, fontSize: 13 }}>
+              Noch keine Favoriten gespeichert.
+            </div>
+          ) : filtered.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "28px 0", color: C.muted, fontFamily: FB, fontSize: 13 }}>
+              Kein Favorit gefunden.
+            </div>
+          ) : filtered.map(fav => (
+            <button
+              key={fav.id}
+              onClick={() => { onSelect(fav); onClose(); }}
+              style={{
+                width: "100%", display: "flex", alignItems: "center", gap: 12,
+                padding: "10px 12px", marginBottom: 7,
+                background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12,
+                cursor: "pointer", textAlign: "left",
+              }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 13, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {fav.name}
+                </div>
+              </div>
+              <div style={{ flexShrink: 0, background: C.coinBg, border: `1px solid ${C.coinBorder}`, borderRadius: 999, padding: "3px 10px", fontSize: 12, fontWeight: 700, fontFamily: FH, fontStyle: "italic", color: C.coinText }}>
+                🪙 {fav.coins}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ─── Main TabBudget ────────────────────────────────────────
-export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSignedIn, recipes = [], premiumPriceLabel = "2,99 €/Monat", onOpenProfile }) {
+export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSignedIn, recipes = [], premiumPriceLabel = "2,99 €/Monat", onOpenProfile, isPremium = false }) {
+  const { getToken } = useAuth();
   const [date, setDate] = useState(toISODate(new Date()));
   const [activeView, setActiveView] = useState("journal"); // "journal" | "stats"
   const [pickerSlot, setPickerSlot] = useState(null); // meal id or null
   const [foodSlot, setFoodSlot] = useState(null);    // meal id for food search
+  const [favSlot, setFavSlot] = useState(null);      // meal id for favorites picker
 
   const { profile, loading: profileLoading } = useUserProfile();
   const { entry, weeklyUsed, loading: journalLoading, saveState, updateEntry, updateMeal } = useDailyJournal(date);
   const { week, streak, reload: reloadWeek } = useWeeklyJournal(date);
   const { data: statsData, loading: statsLoading, reload: reloadStats } = useStats();
+  const { favorites } = useFavorites(getToken, isPremium);
 
   useEffect(() => {
     if (saveState === "saved") { reloadWeek(); reloadStats(); }
@@ -256,6 +337,11 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
     if (!pickerSlot) return;
     const newItem = { id: Date.now(), name: recipe.name, coins: recipe.coins || 0 };
     updateMeal(pickerSlot, [...(entry.meals[pickerSlot] || []), newItem]);
+  };
+
+  const handleFavoriteSelect = (fav) => {
+    if (!favSlot) return;
+    updateMeal(favSlot, [...(entry.meals[favSlot] || []), { id: Date.now(), name: fav.name, coins: fav.coins }]);
   };
 
   if (locked) {
@@ -419,6 +505,7 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
                 meal={meal}
                 items={entry.meals[meal.id] || []}
                 onChange={items => updateMeal(meal.id, items)}
+                onOpenFavorites={isSignedIn ? () => setFavSlot(meal.id) : null}
                 onOpenPicker={recipes.length > 0 ? () => setPickerSlot(meal.id) : null}
                 onOpenFoodSearch={() => setFoodSlot(meal.id)}
               />
@@ -506,11 +593,21 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
         />
       )}
 
+      {/* Favorites picker modal */}
+      {favSlot && (
+        <FavoritesPicker
+          favorites={favorites}
+          onSelect={handleFavoriteSelect}
+          onClose={() => setFavSlot(null)}
+        />
+      )}
+
       {/* Food search modal */}
       {foodSlot && (
         <FoodSearch
           onAdd={(item) => updateMeal(foodSlot, [...(entry.meals[foodSlot] || []), item])}
           onClose={() => setFoodSlot(null)}
+          favorites={favorites}
         />
       )}
 

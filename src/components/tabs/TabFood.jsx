@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import { C, FH, FB, card, sectionLabel, primaryBtn } from "../../styles/theme";
 import { useDailyJournal } from "../../hooks/useDailyJournal";
+import { useFavorites, FREE_FAV_LIMIT } from "../../hooks/useFavorites";
 import FoodSearch from "../FoodSearch";
 
-const FOOD_FAVORITES_CACHE_KEY = "food:favorites:cache";
 const MEALS = [
   { id: "fruehstueck", label: "Frühstück" },
   { id: "snack1", label: "Snack 1" },
@@ -15,123 +15,6 @@ const MEALS = [
 
 function toISODate(d) {
   return d.toISOString().slice(0, 10);
-}
-
-function readCache() {
-  try {
-    const raw = localStorage.getItem(FOOD_FAVORITES_CACHE_KEY);
-    const parsed = raw ? JSON.parse(raw) : null;
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeCache(items) {
-  try {
-    localStorage.setItem(FOOD_FAVORITES_CACHE_KEY, JSON.stringify(items));
-  } catch {
-    /* storage quota exceeded — ignore */
-  }
-}
-
-const FREE_FAV_LIMIT = 10;
-
-function useFavorites(getToken, isPremium) {
-  const [favorites, setFavorites] = useState(readCache);
-  const [favStatus, setFavStatus] = useState("loading"); // idle | loading | error
-  const mountedRef = useRef(true);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => { mountedRef.current = false; };
-  }, []);
-
-  const fetchFavorites = useCallback(async () => {
-    try {
-      const token = await getToken();
-      const res = await fetch("/api/user-profile?action=favorites", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      if (!mountedRef.current) return;
-      setFavorites(data);
-      writeCache(data);
-      setFavStatus("idle");
-    } catch {
-      if (mountedRef.current) setFavStatus("error");
-    }
-  }, [getToken]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchFavorites();
-  }, [fetchFavorites]);
-
-  const atLimit = !isPremium && favorites.length >= FREE_FAV_LIMIT;
-
-  const addFavorite = useCallback(async (item) => {
-    const already = favorites.some(
-      (f) => f.name === item.name && Number(f.coins) === Number(item.coins)
-    );
-    if (already) return "already";
-    if (!isPremium && favorites.length >= FREE_FAV_LIMIT) return "limit";
-
-    // optimistic
-    const optimistic = [{ id: `tmp-${Date.now()}`, name: item.name, coins: item.coins }, ...favorites];
-    setFavorites(optimistic);
-    writeCache(optimistic);
-
-    try {
-      const token = await getToken();
-      const res = await fetch("/api/user-profile?action=favorites", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ name: item.name, coins: item.coins }),
-      });
-      if (res.status === 403) {
-        if (mountedRef.current) { setFavorites(favorites); writeCache(favorites); }
-        return "limit";
-      }
-      if (!res.ok) throw new Error(await res.text());
-      const saved = await res.json();
-      if (!mountedRef.current) return "ok";
-      setFavorites((prev) => {
-        const next = prev.map((f) => (f.id === optimistic[0].id ? saved : f));
-        writeCache(next);
-        return next;
-      });
-      return "ok";
-    } catch {
-      if (mountedRef.current) { setFavorites(favorites); writeCache(favorites); }
-      return "error";
-    }
-  }, [favorites, getToken, isPremium]);
-
-  const removeFavorite = useCallback(async (fav) => {
-    // optimistic
-    const next = favorites.filter((f) => f.id !== fav.id);
-    setFavorites(next);
-    writeCache(next);
-
-    try {
-      const token = await getToken();
-      await fetch("/api/user-profile?action=favorites", {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ id: fav.id }),
-      });
-    } catch {
-      // revert
-      if (mountedRef.current) {
-        setFavorites(favorites);
-        writeCache(favorites);
-      }
-    }
-  }, [favorites, getToken]);
-
-  return { favorites, favStatus, atLimit, addFavorite, removeFavorite };
 }
 
 export default function TabFood({ isSignedIn, onSignIn, isPremium = false }) {

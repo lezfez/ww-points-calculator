@@ -662,7 +662,7 @@ export default function App() {
         )}
 
         {currentTab === "budget" && (
-          <TabBudget locked={isTabLocked("budget")} onUpgrade={startCheckout} checkoutLoading={checkoutLoading} isSignedIn={isSignedIn} recipes={recipes} premiumPriceLabel={premiumPriceLabel} onOpenProfile={() => changeTab("profile")} />
+          <TabBudget locked={isTabLocked("budget")} onUpgrade={startCheckout} checkoutLoading={checkoutLoading} isSignedIn={isSignedIn} recipes={recipes} premiumPriceLabel={premiumPriceLabel} onOpenProfile={() => changeTab("profile")} isPremium={isPremium} />
         )}
 
         {currentTab === "profile" && (
