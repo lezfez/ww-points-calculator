@@ -212,16 +212,10 @@ export default function TabFood({ isSignedIn, onSignIn }) {
         </div>
 
         {lastAdded && (
-          <div style={{ marginTop: 10, padding: "8px 10px", background: C.greenPale, border: `1px solid ${C.border}`, borderRadius: 10, display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
-            <div style={{ fontFamily: FB, fontSize: 12, color: C.sub, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              Zuletzt eingetragen: {lastAdded.name}
+          <div style={{ marginTop: 10, padding: "8px 10px", background: C.greenPale, border: `1px solid ${C.border}`, borderRadius: 10 }}>
+            <div style={{ fontFamily: FB, fontSize: 12, color: C.sub, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              ✓ Eingetragen: {lastAdded.name}
             </div>
-            <button
-              onClick={() => addFavorite(lastAdded)}
-              style={{ border: "none", background: C.green, color: "#fff", borderRadius: 999, padding: "4px 10px", fontFamily: FB, fontSize: 11, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}
-            >
-              Als Favorit
-            </button>
           </div>
         )}
       </div>
@@ -249,6 +243,14 @@ export default function TabFood({ isSignedIn, onSignIn }) {
               onAdd={(item) => {
                 addItemToMeal(item);
                 setShowSearch(false);
+              }}
+              favorites={favorites}
+              onToggleFavorite={(_food, favName, favCoins, existingFav) => {
+                if (existingFav) {
+                  removeFavorite(existingFav);
+                } else {
+                  addFavorite({ name: favName, coins: favCoins });
+                }
               }}
             />
           </div>

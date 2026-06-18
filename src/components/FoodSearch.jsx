@@ -59,7 +59,7 @@ function PortionRow({ food, onAdd }) {
   );
 }
 
-export default function FoodSearch({ onAdd, onClose, inline = false }) {
+export default function FoodSearch({ onAdd, onClose, inline = false, favorites = [], onToggleFavorite = null }) {
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState(null);
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -319,19 +319,22 @@ export default function FoodSearch({ onAdd, onClose, inline = false }) {
 
           {!loading && results.map((food, i) => {
             const isOpen = expanded === i;
+            const favName = `${food.name}${food.brand ? ` · ${food.brand}` : ""}`;
+            const favCoins = food.coins_100g;
+            const existingFav = favorites.find(f => f.name === favName && Number(f.coins) === Number(favCoins));
+            const isFav = Boolean(existingFav);
             return (
               <div key={food.off_id || food.id || i}
                 style={{ marginBottom: 8, background: C.surface, border: `1px solid ${isOpen ? C.green : C.border}`, borderRadius: 12, overflow: "hidden", transition: "border-color .15s" }}>
 
                 {/* Food row */}
-                <button
-                  onClick={() => setExpanded(isOpen ? null : i)}
-                  style={{
-                    width: "100%", display: "flex", alignItems: "center", gap: 10,
-                    padding: "11px 12px", background: "none", border: "none",
-                    cursor: "pointer", textAlign: "left",
-                  }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 12px" }}>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setExpanded(isOpen ? null : i)}
+                    onKeyDown={e => e.key === "Enter" && setExpanded(isOpen ? null : i)}
+                    style={{ flex: 1, minWidth: 0, cursor: "pointer" }}>
                     <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 13, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                       {food.name}
                     </div>
@@ -345,14 +348,25 @@ export default function FoodSearch({ onAdd, onClose, inline = false }) {
                       <NutriBadge label="F" value={food.fat_100g} />
                     </div>
                   </div>
-                  <div style={{ flexShrink: 0, textAlign: "right" }}>
+                  {onToggleFavorite && (
+                    <button
+                      onClick={() => onToggleFavorite(food, favName, favCoins, existingFav)}
+                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "2px 2px", flexShrink: 0, opacity: isFav ? 1 : 0.35, transition: "opacity .15s" }}
+                      title={isFav ? "Aus Favoriten entfernen" : "Als Favorit speichern"}
+                    >
+                      ❤️
+                    </button>
+                  )}
+                  <div
+                    onClick={() => setExpanded(isOpen ? null : i)}
+                    style={{ flexShrink: 0, textAlign: "right", cursor: "pointer" }}>
                     <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 13, color: C.coinText }}>
                       🪙 {food.coins_100g}
                     </div>
                     <div style={{ fontSize: 10, color: C.muted, fontFamily: FB }}>/ 100g</div>
                   </div>
-                  <span style={{ fontSize: 12, color: C.muted, flexShrink: 0 }}>{isOpen ? "▲" : "▼"}</span>
-                </button>
+                  <span onClick={() => setExpanded(isOpen ? null : i)} style={{ fontSize: 12, color: C.muted, flexShrink: 0, cursor: "pointer" }}>{isOpen ? "▲" : "▼"}</span>
+                </div>
 
                 {/* Portion selector */}
                 {isOpen && (
