@@ -426,7 +426,7 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
 
       {/* Stats view */}
       {activeView === "stats" && (
-        <StatsView days={statsData?.days || []} stats={statsData?.stats || {}} loading={statsLoading} />
+        <StatsView days={statsData?.days || []} stats={statsData?.stats || {}} loading={statsLoading} profile={profile} />
       )}
 
       {/* Journal view */}

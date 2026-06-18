@@ -1,4 +1,5 @@
 import { C, FH, FB } from "../styles/theme";
+import { exportStatsPDF } from "../lib/exportStatsPDF";
 
 const CHART_DAYS = 14;
 const CHART_H = 90;
@@ -44,7 +45,7 @@ function BarChart({ days, dailyBudget }) {
   );
 }
 
-export default function StatsView({ days = [], stats = {}, loading }) {
+export default function StatsView({ days = [], stats = {}, loading, profile }) {
   const { dailyBudget = 35, avgCoins = 0, budgetMetRate = 0, currentStreak = 0, bestStreak = 0, totalDays = 0 } = stats;
 
   if (loading) {
@@ -70,6 +71,21 @@ export default function StatsView({ days = [], stats = {}, loading }) {
           </div>
         ))}
       </div>
+
+      {/* PDF export */}
+      {days.length > 0 && (
+        <button
+          onClick={() => exportStatsPDF(days, stats, profile?.display_name)}
+          style={{
+            alignSelf: "flex-end", padding: "8px 14px", borderRadius: 10,
+            border: `1.5px solid ${C.border}`, background: C.surface,
+            fontFamily: FB, fontSize: 12, fontWeight: 700, color: C.sub,
+            cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+          }}
+        >
+          📄 PDF erstellen
+        </button>
+      )}
 
       {/* Bar chart card */}
       {days.length > 0 ? (
