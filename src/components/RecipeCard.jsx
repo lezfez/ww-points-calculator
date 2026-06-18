@@ -84,7 +84,7 @@ export default function RecipeCard({ recipe, onSelect, selected }) {
           <a href={recipe.url} target="_blank" rel="noreferrer"
             style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: C.green, fontWeight: 700, textDecoration: "none", fontFamily: FB, cursor: "pointer" }}
             onClick={e => e.stopPropagation()}>
-            → Rezept auf weightfriends.at
+            → Rezeptquelle
           </a>
         </div>
       )}

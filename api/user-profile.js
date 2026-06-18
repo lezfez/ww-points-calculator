@@ -13,8 +13,6 @@ async function getUserId(token) {
 }
 
 export default async function handler(req, res) {
-  if (!["GET", "PUT"].includes(req.method)) return res.status(405).end();
-
   const token = req.headers.authorization?.split(" ")[1];
   if (!token) return res.status(401).json({ error: "Nicht authentifiziert" });
 
@@ -28,6 +26,49 @@ export default async function handler(req, res) {
   const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
     auth: { persistSession: false },
   });
+
+  // --- Favorites sub-resource ---
+  if (req.query.action === "favorites") {
+    if (req.method === "GET") {
+      const { data, error } = await supabase
+        .from("food_favorites")
+        .select("id, name, coins")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) return res.status(500).json({ error: error.message });
+      return res.json(data ?? []);
+    }
+
+    if (req.method === "POST") {
+      const { name, coins } = req.body ?? {};
+      if (!name || coins === undefined) return res.status(400).json({ error: "name und coins erforderlich" });
+      const { data, error } = await supabase
+        .from("food_favorites")
+        .upsert({ user_id: userId, name: String(name).slice(0, 200), coins: parseInt(coins) || 0 }, { onConflict: "user_id,name,coins" })
+        .select("id, name, coins")
+        .single();
+      if (error) return res.status(500).json({ error: error.message });
+      return res.status(201).json(data);
+    }
+
+    if (req.method === "DELETE") {
+      const { id } = req.body ?? {};
+      if (!id) return res.status(400).json({ error: "id erforderlich" });
+      const { error } = await supabase
+        .from("food_favorites")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", userId);
+      if (error) return res.status(500).json({ error: error.message });
+      return res.status(204).end();
+    }
+
+    return res.status(405).end();
+  }
+
+  // --- Profile resource ---
+  if (!["GET", "PUT"].includes(req.method)) return res.status(405).end();
 
   if (req.method === "GET") {
     const { data } = await supabase

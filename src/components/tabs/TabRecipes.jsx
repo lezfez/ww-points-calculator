@@ -64,7 +64,7 @@ export default function TabRecipes({ recipes, loading, error, onReload }) {
             Rezepte konnten nicht geladen werden
           </div>
           <p style={{ margin: "0 auto 18px", maxWidth: 440, fontSize: 13, lineHeight: 1.7 }}>
-            Die Verbindung zu Supabase ist fehlgeschlagen. Bitte prüfe die Verbindung oder versuche es erneut.
+            Die Verbindung zur Datenbank ist fehlgeschlagen. Bitte prüfe die Verbindung oder versuche es erneut.
           </p>
           <button onClick={onReload} className="btn-primary" style={{ ...primaryBtn(false), width: "auto", padding: "12px 24px", display: "inline-block", marginTop: 0 }}>
             Erneut laden
@@ -81,7 +81,7 @@ export default function TabRecipes({ recipes, loading, error, onReload }) {
       )}
 
       <p style={{ fontSize: 11, color: C.muted, textAlign: "center", marginTop: 18, fontStyle: "italic", lineHeight: 1.6, fontFamily: FB }}>
-        Rezepte und Coins-Werte stammen von weightfriends.at. Alle Rechte beim Inhaber. Diese App ist kein offizielles Produkt von weight friends.
+        Rezepte und Bilder wurden von einer KI erstellt.
       </p>
     </div>
   );

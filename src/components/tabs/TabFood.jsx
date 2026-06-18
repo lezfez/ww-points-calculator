@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAuth } from "@clerk/clerk-react";
 import { C, FH, FB, card, sectionLabel, primaryBtn } from "../../styles/theme";
 import { useDailyJournal } from "../../hooks/useDailyJournal";
 import FoodSearch from "../FoodSearch";
 
-const FOOD_FAVORITES_KEY = "food:favorites";
-const LEGACY_FOOF_FAVORITES_KEY = "foof:favorites";
+const FOOD_FAVORITES_CACHE_KEY = "food:favorites:cache";
 const MEALS = [
   { id: "fruehstueck", label: "Frühstück" },
   { id: "snack1", label: "Snack 1" },
@@ -17,42 +17,126 @@ function toISODate(d) {
   return d.toISOString().slice(0, 10);
 }
 
-function readFavorites() {
+function readCache() {
   try {
-    const currentRaw = localStorage.getItem(FOOD_FAVORITES_KEY);
-    if (currentRaw) {
-      const currentParsed = JSON.parse(currentRaw);
-      return Array.isArray(currentParsed) ? currentParsed : [];
-    }
-
-    const legacyRaw = localStorage.getItem(LEGACY_FOOF_FAVORITES_KEY);
-    if (!legacyRaw) return [];
-
-    const legacyParsed = JSON.parse(legacyRaw);
-    if (!Array.isArray(legacyParsed)) return [];
-    localStorage.setItem(FOOD_FAVORITES_KEY, JSON.stringify(legacyParsed));
-    return legacyParsed;
+    const raw = localStorage.getItem(FOOD_FAVORITES_CACHE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
 }
 
-function saveFavorites(items) {
-  localStorage.setItem(FOOD_FAVORITES_KEY, JSON.stringify(items));
+function writeCache(items) {
+  try {
+    localStorage.setItem(FOOD_FAVORITES_CACHE_KEY, JSON.stringify(items));
+  } catch {
+    /* storage quota exceeded — ignore */
+  }
+}
+
+function useFavorites(getToken) {
+  const [favorites, setFavorites] = useState(readCache);
+  const [favStatus, setFavStatus] = useState("loading"); // idle | loading | error
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  const fetchFavorites = useCallback(async () => {
+    try {
+      const token = await getToken();
+      const res = await fetch("/api/user-profile?action=favorites", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      if (!mountedRef.current) return;
+      setFavorites(data);
+      writeCache(data);
+      setFavStatus("idle");
+    } catch {
+      if (mountedRef.current) setFavStatus("error");
+    }
+  }, [getToken]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchFavorites();
+  }, [fetchFavorites]);
+
+  const addFavorite = useCallback(async (item) => {
+    const already = favorites.some(
+      (f) => f.name === item.name && Number(f.coins) === Number(item.coins)
+    );
+    if (already) return;
+
+    // optimistic
+    const optimistic = [{ id: `tmp-${Date.now()}`, name: item.name, coins: item.coins }, ...favorites];
+    setFavorites(optimistic);
+    writeCache(optimistic);
+
+    try {
+      const token = await getToken();
+      const res = await fetch("/api/user-profile?action=favorites", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ name: item.name, coins: item.coins }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const saved = await res.json();
+      if (!mountedRef.current) return;
+      // replace optimistic entry with real id
+      setFavorites((prev) => {
+        const next = prev.map((f) => (f.id === optimistic[0].id ? saved : f));
+        writeCache(next);
+        return next;
+      });
+    } catch {
+      // revert
+      if (mountedRef.current) {
+        setFavorites(favorites);
+        writeCache(favorites);
+      }
+    }
+  }, [favorites, getToken]);
+
+  const removeFavorite = useCallback(async (fav) => {
+    // optimistic
+    const next = favorites.filter((f) => f.id !== fav.id);
+    setFavorites(next);
+    writeCache(next);
+
+    try {
+      const token = await getToken();
+      await fetch("/api/user-profile?action=favorites", {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ id: fav.id }),
+      });
+    } catch {
+      // revert
+      if (mountedRef.current) {
+        setFavorites(favorites);
+        writeCache(favorites);
+      }
+    }
+  }, [favorites, getToken]);
+
+  return { favorites, favStatus, addFavorite, removeFavorite };
 }
 
 export default function TabFood({ isSignedIn, onSignIn }) {
+  const { getToken } = useAuth();
   const [date, setDate] = useState(toISODate(new Date()));
   const [mealSlot, setMealSlot] = useState("mittag");
   const [showSearch, setShowSearch] = useState(false);
-  const [favorites, setFavorites] = useState([]);
   const [lastAdded, setLastAdded] = useState(null);
 
   const { entry, loading, saveState, updateMeal } = useDailyJournal(date);
-
-  useEffect(() => {
-    setFavorites(readFavorites());
-  }, []);
+  const { favorites, favStatus, addFavorite, removeFavorite } = useFavorites(getToken);
 
   const mealItems = useMemo(() => entry?.meals?.[mealSlot] || [], [entry, mealSlot]);
   const mealCoins = useMemo(
@@ -64,20 +148,6 @@ export default function TabFood({ isSignedIn, onSignIn }) {
     const next = [...(entry?.meals?.[mealSlot] || []), item];
     updateMeal(mealSlot, next);
     setLastAdded(item);
-  };
-
-  const addFavorite = (item) => {
-    const existing = favorites.some((f) => f.name === item.name && Number(f.coins) === Number(item.coins));
-    if (existing) return;
-    const next = [{ name: item.name, coins: item.coins }, ...favorites].slice(0, 30);
-    setFavorites(next);
-    saveFavorites(next);
-  };
-
-  const removeFavorite = (idx) => {
-    const next = favorites.filter((_, i) => i !== idx);
-    setFavorites(next);
-    saveFavorites(next);
   };
 
   if (!isSignedIn) {
@@ -186,15 +256,23 @@ export default function TabFood({ isSignedIn, onSignIn }) {
       </div>
 
       <div style={card}>
-        <div style={sectionLabel}>Favoriten</div>
-        {favorites.length === 0 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+          <div style={sectionLabel}>Favoriten</div>
+          {favStatus === "loading" && (
+            <span style={{ fontFamily: FB, fontSize: 11, color: C.muted }}>Lade…</span>
+          )}
+          {favStatus === "error" && (
+            <span style={{ fontFamily: FB, fontSize: 11, color: "#B91C1C" }}>Sync-Fehler</span>
+          )}
+        </div>
+        {favorites.length === 0 && favStatus !== "loading" && (
           <div style={{ fontFamily: FB, fontSize: 12, color: C.muted }}>
             Noch keine Favoriten. Tippe nach dem Eintragen auf Als Favorit.
           </div>
         )}
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {favorites.map((fav, idx) => (
-            <div key={`${fav.name}-${idx}`} style={{ display: "flex", alignItems: "center", gap: 8, border: `1px solid ${C.border}`, borderRadius: 10, background: C.surface, padding: "8px 10px" }}>
+          {favorites.map((fav) => (
+            <div key={fav.id} style={{ display: "flex", alignItems: "center", gap: 8, border: `1px solid ${C.border}`, borderRadius: 10, background: C.surface, padding: "8px 10px" }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontFamily: FB, fontSize: 13, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{fav.name}</div>
                 <div style={{ fontFamily: FB, fontSize: 11, color: C.muted }}>{fav.coins} Coins</div>
@@ -206,7 +284,7 @@ export default function TabFood({ isSignedIn, onSignIn }) {
                 + Mahlzeit
               </button>
               <button
-                onClick={() => removeFavorite(idx)}
+                onClick={() => removeFavorite(fav)}
                 style={{ border: `1px solid ${C.border}`, background: C.surface2, color: C.muted, borderRadius: 8, padding: "6px 8px", fontFamily: FB, fontSize: 12, cursor: "pointer" }}
               >
                 ✕
