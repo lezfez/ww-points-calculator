@@ -674,7 +674,7 @@ export default function App() {
         {currentTab === "food" && (
           isTabLocked("food")
             ? <TabLocked tabId="food" flags={flags} onSignIn={() => setShowSignIn(true)} onUpgrade={startCheckout} checkoutLoading={checkoutLoading} premiumPriceLabel={premiumPriceLabel} />
-            : <TabFood isSignedIn={isSignedIn} onSignIn={() => setShowSignIn(true)} />
+            : <TabFood isSignedIn={isSignedIn} onSignIn={() => setShowSignIn(true)} isPremium={isPremium} />
         )}
 
         {currentTab === "recipes" && (

@@ -1,8 +1,9 @@
-import { verifyToken } from "@clerk/backend";
+import { createClerkClient, verifyToken } from "@clerk/backend";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const FREE_FAV_LIMIT = 10;
 
 async function getUserId(token) {
   const payload = await verifyToken(token, {
@@ -10,6 +11,13 @@ async function getUserId(token) {
     clockSkewInMs: 60000,
   });
   return payload.sub;
+}
+
+async function isPremiumUser(userId) {
+  const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+  const user = await clerk.users.getUser(userId);
+  const role = user.publicMetadata?.role;
+  return role === "premium" || role === "admin";
 }
 
 export default async function handler(req, res) {
@@ -43,6 +51,16 @@ export default async function handler(req, res) {
     if (req.method === "POST") {
       const { name, coins } = req.body ?? {};
       if (!name || coins === undefined) return res.status(400).json({ error: "name und coins erforderlich" });
+
+      // Enforce free-tier limit
+      const [{ count }, premium] = await Promise.all([
+        supabase.from("food_favorites").select("id", { count: "exact", head: true }).eq("user_id", userId).then(r => ({ count: r.count ?? 0 })),
+        isPremiumUser(userId),
+      ]);
+      if (!premium && count >= FREE_FAV_LIMIT) {
+        return res.status(403).json({ error: "limit_reached", limit: FREE_FAV_LIMIT });
+      }
+
       const { data, error } = await supabase
         .from("food_favorites")
         .upsert({ user_id: userId, name: String(name).slice(0, 200), coins: parseInt(coins) || 0 }, { onConflict: "user_id,name,coins" })

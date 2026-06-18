@@ -35,7 +35,9 @@ function writeCache(items) {
   }
 }
 
-function useFavorites(getToken) {
+const FREE_FAV_LIMIT = 10;
+
+function useFavorites(getToken, isPremium) {
   const [favorites, setFavorites] = useState(readCache);
   const [favStatus, setFavStatus] = useState("loading"); // idle | loading | error
   const mountedRef = useRef(true);
@@ -67,11 +69,14 @@ function useFavorites(getToken) {
     fetchFavorites();
   }, [fetchFavorites]);
 
+  const atLimit = !isPremium && favorites.length >= FREE_FAV_LIMIT;
+
   const addFavorite = useCallback(async (item) => {
     const already = favorites.some(
       (f) => f.name === item.name && Number(f.coins) === Number(item.coins)
     );
-    if (already) return;
+    if (already) return "already";
+    if (!isPremium && favorites.length >= FREE_FAV_LIMIT) return "limit";
 
     // optimistic
     const optimistic = [{ id: `tmp-${Date.now()}`, name: item.name, coins: item.coins }, ...favorites];
@@ -85,23 +90,24 @@ function useFavorites(getToken) {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ name: item.name, coins: item.coins }),
       });
+      if (res.status === 403) {
+        if (mountedRef.current) { setFavorites(favorites); writeCache(favorites); }
+        return "limit";
+      }
       if (!res.ok) throw new Error(await res.text());
       const saved = await res.json();
-      if (!mountedRef.current) return;
-      // replace optimistic entry with real id
+      if (!mountedRef.current) return "ok";
       setFavorites((prev) => {
         const next = prev.map((f) => (f.id === optimistic[0].id ? saved : f));
         writeCache(next);
         return next;
       });
+      return "ok";
     } catch {
-      // revert
-      if (mountedRef.current) {
-        setFavorites(favorites);
-        writeCache(favorites);
-      }
+      if (mountedRef.current) { setFavorites(favorites); writeCache(favorites); }
+      return "error";
     }
-  }, [favorites, getToken]);
+  }, [favorites, getToken, isPremium]);
 
   const removeFavorite = useCallback(async (fav) => {
     // optimistic
@@ -125,10 +131,10 @@ function useFavorites(getToken) {
     }
   }, [favorites, getToken]);
 
-  return { favorites, favStatus, addFavorite, removeFavorite };
+  return { favorites, favStatus, atLimit, addFavorite, removeFavorite };
 }
 
-export default function TabFood({ isSignedIn, onSignIn }) {
+export default function TabFood({ isSignedIn, onSignIn, isPremium = false }) {
   const { getToken } = useAuth();
   const [date, setDate] = useState(toISODate(new Date()));
   const [mealSlot, setMealSlot] = useState("mittag");
@@ -137,7 +143,7 @@ export default function TabFood({ isSignedIn, onSignIn }) {
   const [favQuery, setFavQuery] = useState("");
 
   const { entry, loading, saveState, updateMeal } = useDailyJournal(date);
-  const { favorites, favStatus, addFavorite, removeFavorite } = useFavorites(getToken);
+  const { favorites, favStatus, atLimit, addFavorite, removeFavorite } = useFavorites(getToken, isPremium);
 
   const mealItems = useMemo(() => entry?.meals?.[mealSlot] || [], [entry, mealSlot]);
   const mealCoins = useMemo(
@@ -272,13 +278,27 @@ export default function TabFood({ isSignedIn, onSignIn }) {
           <div style={{ fontFamily: FB, fontSize: 12, color: C.muted }}>
             Noch keine Favoriten. Tippe in der Suche auf ❤️ um Lebensmittel zu speichern.
           </div>
-        ) : favorites.length > 4 && (
-          <input
-            placeholder="Favoriten filtern…"
-            value={favQuery}
-            onChange={e => setFavQuery(e.target.value)}
-            style={{ width: "100%", boxSizing: "border-box", padding: "8px 12px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontFamily: FB, fontSize: 13, marginBottom: 10 }}
-          />
+        ) : (
+          <>
+            {favorites.length > 4 && (
+              <input
+                placeholder="Favoriten filtern…"
+                value={favQuery}
+                onChange={e => setFavQuery(e.target.value)}
+                style={{ width: "100%", boxSizing: "border-box", padding: "8px 12px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontFamily: FB, fontSize: 13, marginBottom: 10 }}
+              />
+            )}
+            {atLimit && (
+              <div style={{ padding: "8px 12px", background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: 10, marginBottom: 10 }}>
+                <div style={{ fontFamily: FB, fontSize: 12, color: "#92400E", fontWeight: 700, marginBottom: 2 }}>
+                  Limit erreicht ({FREE_FAV_LIMIT} Favoriten)
+                </div>
+                <div style={{ fontFamily: FB, fontSize: 11, color: "#B45309" }}>
+                  Mit Premium kannst du unbegrenzt Favoriten speichern.
+                </div>
+              </div>
+            )}
+          </>
         )}
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {favQuery && !favorites.some(f => f.name.toLowerCase().includes(favQuery.toLowerCase())) && (
