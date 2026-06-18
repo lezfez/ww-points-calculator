@@ -134,6 +134,7 @@ export default function TabFood({ isSignedIn, onSignIn }) {
   const [mealSlot, setMealSlot] = useState("mittag");
   const [showSearch, setShowSearch] = useState(false);
   const [lastAdded, setLastAdded] = useState(null);
+  const [favQuery, setFavQuery] = useState("");
 
   const { entry, loading, saveState, updateMeal } = useDailyJournal(date);
   const { favorites, favStatus, addFavorite, removeFavorite } = useFavorites(getToken);
@@ -258,7 +259,7 @@ export default function TabFood({ isSignedIn, onSignIn }) {
       </div>
 
       <div style={card}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
           <div style={sectionLabel}>Favoriten</div>
           {favStatus === "loading" && (
             <span style={{ fontFamily: FB, fontSize: 11, color: C.muted }}>Lade…</span>
@@ -267,13 +268,23 @@ export default function TabFood({ isSignedIn, onSignIn }) {
             <span style={{ fontFamily: FB, fontSize: 11, color: "#B91C1C" }}>Sync-Fehler</span>
           )}
         </div>
-        {favorites.length === 0 && favStatus !== "loading" && (
+        {favorites.length === 0 && favStatus !== "loading" ? (
           <div style={{ fontFamily: FB, fontSize: 12, color: C.muted }}>
-            Noch keine Favoriten. Tippe nach dem Eintragen auf Als Favorit.
+            Noch keine Favoriten. Tippe in der Suche auf ❤️ um Lebensmittel zu speichern.
           </div>
+        ) : favorites.length > 4 && (
+          <input
+            placeholder="Favoriten filtern…"
+            value={favQuery}
+            onChange={e => setFavQuery(e.target.value)}
+            style={{ width: "100%", boxSizing: "border-box", padding: "8px 12px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontFamily: FB, fontSize: 13, marginBottom: 10 }}
+          />
         )}
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {favorites.map((fav) => (
+          {favQuery && !favorites.some(f => f.name.toLowerCase().includes(favQuery.toLowerCase())) && (
+            <div style={{ fontFamily: FB, fontSize: 12, color: C.muted }}>Kein Favorit gefunden.</div>
+          )}
+          {favorites.filter(fav => !favQuery || fav.name.toLowerCase().includes(favQuery.toLowerCase())).map((fav) => (
             <div key={fav.id} style={{ display: "flex", alignItems: "center", gap: 8, border: `1px solid ${C.border}`, borderRadius: 10, background: C.surface, padding: "8px 10px" }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontFamily: FB, fontSize: 13, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{fav.name}</div>
