@@ -273,6 +273,11 @@ export default function TabFood({ isSignedIn, onSignIn, isPremium = false }) {
           {favStatus === "error" && (
             <span style={{ fontFamily: FB, fontSize: 11, color: "#B91C1C" }}>Sync-Fehler</span>
           )}
+          {!isPremium && favStatus !== "loading" && (
+            <span style={{ fontFamily: FB, fontSize: 11, color: atLimit ? "#B45309" : C.muted, marginLeft: "auto" }}>
+              {favorites.length} / {FREE_FAV_LIMIT}
+            </span>
+          )}
         </div>
         {favorites.length === 0 && favStatus !== "loading" ? (
           <div style={{ fontFamily: FB, fontSize: 12, color: C.muted }}>
