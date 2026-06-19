@@ -11,6 +11,7 @@ import { useDailyJournal } from "../../hooks/useDailyJournal";
 import { useWeeklyJournal } from "../../hooks/useWeeklyJournal";
 import { useStats } from "../../hooks/useStats";
 import { useFavorites } from "../../hooks/useFavorites";
+import { useRecipeFavorites } from "../../hooks/useRecipeFavorites";
 
 // ─── helpers ───────────────────────────────────────────────
 const MEALS = [
@@ -328,6 +329,7 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
   const { week, streak, reload: reloadWeek } = useWeeklyJournal(date);
   const { data: statsData, loading: statsLoading, reload: reloadStats } = useStats();
   const { favorites } = useFavorites(getToken, isPremium);
+  const { favIds: recipeFavIds } = useRecipeFavorites(getToken, isPremium, isSignedIn);
 
   useEffect(() => {
     if (saveState === "saved") { reloadWeek(); reloadStats(); }
@@ -588,6 +590,7 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
       {pickerSlot && (
         <RecipePicker
           recipes={recipes}
+          favIds={recipeFavIds}
           onSelect={handleRecipeSelect}
           onClose={() => setPickerSlot(null)}
         />

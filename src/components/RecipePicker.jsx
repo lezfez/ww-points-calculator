@@ -1,12 +1,16 @@
 import { useState } from "react";
 import { C, FH, FB } from "../styles/theme";
 
-export default function RecipePicker({ recipes = [], onSelect, onClose }) {
+export default function RecipePicker({ recipes = [], favIds, onSelect, onClose }) {
   const [search, setSearch] = useState("");
+  const [onlyFavs, setOnlyFavs] = useState(false);
+
+  const hasFavs = favIds && favIds.size > 0;
 
   const filtered = recipes.filter(r =>
-    !search || r.name?.toLowerCase().includes(search.toLowerCase()) ||
-    r.kategorie?.toLowerCase().includes(search.toLowerCase())
+    (!onlyFavs || (favIds && favIds.has(String(r.id)))) &&
+    (!search || r.name?.toLowerCase().includes(search.toLowerCase()) ||
+      r.kategorie?.toLowerCase().includes(search.toLowerCase()))
   );
 
   return (
@@ -48,13 +52,30 @@ export default function RecipePicker({ recipes = [], onSelect, onClose }) {
               fontFamily: FB, fontSize: 13, color: C.text, boxSizing: "border-box",
             }}
           />
+          {hasFavs && (
+            <button
+              onClick={() => setOnlyFavs(v => !v)}
+              style={{
+                marginTop: 8,
+                padding: "6px 14px",
+                borderRadius: 999,
+                border: `1.5px solid ${onlyFavs ? "#E53E3E" : C.border}`,
+                background: onlyFavs ? "#FFF5F5" : C.surface,
+                color: onlyFavs ? "#C53030" : C.muted,
+                fontFamily: FB, fontSize: 12, fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              {onlyFavs ? "❤️" : "🤍"} Nur Favoriten
+            </button>
+          )}
         </div>
 
         {/* List */}
         <div style={{ overflowY: "auto", padding: "0 16px 28px", flex: 1 }}>
           {filtered.length === 0 ? (
             <div style={{ textAlign: "center", padding: "28px 0", color: C.muted, fontFamily: FB, fontSize: 13 }}>
-              Keine Rezepte gefunden.
+              {onlyFavs ? "Keine Favoriten gefunden." : "Keine Rezepte gefunden."}
             </div>
           ) : filtered.map(r => (
             <button
