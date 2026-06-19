@@ -1,0 +1,124 @@
+/* ── Header card ── */
+.title {
+  font-family: var(--font-headline);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--c-text);
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: var(--c-sub);
+  margin-bottom: 16px;
+  font-family: var(--font-body);
+}
+
+.searchInput {
+  margin-bottom: 14px;
+}
+
+.filterRow {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.sortRow {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+/* ── Filter chip ── */
+.chip {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1.5px solid var(--c-border);
+  background: var(--c-surface);
+  color: var(--c-sub);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all .15s;
+}
+
+.chip.active {
+  border-color: var(--c-green);
+  background: var(--c-green-pale);
+  color: var(--c-green2);
+}
+
+.chipCount {
+  font-size: 10px;
+  opacity: 0.75;
+}
+
+/* ── Limit warning ── */
+.limitWarning {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: #FFF7ED;
+  border: 1px solid #FED7AA;
+  border-radius: 10px;
+}
+
+.limitTitle {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: #92400E;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.limitSub {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--c-amber);
+}
+
+/* ── State cards (loading / error / empty) ── */
+.stateCard {
+  text-align: center;
+  padding: 44px 24px;
+}
+
+.stateIcon {
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+
+.errorTitle {
+  font-family: var(--font-headline);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 21px;
+  color: var(--c-coin-text);
+  margin-bottom: 8px;
+}
+
+.errorDesc {
+  margin: 0 auto 18px;
+  max-width: 440px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--c-sub);
+  font-family: var(--font-body);
+}
+
+/* ── Footer ── */
+.footerNote {
+  font-size: 11px;
+  color: var(--c-muted);
+  text-align: center;
+  margin-top: 18px;
+  font-style: italic;
+  line-height: 1.6;
+  font-family: var(--font-body);
+}

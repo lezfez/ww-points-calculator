@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git commit -m ' *)",
+      "Edit(/.claude/skills/publish-recipe/**)"
+    ]
+  }
+}

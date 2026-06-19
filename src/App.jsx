@@ -4,7 +4,6 @@ import appLogo from "./assets/app-logo-icon.svg";
 import { useRecipes } from "./hooks/useRecipes";
 import { useFeatureFlags } from "./hooks/useFeatureFlags";
 import { getUserRole, hasAccess, ROLE_LABELS } from "./lib/roles";
-import { C, FB, FH } from "./styles/theme";
 import { buildPathWithTab, readTabFromSearch, resolveTabSelection } from "./lib/tabRouting";
 import TabIcon from "./components/TabIcon";
 import TabLocked from "./components/TabLocked";
@@ -16,6 +15,7 @@ import TabRecipes from "./components/tabs/TabRecipes";
 import TabInfo from "./components/tabs/TabInfo";
 import TabAdmin from "./components/tabs/TabAdmin";
 import InstallBanner from "./components/InstallBanner";
+import styles from "./App.module.css";
 
 const DEFAULT_HEADER_TAGLINE = "Coins · PersonalPoints · SmartPoints · ProPoints";
 const DEFAULT_PREMIUM_PRICE_LABEL = "2,99 €/Monat";
@@ -25,9 +25,7 @@ const getTabFromUrl = () => {
   return tabId === "foof" ? "food" : tabId;
 };
 
-const getPathWithTab = (tabId) => {
-  return buildPathWithTab(window.location.href, tabId);
-};
+const getPathWithTab = (tabId) => buildPathWithTab(window.location.href, tabId);
 
 export default function App() {
   const [tab, setTab]             = useState(() => getTabFromUrl());
@@ -111,13 +109,9 @@ export default function App() {
         if (!active || !settings) return;
         const nextHeaderTagline = String(settings.headerTagline || DEFAULT_HEADER_TAGLINE);
         const nextPremiumPriceLabel = String(settings.premiumPriceLabel || DEFAULT_PREMIUM_PRICE_LABEL);
-
         setHeaderTagline(nextHeaderTagline);
         setPremiumPriceLabel(nextPremiumPriceLabel);
-        setAdminBootstrapSettingsDraft({
-          headerTagline: nextHeaderTagline,
-          premiumPriceLabel: nextPremiumPriceLabel,
-        });
+        setAdminBootstrapSettingsDraft({ headerTagline: nextHeaderTagline, premiumPriceLabel: nextPremiumPriceLabel });
       })
       .catch(() => {});
 
@@ -154,10 +148,7 @@ export default function App() {
       if (!token) throw new Error("Kein Session-Token – bitte neu einloggen.");
       const res = await fetch("/api/create-checkout-session", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({}),
       });
       const data = await res.json().catch(() => ({}));
@@ -282,9 +273,7 @@ export default function App() {
   const deleteRecipeCategory = useCallback(async (slug) => {
     setAdminCategorySaving(prev => ({ ...prev, [slug]: true }));
     try {
-      const res = await adminFetch(`/api/admin-recipes?action=category&slug=${encodeURIComponent(slug)}`, {
-        method: "DELETE",
-      });
+      const res = await adminFetch(`/api/admin-recipes?action=category&slug=${encodeURIComponent(slug)}`, { method: "DELETE" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Kategorie konnte nicht geloescht werden.");
       await loadRecipeCategories();
@@ -350,14 +339,9 @@ export default function App() {
       const res = await adminFetch("/api/admin-recipes?action=recipe-statuses");
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Status konnten nicht geladen werden.");
-
       const map = {};
       (data.statuses || []).forEach(row => {
-        map[row.id] = {
-          status: row.status || "published",
-          editedAt: row.edited_at || null,
-          publishedAt: row.published_at || null,
-        };
+        map[row.id] = { status: row.status || "published", editedAt: row.edited_at || null, publishedAt: row.published_at || null };
       });
       setAdminRecipeStatusById(map);
     } catch {
@@ -391,22 +375,12 @@ export default function App() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Status konnte nicht gespeichert werden.");
-
       setAdminRecipeStatusById(prev => ({
         ...prev,
-        [recipeId]: {
-          status: data?.recipe?.status || status,
-          editedAt: data?.recipe?.edited_at || null,
-          publishedAt: data?.recipe?.published_at || null,
-        },
+        [recipeId]: { status: data?.recipe?.status || status, editedAt: data?.recipe?.edited_at || null, publishedAt: data?.recipe?.published_at || null },
       }));
-
       await loadRecipeHistory(recipeId);
-
-      setAdminRecipeWorkflowMsg({
-        type: "ok",
-        text: status === "published" ? "Rezept veroeffentlicht" : "Rezept als Entwurf markiert",
-      });
+      setAdminRecipeWorkflowMsg({ type: "ok", text: status === "published" ? "Rezept veroeffentlicht" : "Rezept als Entwurf markiert" });
       setTimeout(() => setAdminRecipeWorkflowMsg(null), 2500);
       return true;
     } catch (e) {
@@ -446,16 +420,11 @@ export default function App() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Einstellungen konnten nicht gespeichert werden.");
-
       const nextHeaderTagline = String(data?.settings?.headerTagline || adminBootstrapSettingsDraft.headerTagline || DEFAULT_HEADER_TAGLINE);
       const nextPremiumPriceLabel = String(data?.settings?.premiumPriceLabel || adminBootstrapSettingsDraft.premiumPriceLabel || DEFAULT_PREMIUM_PRICE_LABEL);
-
       setHeaderTagline(nextHeaderTagline);
       setPremiumPriceLabel(nextPremiumPriceLabel);
-      setAdminBootstrapSettingsDraft({
-        headerTagline: nextHeaderTagline,
-        premiumPriceLabel: nextPremiumPriceLabel,
-      });
+      setAdminBootstrapSettingsDraft({ headerTagline: nextHeaderTagline, premiumPriceLabel: nextPremiumPriceLabel });
       setAdminBootstrapSettingsMsg({ type: "ok", text: "Einstellungen gespeichert" });
       setTimeout(() => setAdminBootstrapSettingsMsg(null), 2500);
     } catch (e) {
@@ -503,24 +472,17 @@ export default function App() {
   ].filter(t => t.id === "admin" || isTabEnabled(t.id)), [flags, userRole]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const tabIds = useMemo(() => TABS.map((t) => t.id), [TABS]);
-
-  const currentTab = useMemo(() => {
-    return resolveTabSelection(tab, tabIds);
-  }, [tab, tabIds]);
+  const currentTab = useMemo(() => resolveTabSelection(tab, tabIds), [tab, tabIds]);
 
   const changeTab = useCallback((nextTab) => {
     setTab(nextTab);
     const nextPath = getPathWithTab(nextTab);
     const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-    if (nextPath !== currentPath) {
-      window.history.pushState({ tab: nextTab }, "", nextPath);
-    }
+    if (nextPath !== currentPath) window.history.pushState({ tab: nextTab }, "", nextPath);
   }, []);
 
   useEffect(() => {
-    const onPopState = () => {
-      setTab(getTabFromUrl());
-    };
+    const onPopState = () => setTab(getTabFromUrl());
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
@@ -532,11 +494,11 @@ export default function App() {
   }, [currentTab]);
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: FB, color: C.text }}>
+    <div className={styles.root}>
 
       {/* Sign-In Modal */}
       {showSignIn && !isSignedIn && (
-        <div onClick={() => setShowSignIn(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+        <div onClick={() => setShowSignIn(false)} className={styles.signInBackdrop}>
           <div onClick={e => e.stopPropagation()}>
             <SignIn routing="hash" forceRedirectUrl={window.location.origin} signUpForceRedirectUrl={window.location.origin} />
           </div>
@@ -545,17 +507,9 @@ export default function App() {
 
       {/* Checkout status */}
       {checkoutMsg && (
-        <div style={{
-          background: checkoutMsg.type === "ok" ? C.green : checkoutMsg.type === "warn" ? C.premBg : "#FEE2E2",
-          color: checkoutMsg.type === "ok" ? "#fff" : checkoutMsg.type === "warn" ? C.premText : "#991B1B",
-          borderBottom: checkoutMsg.type === "ok" ? "none" : `1px solid ${checkoutMsg.type === "warn" ? C.premBorder : "#FCA5A5"}`,
-          textAlign: "center", padding: "12px 16px", fontSize: 14, fontWeight: 600, fontFamily: FB,
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 12, flexWrap: "wrap",
-        }}>
+        <div className={`${styles.checkoutBanner} ${styles[checkoutMsg.type]}`}>
           <span>{checkoutMsg.text}</span>
-          <button onClick={() => setCheckoutMsg(null)} style={{ border: "none", background: "rgba(255,255,255,.24)", color: "inherit", borderRadius: 999, padding: "4px 10px", fontFamily: FB, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-            Schließen
-          </button>
+          <button onClick={() => setCheckoutMsg(null)} className={styles.checkoutClose}>Schließen</button>
         </div>
       )}
 
@@ -564,70 +518,56 @@ export default function App() {
 
         {/* Upgrade banner */}
         {isSignedIn && !isPremium && (
-          <div style={{ background: C.premBg, borderBottom: `1px solid ${C.premBorder}`, padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 13, color: C.premText, fontWeight: 600, fontFamily: FB }}>
-              🌿 Tagebuch &amp; mehr freischalten
-            </span>
-            <button onClick={startCheckout} className="btn-primary" disabled={checkoutLoading}
-              style={{ background: `linear-gradient(135deg, ${C.coin} 0%, #A34D08 100%)`, color: "#fff", border: "none", borderRadius: 9, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: checkoutLoading ? "wait" : "pointer", fontFamily: FB, whiteSpace: "nowrap", boxShadow: "0 2px 8px rgba(198,123,92,.3)", opacity: checkoutLoading ? .75 : 1 }}>
+          <div className={styles.upgradeBanner}>
+            <span className={styles.upgradeText}>🌿 Tagebuch &amp; mehr freischalten</span>
+            <button onClick={startCheckout} className={`btn-primary ${styles.upgradeBtn}`} disabled={checkoutLoading}>
               {checkoutLoading ? "Weiterleitung…" : `Premium – ${premiumPriceLabel}`}
             </button>
           </div>
         )}
 
         {/* Header */}
-        <header className="app-header" style={{ background: `linear-gradient(to bottom, ${C.green2} 0%, ${C.green} 60%, ${C.greenMid} 100%)`, padding: "14px 20px", display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12 }}>
-            <img src={appLogo} alt="WampeWeg" style={{ display: "block", height: 52, width: 52, flexShrink: 0 }} />
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 20, color: "#fff", letterSpacing: "-.01em", lineHeight: 1.1 }}>
-                WampeWeg
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3 }}>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,.65)", letterSpacing: ".08em", textTransform: "uppercase", fontFamily: FB }}>
-                  {headerTagline}
-                </div>
+        <header className={`app-header ${styles.header}`}>
+          <div className={styles.headerInner}>
+            <img src={appLogo} alt="WampeWeg" className={styles.logo} />
+            <div className={styles.headerText}>
+              <div className={styles.appName}>WampeWeg</div>
+              <div className={styles.taglineRow}>
+                <div className={styles.tagline}>{headerTagline}</div>
                 {isSignedIn && (
-                  <span style={{ fontSize: 10, background: "rgba(255,255,255,.15)", color: "#fff", borderRadius: 999, padding: "2px 8px", fontFamily: FB, letterSpacing: ".04em", fontWeight: 600 }}>
-                    {ROLE_LABELS[userRole]}
-                  </span>
+                  <span className={styles.headerRoleBadge}>{ROLE_LABELS[userRole]}</span>
                 )}
               </div>
             </div>
           </div>
           <SignedOut>
-            <button onClick={() => setShowSignIn(true)}
-              style={{ background: "rgba(255,255,255,.14)", border: "1.5px solid rgba(255,255,255,.3)", color: "#fff", borderRadius: 10, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FB, whiteSpace: "nowrap", flexShrink: 0, minHeight: 44 }}>
-              Anmelden
-            </button>
+            <button onClick={() => setShowSignIn(true)} className={styles.signInBtn}>Anmelden</button>
           </SignedOut>
           <SignedIn>
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
-              <div style={{ position: "relative", display: "inline-flex" }}>
+            <div className={styles.userArea}>
+              <div className={styles.userBtnWrap}>
                 <UserButton appearance={{ elements: { avatarBox: { width: 38, height: 38 } } }} />
-                {isPremium && (
-                  <span style={{ position: "absolute", bottom: -4, left: -6, fontSize: 14, lineHeight: 1, pointerEvents: "none", filter: "drop-shadow(0 1px 2px rgba(0,0,0,.4))" }}>
-                    🌿
-                  </span>
-                )}
+                {isPremium && <span className={styles.premiumEmoji}>🌿</span>}
               </div>
               {user?.firstName && (
-                <span style={{ fontSize: 10, color: "rgba(255,255,255,.8)", fontFamily: FB, fontWeight: 600, maxWidth: 52, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {user.firstName}
-                </span>
+                <span className={styles.userName}>{user.firstName}</span>
               )}
             </div>
           </SignedIn>
         </header>
 
         {/* Desktop Navigation */}
-        <nav className="nav-top nav-scroll" style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "10px 16px", display: "flex", gap: 6, overflowX: "auto" }}>
+        <nav className={`nav-top nav-scroll ${styles.navTop}`}>
           {TABS.map(t => {
             const locked = isTabLocked(t.id);
             const isAdmin = t.id === "admin";
             return (
               <button key={t.id} onClick={() => changeTab(t.id)}
-                style={{ padding: "9px 18px", border: "none", borderRadius: 999, background: currentTab === t.id ? (isAdmin ? C.adminText : C.green) : "transparent", color: currentTab === t.id ? "#fff" : (isAdmin ? C.adminText : C.sub), fontWeight: currentTab === t.id ? 700 : 500, fontSize: 13, fontFamily: FB, cursor: "pointer", whiteSpace: "nowrap", transition: "background .18s, color .18s", letterSpacing: ".03em", minHeight: 44 }}>
+                className={[
+                  styles.navBtn,
+                  currentTab === t.id ? styles.active : '',
+                  isAdmin ? styles.admin : '',
+                ].filter(Boolean).join(' ')}>
                 {t.label}{locked ? " 🔒" : ""}
               </button>
             );
@@ -639,12 +579,10 @@ export default function App() {
       {/* Mobile Bottom Nav */}
       <nav className="bottom-nav">
         {TABS.map(t => {
-          const locked  = isTabLocked(t.id);
-          const active  = currentTab === t.id;
-          const isAdmin = t.id === "admin";
-          const color   = active ? C.green2 : "#9E9E90";
+          const locked = isTabLocked(t.id);
+          const active = currentTab === t.id;
           return (
-            <button key={t.id} className={`bottom-nav-btn${active ? " active" : ""}`} onClick={() => changeTab(t.id)} style={{ color, fontFamily: FB }}>
+            <button key={t.id} className={`bottom-nav-btn${active ? " active" : ""}`} onClick={() => changeTab(t.id)}>
               <TabIcon id={t.id} />
               <span>{t.label}{locked ? " 🔒" : ""}</span>
             </button>
@@ -653,7 +591,7 @@ export default function App() {
       </nav>
 
       {/* Main */}
-      <main className="main-content" style={{ maxWidth: 860, margin: "0 auto", padding: "22px 16px 80px" }}>
+      <main className={`main-content ${styles.mainContent}`}>
 
         {currentTab === "calc" && (
           isTabLocked("calc")
@@ -736,11 +674,9 @@ export default function App() {
 
         {/* Bootstrap-Hinweis für eingeloggte Nicht-Admins */}
         {isSignedIn && userRole !== "admin" && currentTab !== "admin" && (
-          <div style={{ textAlign: "center", marginTop: 8 }}>
-            <button onClick={doBootstrap} style={{ fontSize: 11, color: C.muted, background: "none", border: "none", cursor: "pointer", fontFamily: FB, textDecoration: "underline" }}>
-              Als Admin einrichten
-            </button>
-            {bootstrapMsg && <div style={{ fontSize: 11, color: C.sub, fontFamily: FB, marginTop: 4 }}>{bootstrapMsg}</div>}
+          <div className={styles.bootstrapHint}>
+            <button onClick={doBootstrap} className={styles.bootstrapBtn}>Als Admin einrichten</button>
+            {bootstrapMsg && <div className={styles.bootstrapMsg}>{bootstrapMsg}</div>}
           </div>
         )}
 

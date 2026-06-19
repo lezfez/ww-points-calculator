@@ -1,0 +1,33 @@
+.root {
+  text-align: center;
+  padding: 52px 28px;
+}
+
+.icon {
+  font-size: 56px;
+  margin-bottom: 16px;
+}
+
+.title {
+  font-family: var(--font-headline);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--c-green);
+  margin-bottom: 10px;
+}
+
+.desc {
+  font-size: 14px;
+  color: var(--c-sub);
+  line-height: 1.75;
+  max-width: 340px;
+  margin: 0 auto 28px;
+  font-family: var(--font-body);
+}
+
+.btn {
+  width: auto;
+  padding: 14px 32px;
+  display: inline-block;
+}

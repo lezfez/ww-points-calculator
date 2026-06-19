@@ -1,0 +1,68 @@
+.systemGrid {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.systemBtn {
+  padding: 10px 14px;
+  border: 1.5px solid var(--c-border);
+  border-radius: 12px;
+  background: var(--c-surface);
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-body);
+  transition: all .15s;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 52px;
+}
+
+.systemBtn.active {
+  border-color: var(--c-green);
+  background: var(--c-green-pale);
+}
+
+.systemBtnLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--c-text);
+}
+
+.systemBtn.active .systemBtnLabel { color: var(--c-green2); }
+
+.systemBtnSub {
+  font-size: 10px;
+  color: var(--c-muted);
+  font-weight: 400;
+}
+
+.resultsGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.formulaCard {
+  background: var(--c-green-pale);
+  border-color: rgba(34,139,34,.14);
+}
+
+.formulaCode {
+  font-size: 12px;
+  color: var(--c-text);
+  line-height: 2.1;
+  font-family: 'JetBrains Mono','Fira Code','Courier New',monospace;
+}
+
+.formulaNote {
+  font-size: 11px;
+  color: var(--c-muted);
+  text-align: center;
+  margin-top: 14px;
+  font-style: italic;
+  line-height: 1.6;
+  font-family: var(--font-body);
+}

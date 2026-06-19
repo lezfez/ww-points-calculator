@@ -1,0 +1,133 @@
+.strip {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 18px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+/* ── Week navigation ── */
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.navBtn {
+  background: var(--c-surface2);
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 15px;
+  color: var(--c-sub);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.navBtn:disabled {
+  cursor: default;
+  color: var(--c-border);
+}
+
+.navLabel {
+  flex: 1;
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--c-sub);
+}
+
+/* ── Day grid ── */
+.dayGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+}
+
+.dayBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 2px;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background .15s;
+}
+
+.dayBtn.today {
+  background: var(--c-green-pale);
+  outline: 1.5px solid var(--c-green-mid);
+}
+
+.dayBtn.selected {
+  background: var(--c-green);
+  outline: none;
+}
+
+.dayBtn.future { cursor: default; }
+
+.dayName {
+  font-size: 10px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  color: var(--c-muted);
+}
+
+.dayBtn.selected .dayName { color: rgba(255,255,255,.8); }
+
+.dayNum {
+  font-size: 15px;
+  font-weight: 700;
+  font-family: var(--font-headline);
+  color: var(--c-text);
+  line-height: 1;
+}
+
+.dayBtn.selected .dayNum { color: #fff; }
+.dayBtn.future .dayNum   { color: var(--c-border); }
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid var(--c-border);
+  background: var(--c-surface2);
+}
+
+.dayBtn.selected .dot {
+  background: rgba(255,255,255,.4);
+  border-color: rgba(255,255,255,.4);
+}
+
+.dayBtn.future .dot {
+  background: transparent;
+  border-color: var(--c-border);
+}
+
+/* ── Streak ── */
+.streak {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--c-border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.streakIcon { font-size: 16px; }
+
+.streakText {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--c-sub);
+}
+
+.streakText b { color: var(--c-text); }

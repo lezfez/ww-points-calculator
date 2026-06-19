@@ -1,0 +1,83 @@
+.column { display: flex; flex-direction: column; gap: 14px; }
+
+/* ── Metrics grid ── */
+.metricsGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.metricCard {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+  padding: 14px 14px 12px;
+}
+
+.metricIcon  { font-size: 18px; margin-bottom: 4px; }
+
+.metricValue {
+  font-family: var(--font-headline);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 1;
+  /* color set inline — data-driven */
+}
+
+.metricLabel { font-family: var(--font-body); font-size: 11px; color: var(--c-muted); margin-top: 4px; }
+
+/* ── PDF button ── */
+.pdfBtn {
+  align-self: flex-end;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1.5px solid var(--c-border);
+  background: var(--c-surface);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--c-sub);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Chart card ── */
+.chartCard {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+  padding: 16px 16px 14px;
+}
+
+.chartTitle { font-family: var(--font-body); font-size: 12px; font-weight: 700; color: var(--c-sub); margin-bottom: 14px; }
+
+.chartLegend {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.legendItem  { display: flex; align-items: center; gap: 5px; }
+.legendDot   { width: 10px; height: 10px; border-radius: 3px; display: inline-block; /* background inline */ }
+.legendLine  { width: 14px; display: inline-block; opacity: 0.6; border-top: 1.5px dashed var(--c-green); }
+.legendLabel { font-family: var(--font-body); font-size: 11px; color: var(--c-muted); }
+
+/* ── Empty / loading ── */
+.emptyCard {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+  padding: 32px 20px;
+  text-align: center;
+  color: var(--c-muted);
+  font-family: var(--font-body);
+  font-size: 13px;
+}
+
+.loading { text-align: center; padding: 40px 0; color: var(--c-muted); font-family: var(--font-body); }
+
+.totalNote { font-family: var(--font-body); font-size: 11px; color: var(--c-muted); text-align: center; }
+
+/* ── Chart SVG wrapper ── */
+.chartScroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }

@@ -1,6 +1,7 @@
 import { useInstallPrompt } from "../hooks/useInstallPrompt";
-import { C, FH, FB, primaryBtn } from "../styles/theme";
 import appLogoIcon from "../assets/app-logo-icon.svg";
+import Button from "./ui/Button";
+import styles from './InstallBanner.module.css';
 
 export default function InstallBanner() {
   const { canShow, isIOS, promptInstall, dismiss } = useInstallPrompt();
@@ -9,86 +10,41 @@ export default function InstallBanner() {
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        onClick={dismiss}
-        style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.35)", zIndex: 600, backdropFilter: "blur(2px)" }}
-      />
+      <div className={styles.backdrop} onClick={dismiss} />
 
-      {/* Sheet */}
-      <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 601,
-        background: C.surface,
-        borderRadius: "22px 22px 0 0",
-        padding: "20px 20px 36px",
-        boxShadow: "0 -6px 32px rgba(28,27,24,.18)",
-        animation: "slideUp .25s ease-out",
-      }}>
+      <div className={styles.sheet}>
+        <div className={styles.handle} />
 
-        {/* Drag handle */}
-        <div style={{ width: 40, height: 4, background: C.border, borderRadius: 999, margin: "0 auto 18px" }} />
-
-        {/* Header row */}
-        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
-          <div style={{
-            width: 54, height: 54, borderRadius: 14, flexShrink: 0,
-            background: `linear-gradient(135deg, ${C.green2} 0%, ${C.green} 100%)`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <img src={appLogoIcon} alt="" style={{ width: 38, height: 38 }} />
+        <div className={styles.header}>
+          <div className={styles.icon}>
+            <img src={appLogoIcon} alt="" />
           </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 17, color: C.text, lineHeight: 1.2 }}>
-              WampeWeg installieren
-            </div>
-            <div style={{ fontSize: 12, color: C.sub, fontFamily: FB, marginTop: 3 }}>
-              WW &amp; weight friends Rechner
-            </div>
+          <div className={styles.headerText}>
+            <div className={styles.title}>WampeWeg installieren</div>
+            <div className={styles.subtitle}>WW &amp; weight friends Rechner</div>
           </div>
-          <button
-            onClick={dismiss}
-            aria-label="Schließen"
-            style={{ background: C.surface2, border: "none", borderRadius: 999, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, fontSize: 16, color: C.sub }}
-          >
-            ✕
-          </button>
+          <button className={styles.closeBtn} onClick={dismiss} aria-label="Schließen">✕</button>
         </div>
 
-        {/* Description */}
-        <p style={{ fontSize: 13, color: C.sub, fontFamily: FB, lineHeight: 1.65, margin: "0 0 20px" }}>
+        <p className={styles.description}>
           {isIOS
-            ? <>Tippe unten auf <b style={{ color: C.text }}>Teilen</b> <span style={{ fontSize: 15 }}>⎙</span> und dann auf <b style={{ color: C.text }}>„Zum Home-Bildschirm"</b>, um die App zu installieren.</>
+            ? <>Tippe unten auf <b>Teilen</b> <span style={{ fontSize: 15 }}>⎙</span> und dann auf <b>„Zum Home-Bildschirm"</b>, um die App zu installieren.</>
             : <>Füge die App zum Startbildschirm hinzu – kein App Store, kein Download. Funktioniert wie eine native App.</>
           }
         </p>
 
-        {/* Action */}
         {!isIOS && (
-          <button
-            onClick={promptInstall}
-            style={{ ...primaryBtn(false), marginTop: 0 }}
-          >
+          <Button onClick={promptInstall} style={{ marginTop: 0 }}>
             🌿 Zum Startbildschirm hinzufügen
-          </button>
+          </Button>
         )}
 
         {isIOS && (
-          <button
-            onClick={dismiss}
-            style={{ ...primaryBtn(false), marginTop: 0, background: C.surface2, color: C.sub, boxShadow: "none" }}
-          >
+          <Button onClick={dismiss} className={styles.dismissBtn} style={{ marginTop: 0 }}>
             Verstanden
-          </button>
+          </Button>
         )}
-
       </div>
-
-      <style>{`
-        @keyframes slideUp {
-          from { transform: translateY(100%); }
-          to   { transform: translateY(0); }
-        }
-      `}</style>
     </>
   );
 }

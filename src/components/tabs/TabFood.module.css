@@ -1,0 +1,203 @@
+/* ── Tab content layout ── */
+.column { display: flex; flex-direction: column; gap: 12px; }
+
+/* ── Header card ── */
+.title {
+  font-family: var(--font-headline);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--c-text);
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--c-sub);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ── Goal grid ── */
+.goalGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.fieldLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--c-sub);
+}
+
+.dateInput,
+.slotSelect {
+  border-radius: 10px;
+  border: 1.5px solid var(--c-border);
+  background: var(--c-surface);
+  color: var(--c-text);
+  padding: 10px 12px;
+  font-family: var(--font-body);
+  font-size: 14px;
+}
+
+.dateInput:focus,
+.slotSelect:focus {
+  border-color: var(--c-green);
+  box-shadow: 0 0 0 3px rgba(34,139,34,.13);
+  outline: none;
+}
+
+/* ── Status row ── */
+.statusRow {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.statusText { font-family: var(--font-body); font-size: 12px; color: var(--c-muted); }
+.saveOk     { font-family: var(--font-body); font-size: 12px; color: var(--c-green); }
+.saveErr    { font-family: var(--font-body); font-size: 12px; color: #B91C1C; }
+
+.lastAdded {
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: var(--c-green-pale);
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+}
+
+.lastAddedText {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--c-sub);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Search card ── */
+.searchHint {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--c-muted);
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.searchWrap { margin-top: 8px; }
+
+/* ── Favorites card ── */
+.favHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.favStatus { font-family: var(--font-body); font-size: 11px; color: var(--c-muted); }
+.favError  { font-family: var(--font-body); font-size: 11px; color: #B91C1C; }
+.favCount  { font-family: var(--font-body); font-size: 11px; color: var(--c-muted); margin-left: auto; }
+.favCount.atLimit { color: var(--c-amber); }
+
+.favEmpty { font-family: var(--font-body); font-size: 12px; color: var(--c-muted); }
+
+.favFilterInput {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--c-border);
+  background: var(--c-surface);
+  color: var(--c-text);
+  font-family: var(--font-body);
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.favFilterInput:focus {
+  border-color: var(--c-green);
+  box-shadow: 0 0 0 3px rgba(34,139,34,.13);
+  outline: none;
+}
+
+/* ── Limit warning ── */
+.limitWarning {
+  padding: 8px 12px;
+  background: #FFF7ED;
+  border: 1px solid #FED7AA;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.limitTitle { font-family: var(--font-body); font-size: 12px; color: #92400E; font-weight: 700; margin-bottom: 2px; }
+.limitSub   { font-family: var(--font-body); font-size: 11px; color: var(--c-amber); }
+
+/* ── Fav list ── */
+.favList    { display: flex; flex-direction: column; gap: 8px; }
+.favNoMatch { font-family: var(--font-body); font-size: 12px; color: var(--c-muted); }
+
+.favItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  background: var(--c-surface);
+  padding: 8px 10px;
+}
+
+.favItemName  { flex: 1; min-width: 0; }
+.favItemLabel {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--c-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.favItemCoins { font-family: var(--font-body); font-size: 11px; color: var(--c-muted); }
+
+.favAddBtn {
+  border: none;
+  background: var(--c-green);
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.favRemoveBtn {
+  border: 1px solid var(--c-border);
+  background: var(--c-surface2);
+  color: var(--c-muted);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* ── Guest state ── */
+.guestCard { text-align: center; padding: 40px 24px; }
+.guestEmoji { font-size: 40px; margin-bottom: 12px; }
+.guestTitle {
+  font-family: var(--font-headline);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--c-text);
+  margin-bottom: 8px;
+}
+.guestText { font-size: 13px; color: var(--c-sub); font-family: var(--font-body); margin-bottom: 14px; }

@@ -1,6 +1,8 @@
 import { useState, useId, useEffect } from "react";
 import { useAuth } from "@clerk/clerk-react";
-import { C, FH, FB, card, sectionLabel, inputStyle, labelStyle, primaryBtn } from "../../styles/theme";
+import { C } from "../../styles/theme";
+import Card from "../ui/Card";
+import Button from "../ui/Button";
 import DonutChart from "../DonutChart";
 import WeekStrip from "../WeekStrip";
 import StatsView from "../StatsView";
@@ -12,6 +14,7 @@ import { useWeeklyJournal } from "../../hooks/useWeeklyJournal";
 import { useStats } from "../../hooks/useStats";
 import { useFavorites } from "../../hooks/useFavorites";
 import { useRecipeFavorites } from "../../hooks/useRecipeFavorites";
+import styles from "./TabBudget.module.css";
 
 // ─── helpers ───────────────────────────────────────────────
 const MEALS = [
@@ -49,7 +52,6 @@ function mealCoins(items) { return (items || []).reduce((s, i) => s + (parseInt(
 function MealSlot({ meal, items = [], onChange, onOpenPicker, onOpenFoodSearch, onOpenFavorites }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState({ name: "", coins: "" });
-  const uid = useId();
   const total = mealCoins(items);
 
   const addItem = () => {
@@ -62,41 +64,30 @@ function MealSlot({ meal, items = [], onChange, onOpenPicker, onOpenFoodSearch, 
   const removeItem = (id) => onChange(items.filter(i => i.id !== id));
 
   return (
-    <div style={{ background: C.surface, border: `1.5px solid ${open ? C.green : C.border}`, borderRadius: 14, overflow: "hidden", transition: "border-color .15s" }}>
-      {/* Header row */}
-      <button
-        onClick={() => setOpen(o => !o)}
-        style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "13px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}>
-        <span style={{ fontSize: 18, flexShrink: 0 }}>{meal.icon}</span>
-        <span style={{ flex: 1, fontWeight: 700, fontSize: 14, color: C.text, fontFamily: FB }}>{meal.label}</span>
-        {total > 0 && (
-          <span style={{ background: C.coinBg, color: C.coinText, border: `1px solid ${C.coinBorder}`, borderRadius: 999, fontSize: 12, fontWeight: 700, fontFamily: FH, fontStyle: "italic", padding: "2px 10px" }}>
-            🪙 {total}
-          </span>
-        )}
-        <span style={{ fontSize: 12, color: C.muted, marginLeft: 4 }}>{open ? "▲" : "▼"}</span>
+    <div className={`${styles.mealSlot}${open ? ` ${styles.open}` : ''}`}>
+      <button onClick={() => setOpen(o => !o)} className={styles.mealHeader}>
+        <span className={styles.mealIcon}>{meal.icon}</span>
+        <span className={styles.mealLabel}>{meal.label}</span>
+        {total > 0 && <span className={styles.mealCoinBadge}>🪙 {total}</span>}
+        <span className={styles.mealArrow}>{open ? "▲" : "▼"}</span>
       </button>
 
       {open && (
-        <div style={{ padding: "0 16px 14px", borderTop: `1px solid ${C.border}` }}>
-          {/* Items */}
+        <div className={styles.mealBody}>
           {items.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, paddingTop: 12, marginBottom: 12 }}>
+            <div className={styles.mealItems}>
               {items.map(item => (
-                <span key={item.id} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: C.coinBg, border: `1px solid ${C.coinBorder}`, borderRadius: 999, padding: "4px 10px", fontSize: 12, color: C.coinText, fontFamily: FB }}>
+                <span key={item.id} className={styles.mealItem}>
                   {item.name}
-                  {item.coins > 0 && <b style={{ fontFamily: FH, fontStyle: "italic" }}> · {item.coins}🪙</b>}
-                  <button onClick={() => removeItem(item.id)} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: 13, padding: "0 0 0 2px", lineHeight: 1 }}>×</button>
+                  {item.coins > 0 && <b className={styles.mealItemCoin}> · {item.coins}🪙</b>}
+                  <button onClick={() => removeItem(item.id)} className={styles.mealItemRemove}>×</button>
                 </span>
               ))}
             </div>
           )}
-
-          {/* Add form */}
-          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <div className={styles.mealAddForm}>
             <input
-              className="app-input"
-              style={{ ...inputStyle, flex: 1, padding: "8px 11px", fontSize: 13 }}
+              className={styles.mealAddInput}
               placeholder="Speise…"
               value={draft.name}
               onChange={e => setDraft(p => ({ ...p, name: e.target.value }))}
@@ -104,42 +95,18 @@ function MealSlot({ meal, items = [], onChange, onOpenPicker, onOpenFoodSearch, 
               aria-label={`Speise für ${meal.label}`}
             />
             <input
-              className="app-input"
+              className={styles.mealAddCoins}
               type="number" min="0"
-              style={{ ...inputStyle, width: 56, padding: "8px 6px", fontSize: 13, textAlign: "center" }}
               placeholder="🪙"
               value={draft.coins}
               onChange={e => setDraft(p => ({ ...p, coins: e.target.value }))}
               onKeyDown={e => e.key === "Enter" && addItem()}
               aria-label="Coins"
             />
-            <button
-              onClick={addItem}
-              style={{ padding: "8px 12px", borderRadius: 9, border: "none", background: C.green, color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", flexShrink: 0 }}>
-              +
-            </button>
-            <button
-              onClick={onOpenFoodSearch}
-              title="Lebensmittel suchen"
-              style={{ padding: "8px 10px", borderRadius: 9, border: `1.5px solid ${C.border}`, background: C.surface2, fontSize: 15, cursor: "pointer", flexShrink: 0 }}>
-              🔍
-            </button>
-            {onOpenFavorites && (
-              <button
-                onClick={onOpenFavorites}
-                title="Aus Favoriten wählen"
-                style={{ padding: "8px 10px", borderRadius: 9, border: `1.5px solid ${C.border}`, background: C.surface2, fontSize: 15, cursor: "pointer", flexShrink: 0 }}>
-                ❤️
-              </button>
-            )}
-            {onOpenPicker && (
-              <button
-                onClick={onOpenPicker}
-                title="Aus Rezepten wählen"
-                style={{ padding: "8px 10px", borderRadius: 9, border: `1.5px solid ${C.border}`, background: C.surface2, fontSize: 15, cursor: "pointer", flexShrink: 0 }}>
-                📖
-              </button>
-            )}
+            <button onClick={addItem} className={styles.mealAddBtn}>+</button>
+            <button onClick={onOpenFoodSearch} title="Lebensmittel suchen" className={styles.mealIconBtn}>🔍</button>
+            {onOpenFavorites && <button onClick={onOpenFavorites} title="Aus Favoriten wählen" className={styles.mealIconBtn}>❤️</button>}
+            {onOpenPicker && <button onClick={onOpenPicker} title="Aus Rezepten wählen" className={styles.mealIconBtn}>📖</button>}
           </div>
         </div>
       )}
@@ -152,26 +119,20 @@ const BLOCK_COLS = 8;
 
 function BlockRow({ count, onChange, color }) {
   return (
-    <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
+    <div className={styles.blockRow}>
       {Array.from({ length: BLOCK_COLS }, (_, i) => (
         <button
           key={i}
           onClick={() => onChange(count === i + 1 ? i : i + 1)}
+          className={styles.blockBtn}
           style={{
-            width: 24, height: 24, borderRadius: 6, border: "none",
-            background: i < count ? color : C.surface2,
-            outline: `1.5px solid ${i < count ? color : C.border}`,
-            cursor: "pointer", transition: "background .1s, outline .1s",
+            background: i < count ? color : 'var(--c-surface2)',
+            outline: `1.5px solid ${i < count ? color : 'var(--c-border)'}`,
           }}
         />
       ))}
-      <button onClick={() => onChange(count + 1)}
-        style={{ width: 24, height: 24, borderRadius: 6, border: `1.5px solid ${C.border}`, background: "none", cursor: "pointer", color: C.muted, fontSize: 15, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        +
-      </button>
-      {count > BLOCK_COLS && (
-        <span style={{ fontSize: 11, color: C.muted, fontFamily: FB }}>+{count - BLOCK_COLS} weitere</span>
-      )}
+      <button onClick={() => onChange(count + 1)} className={styles.blockBtnAdd}>+</button>
+      {count > BLOCK_COLS && <span className={styles.blockExtra}>+{count - BLOCK_COLS} weitere</span>}
     </div>
   );
 }
@@ -179,40 +140,33 @@ function BlockRow({ count, onChange, color }) {
 function ActivityTracker({ activityBlocks, recoveryBlocks, onChangeActivity, onChangeRecovery }) {
   const earned = activityBlocks + recoveryBlocks;
   return (
-    <div style={card}>
-      <div style={sectionLabel}>🏃 Aktivität & verdiente Coins</div>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <Card>
+      <div className="section-label">🏃 Aktivität & verdiente Coins</div>
+      <div className={styles.activityColumn}>
         <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <span style={{ fontFamily: FB, fontSize: 13, fontWeight: 600, color: C.text }}>Aktiv <span style={{ color: C.muted, fontWeight: 400 }}>(je 10 Min)</span></span>
-            <span style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 14, color: C.green }}>+{activityBlocks} 🪙</span>
+          <div className={styles.activityRow}>
+            <span className={styles.activityLabel}>Aktiv <span className={styles.activitySub}>(je 10 Min)</span></span>
+            <span className={styles.activityCountGreen}>+{activityBlocks} 🪙</span>
           </div>
           <BlockRow count={activityBlocks} onChange={onChangeActivity} color={C.green} />
-          <div style={{ fontSize: 11, color: C.muted, fontFamily: FB, marginTop: 5 }}>
-            {activityBlocks} × 10 Min = {activityBlocks * 10} Minuten aktiv
-          </div>
+          <div className={styles.activityNote}>{activityBlocks} × 10 Min = {activityBlocks * 10} Minuten aktiv</div>
         </div>
-
         <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <span style={{ fontFamily: FB, fontSize: 13, fontWeight: 600, color: C.text }}>Erholung <span style={{ color: C.muted, fontWeight: 400 }}>(je 1 Std)</span></span>
-            <span style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 14, color: "#5B8E5B" }}>+{recoveryBlocks} 🪙</span>
+          <div className={styles.activityRow}>
+            <span className={styles.activityLabel}>Erholung <span className={styles.activitySub}>(je 1 Std)</span></span>
+            <span className={styles.activityCountRecovery}>+{recoveryBlocks} 🪙</span>
           </div>
           <BlockRow count={recoveryBlocks} onChange={onChangeRecovery} color="#5B8E5B" />
-          <div style={{ fontSize: 11, color: C.muted, fontFamily: FB, marginTop: 5 }}>
-            {recoveryBlocks} × 1 Std = {recoveryBlocks} Stunden Erholung
-          </div>
+          <div className={styles.activityNote}>{recoveryBlocks} × 1 Std = {recoveryBlocks} Stunden Erholung</div>
         </div>
-
         {earned > 0 && (
-          <div style={{ background: C.greenPale, border: `1px solid rgba(34,139,34,.18)`, borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={{ fontFamily: FB, fontSize: 13, color: C.green2, fontWeight: 600 }}>Heute verdient</span>
-            <span style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 18, color: C.green }}>+{earned} 🪙</span>
+          <div className={styles.earnedBadge}>
+            <span className={styles.earnedLabel}>Heute verdient</span>
+            <span className={styles.earnedValue}>+{earned} 🪙</span>
           </div>
         )}
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -220,29 +174,31 @@ function ActivityTracker({ activityBlocks, recoveryBlocks, onChangeActivity, onC
 function WellnessRow({ item, value, onChange }) {
   if (item.max === 1) {
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ fontSize: 16 }}>{item.icon}</span>
-        <span style={{ flex: 1, fontSize: 13, color: C.text, fontFamily: FB }}>{item.label}</span>
+      <div className={styles.wellnessRow}>
+        <span className={styles.wellnessIcon}>{item.icon}</span>
+        <span className={styles.wellnessLabel}>{item.label}</span>
         <button
           onClick={() => onChange(!value)}
-          style={{ width: 32, height: 32, borderRadius: "50%", border: `2px solid ${value ? C.green : C.border}`, background: value ? C.green : C.surface, color: "#fff", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all .15s" }}>
+          className={`${styles.wellnessToggle}${value ? ` ${styles.active}` : ''}`}
+        >
           {value ? "✓" : ""}
         </button>
       </div>
     );
   }
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <span style={{ fontSize: 16 }}>{item.icon}</span>
-      <span style={{ flex: 1, fontSize: 13, color: C.text, fontFamily: FB }}>{item.label}</span>
-      <div style={{ display: "flex", gap: 4 }}>
+    <div className={styles.wellnessRow}>
+      <span className={styles.wellnessIcon}>{item.icon}</span>
+      <span className={styles.wellnessLabel}>{item.label}</span>
+      <div className={styles.wellnessDots}>
         {Array.from({ length: item.max }, (_, i) => (
           <button key={i}
             onClick={() => onChange(value === i + 1 ? 0 : i + 1)}
-            style={{ width: 26, height: 26, borderRadius: "50%", border: `1.5px solid ${i < value ? C.green : C.border}`, background: i < value ? C.greenPale : C.surface, cursor: "pointer", transition: "all .1s" }} />
+            className={`${styles.wellnessDot}${i < value ? ` ${styles.active}` : ''}`}
+          />
         ))}
       </div>
-      <span style={{ fontSize: 12, color: C.muted, fontFamily: FB, minWidth: 20, textAlign: "right" }}>{value}</span>
+      <span className={styles.wellnessCount}>{value}</span>
     </div>
   );
 }
@@ -254,59 +210,37 @@ function FavoritesPicker({ favorites, onSelect, onClose }) {
 
   return (
     <>
-      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 200 }} />
-      <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 201,
-        background: C.bg, borderRadius: "20px 20px 0 0",
-        boxShadow: "0 -6px 40px rgba(0,0,0,.18)",
-        maxHeight: "72vh", display: "flex", flexDirection: "column",
-      }}>
-        <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 0" }}>
-          <div style={{ width: 36, height: 4, borderRadius: 999, background: C.border }} />
+      <div onClick={onClose} className={styles.favBackdrop} />
+      <div className={styles.favSheet}>
+        <div className={styles.favHandleRow}>
+          <div className={styles.favHandle} />
         </div>
-        <div style={{ padding: "10px 20px 10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 17, color: C.text }}>❤️ Favorit hinzufügen</span>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 22, color: C.muted, lineHeight: 1, padding: 0 }}>✕</button>
+        <div className={styles.favHeader}>
+          <span className={styles.favTitle}>❤️ Favorit hinzufügen</span>
+          <button onClick={onClose} className={styles.favClose}>✕</button>
         </div>
         {favorites.length > 4 && (
-          <div style={{ padding: "0 16px 10px" }}>
+          <div className={styles.favSearchWrap}>
             <input
-              className="app-input"
+              className={styles.favSearchInput}
               placeholder="Favoriten filtern…"
               value={search}
               onChange={e => setSearch(e.target.value)}
               autoFocus
-              style={{ width: "100%", padding: "9px 14px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface, fontFamily: FB, fontSize: 13, color: C.text, boxSizing: "border-box" }}
             />
           </div>
         )}
-        <div style={{ overflowY: "auto", padding: "0 16px 28px", flex: 1 }}>
+        <div className={styles.favList}>
           {favorites.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "28px 0", color: C.muted, fontFamily: FB, fontSize: 13 }}>
-              Noch keine Favoriten gespeichert.
-            </div>
+            <div className={styles.favEmpty}>Noch keine Favoriten gespeichert.</div>
           ) : filtered.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "28px 0", color: C.muted, fontFamily: FB, fontSize: 13 }}>
-              Kein Favorit gefunden.
-            </div>
+            <div className={styles.favEmpty}>Kein Favorit gefunden.</div>
           ) : filtered.map(fav => (
-            <button
-              key={fav.id}
-              onClick={() => { onSelect(fav); onClose(); }}
-              style={{
-                width: "100%", display: "flex", alignItems: "center", gap: 12,
-                padding: "10px 12px", marginBottom: 7,
-                background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12,
-                cursor: "pointer", textAlign: "left",
-              }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 13, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {fav.name}
-                </div>
+            <button key={fav.id} onClick={() => { onSelect(fav); onClose(); }} className={styles.favItem}>
+              <div className={styles.favItemName}>
+                <div className={styles.favItemNameText}>{fav.name}</div>
               </div>
-              <div style={{ flexShrink: 0, background: C.coinBg, border: `1px solid ${C.coinBorder}`, borderRadius: 999, padding: "3px 10px", fontSize: 12, fontWeight: 700, fontFamily: FH, fontStyle: "italic", color: C.coinText }}>
-                🪙 {fav.coins}
-              </div>
+              <div className={styles.favCoinBadge}>🪙 {fav.coins}</div>
             </button>
           ))}
         </div>
@@ -320,9 +254,9 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
   const { getToken } = useAuth();
   const [date, setDate] = useState(toISODate(new Date()));
   const [activeView, setActiveView] = useState("journal"); // "journal" | "stats"
-  const [pickerSlot, setPickerSlot] = useState(null); // meal id or null
-  const [foodSlot, setFoodSlot] = useState(null);    // meal id for food search
-  const [favSlot, setFavSlot] = useState(null);      // meal id for favorites picker
+  const [pickerSlot, setPickerSlot] = useState(null);
+  const [foodSlot, setFoodSlot] = useState(null);
+  const [favSlot, setFavSlot] = useState(null);
 
   const { profile, loading: profileLoading } = useUserProfile();
   const { entry, weeklyUsed, loading: journalLoading, saveState, updateEntry, updateMeal } = useDailyJournal(date);
@@ -348,49 +282,50 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
 
   if (locked) {
     return (
-      <div className="tab-content" style={{ ...card, textAlign: "center", padding: "52px 28px" }}>
-        <div style={{ fontSize: 56, marginBottom: 16 }}>🌿</div>
-        <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 24, color: C.green, marginBottom: 10 }}>Premium-Funktion</div>
-        <p style={{ fontSize: 14, color: C.sub, lineHeight: 1.75, maxWidth: 340, margin: "0 auto 28px", fontFamily: FB }}>
-          Das persönliche Tagesjournal ist exklusiv für Premium-Mitglieder verfügbar.
-        </p>
-        <button className="btn-primary" onClick={onUpgrade} disabled={checkoutLoading}
-          style={{ ...primaryBtn(true), width: "auto", padding: "14px 32px", display: "inline-block" }}>
-          {checkoutLoading ? "Weiterleitung…" : `🌿 Premium – ${premiumPriceLabel}`}
-        </button>
+      <div className="tab-content">
+        <Card className={styles.lockedCard}>
+          <div className={styles.lockedEmoji}>🌿</div>
+          <div className={styles.lockedTitle}>Premium-Funktion</div>
+          <p className={styles.lockedDesc}>
+            Das persönliche Tagesjournal ist exklusiv für Premium-Mitglieder verfügbar.
+          </p>
+          <Button onClick={onUpgrade} disabled={checkoutLoading} style={{ width: "auto", padding: "14px 32px" }}>
+            {checkoutLoading ? "Weiterleitung…" : `🌿 Premium – ${premiumPriceLabel}`}
+          </Button>
+        </Card>
       </div>
     );
   }
 
   if (!isSignedIn) {
     return (
-      <div className="tab-content" style={{ ...card, textAlign: "center", padding: "40px 24px" }}>
-        <div style={{ fontSize: 40, marginBottom: 12 }}>📒</div>
-        <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 20, color: C.text, marginBottom: 8 }}>Tagesjournal</div>
-        <p style={{ fontSize: 13, color: C.sub, fontFamily: FB }}>Bitte melde dich an, um dein persönliches Journal zu nutzen.</p>
+      <div className="tab-content">
+        <Card className={styles.guestCard}>
+          <div className={styles.guestEmoji}>📒</div>
+          <div className={styles.guestTitle}>Tagesjournal</div>
+          <p className={styles.guestText}>Bitte melde dich an, um dein persönliches Journal zu nutzen.</p>
+        </Card>
       </div>
     );
   }
 
   if (profileLoading) return (
-    <div className="tab-content" style={{ textAlign: "center", padding: "40px 0", color: C.muted, fontFamily: FB }}>Lade…</div>
+    <div className={`tab-content ${styles.loadingState}`}>Lade…</div>
   );
 
   if (!profile?.daily_budget) {
     return (
       <div className="tab-content">
-        <div style={{ ...card, textAlign: "center", padding: "32px 24px" }}>
-          <div style={{ fontSize: 42, marginBottom: 10 }}>👤</div>
-          <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 21, color: C.text, marginBottom: 8 }}>
-            Profil zuerst einrichten
-          </div>
-          <p style={{ fontSize: 13, color: C.sub, lineHeight: 1.7, fontFamily: FB, marginBottom: 14 }}>
+        <Card className={styles.setupCard}>
+          <div className={styles.setupEmoji}>👤</div>
+          <div className={styles.setupTitle}>Profil zuerst einrichten</div>
+          <p className={styles.setupText}>
             Dein Tagebuch benötigt ein gespeichertes Tages-Budget. Bitte richte dein Profil einmalig im Profil-Tab ein.
           </p>
-          <button className="btn-primary" style={{ ...primaryBtn(true), width: "auto", padding: "12px 22px", display: "inline-block" }} onClick={onOpenProfile}>
+          <Button onClick={onOpenProfile} style={{ width: "auto", padding: "12px 22px" }}>
             Zum Profil
-          </button>
-        </div>
+          </Button>
+        </Card>
       </div>
     );
   }
@@ -410,17 +345,10 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
     <div className="tab-content">
 
       {/* Journal / Statistiken toggle */}
-      <div style={{ display: "flex", background: C.surface2, borderRadius: 12, padding: 4, marginBottom: 16, gap: 4 }}>
+      <div className={styles.viewToggle}>
         {[["journal", "📒 Journal"], ["stats", "📊 Statistiken"]].map(([id, label]) => (
           <button key={id} onClick={() => setActiveView(id)}
-            style={{
-              flex: 1, padding: "9px 0", borderRadius: 9, border: "none", cursor: "pointer",
-              fontFamily: FB, fontWeight: 700, fontSize: 13,
-              background: activeView === id ? C.surface : "transparent",
-              color: activeView === id ? C.green : C.muted,
-              boxShadow: activeView === id ? "0 1px 4px rgba(0,0,0,.08)" : "none",
-              transition: "all .15s",
-            }}>
+            className={`${styles.viewBtn}${activeView === id ? ` ${styles.active}` : ''}`}>
             {label}
           </button>
         ))}
@@ -434,7 +362,6 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
       {/* Journal view */}
       {activeView === "journal" && <>
 
-      {/* Week strip with day selection */}
       <WeekStrip
         week={week}
         streak={streak}
@@ -444,47 +371,39 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
         onNextWeek={() => setDate(d => addDays(d, 7))}
       />
 
-      {/* Selected day label */}
-      <div style={{ textAlign: "center", fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 18, color: C.text, marginBottom: 14, marginTop: -6 }}>
-        {formatDate(date)}
-      </div>
+      <div className={styles.dateHeading}>{formatDate(date)}</div>
 
       {/* Budget summary + Donut */}
-      <div style={{ ...card, textAlign: "center" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <div style={{ fontFamily: FB, fontSize: 12, color: C.sub }}>
-            Budget: <b style={{ color: C.text, fontFamily: FH, fontStyle: "italic" }}>{daily_budget} Coins/Tag</b>
+      <Card className={styles.budgetCardCenter}>
+        <div className={styles.budgetRow}>
+          <div className={styles.budgetText}>
+            Budget: <b className={styles.budgetAmount}>{daily_budget} Coins/Tag</b>
           </div>
-          <button onClick={onOpenProfile}
-            style={{ background: "none", border: "none", color: C.green, fontFamily: FB, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-            Einstellungen ›
-          </button>
+          <button onClick={onOpenProfile} className={styles.settingsBtn}>Einstellungen ›</button>
         </div>
 
         {journalLoading
-          ? <div style={{ height: 160, display: "flex", alignItems: "center", justifyContent: "center", color: C.muted, fontFamily: FB }}>Lade…</div>
+          ? <div className={styles.chartLoading}>Lade…</div>
           : <DonutChart used={totalUsed} budget={daily_budget} earnedToday={earnedCoins} bonusUsed={entry.used_bonus_coins || 0} />
         }
 
-        {/* Budget breakdown */}
         {!journalLoading && (earnedCoins > 0 || entry.used_bonus_coins > 0) && (
-          <div style={{ marginTop: 12, display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 11, fontFamily: FB, color: C.muted }}>
+          <div className={styles.breakdown}>
+            <span>
               {daily_budget} Budget
-              {earnedCoins > 0 && <> + <span style={{ color: C.green, fontWeight: 700 }}>+{earnedCoins} Aktiv</span></>}
-              {entry.used_bonus_coins > 0 && <> + <span style={{ color: C.coin, fontWeight: 700 }}>+{entry.used_bonus_coins} Bonus</span></>}
-              {" "}= <b style={{ color: C.text }}>{totalAvailable} gesamt</b>
+              {earnedCoins > 0 && <> + <span className={styles.breakdownActive}>+{earnedCoins} Aktiv</span></>}
+              {entry.used_bonus_coins > 0 && <> + <span className={styles.breakdownBonus}>+{entry.used_bonus_coins} Bonus</span></>}
+              {" "}= <b>{totalAvailable} gesamt</b>
             </span>
           </div>
         )}
 
-        {/* Save indicator */}
         {saveState !== "idle" && (
-          <div style={{ marginTop: 8, fontSize: 11, fontFamily: FB, color: saveState === "saved" ? C.green : saveState === "error" ? "#DC2626" : C.muted }}>
+          <div className={`${styles.saveState}${saveState === "saved" ? ` ${styles.saved}` : saveState === "error" ? ` ${styles.error}` : ''}`}>
             {saveState === "saving" ? "Speichert…" : saveState === "saved" ? "✓ Gespeichert" : "✗ Fehler beim Speichern"}
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Aktivitäts-Tracker */}
       {!isFuture && (
@@ -498,9 +417,9 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
 
       {/* Meal slots */}
       {!isFuture && (
-        <div style={{ ...card }}>
-          <div style={sectionLabel}>Mahlzeiten</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <Card>
+          <div className="section-label">Mahlzeiten</div>
+          <div className={styles.mealsColumn}>
             {MEALS.map(meal => (
               <MealSlot
                 key={meal.id}
@@ -513,59 +432,55 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
               />
             ))}
           </div>
-          <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontFamily: FB, fontSize: 13, color: C.sub }}>Tagesverbrauch</span>
-            <span style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 18, color: totalUsed > totalAvailable ? "#DC2626" : C.coinText }}>
+          <div className={styles.mealsSummary}>
+            <span className={styles.mealsSummaryLabel}>Tagesverbrauch</span>
+            <span className={`${styles.mealsSummaryTotal}${totalUsed > totalAvailable ? ` ${styles.over}` : ''}`}>
               🪙 {totalUsed} / {totalAvailable}
             </span>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Wochenbonus */}
       {!isFuture && (
-        <div style={card}>
-          <div style={sectionLabel}>Wochenbonus</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: FB, fontSize: 13, color: C.text, fontWeight: 600 }}>Heute genutzt</div>
-                <div style={{ fontFamily: FB, fontSize: 11, color: C.muted }}>Gesamt noch verfügbar: {weeklyRemaining + entry.used_bonus_coins} von {weekly_bonus}</div>
+        <Card>
+          <div className="section-label">Wochenbonus</div>
+          <div className={styles.bonusColumn}>
+            <div className={styles.bonusRow}>
+              <div className={styles.bonusContent}>
+                <div className={styles.bonusTitle}>Heute genutzt</div>
+                <div className={styles.bonusSub}>Gesamt noch verfügbar: {weeklyRemaining + entry.used_bonus_coins} von {weekly_bonus}</div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <button onClick={() => updateEntry({ used_bonus_coins: Math.max(0, entry.used_bonus_coins - 1) })}
-                  style={{ width: 32, height: 32, borderRadius: "50%", border: `1.5px solid ${C.border}`, background: C.surface2, cursor: "pointer", fontSize: 18, fontWeight: 700, color: C.sub }}>
-                  −
-                </button>
-                <span style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 20, color: C.coinText, minWidth: 28, textAlign: "center" }}>
-                  {entry.used_bonus_coins}
-                </span>
+              <div className={styles.stepperRow}>
+                <button onClick={() => updateEntry({ used_bonus_coins: Math.max(0, entry.used_bonus_coins - 1) })
+                } className={styles.stepperMinus}>−</button>
+                <span className={styles.stepperValue}>{entry.used_bonus_coins}</span>
                 <button onClick={() => updateEntry({ used_bonus_coins: Math.min(weeklyRemaining + entry.used_bonus_coins, entry.used_bonus_coins + 1) })}
-                  style={{ width: 32, height: 32, borderRadius: "50%", border: `1.5px solid ${C.green}`, background: C.greenPale, cursor: "pointer", fontSize: 18, fontWeight: 700, color: C.green }}>
-                  +
-                </button>
+                  className={styles.stepperPlus}>+</button>
               </div>
             </div>
 
-            {/* Weekly bar */}
             <div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: C.muted, fontFamily: FB, marginBottom: 5 }}>
+              <div className={styles.barRow}>
                 <span>Woche verbraucht: {weeklyUsed}</span>
                 <span>Noch: {weeklyRemaining}</span>
               </div>
-              <div style={{ height: 8, background: C.surface2, borderRadius: 999, overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${Math.min((weeklyUsed / weekly_bonus) * 100, 100)}%`, background: weeklyUsed > weekly_bonus * 0.8 ? "#DC2626" : C.coin, borderRadius: 999, transition: "width .3s" }} />
+              <div className={styles.barTrack}>
+                <div
+                  className={`${styles.barFill}${weeklyUsed > weekly_bonus * 0.8 ? ` ${styles.warning}` : ''}`}
+                  style={{ width: `${Math.min((weeklyUsed / weekly_bonus) * 100, 100)}%` }}
+                />
               </div>
             </div>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Wellness Checkliste */}
       {!isFuture && (
-        <div style={card}>
-          <div style={sectionLabel}>Wohlbefinden & Gewohnheiten</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <Card>
+          <div className="section-label">Wohlbefinden & Gewohnheiten</div>
+          <div className={styles.wellnessColumn}>
             {WELLNESS_ITEMS.map(item => (
               <WellnessRow
                 key={item.id}
@@ -575,13 +490,13 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
               />
             ))}
           </div>
-        </div>
+        </Card>
       )}
 
       {isFuture && (
-        <div style={{ ...card, textAlign: "center", padding: "32px 20px", color: C.muted, fontFamily: FB, fontSize: 14 }}>
+        <Card className={styles.futureCard}>
           Kein Journal für zukünftige Tage.
-        </div>
+        </Card>
       )}
 
       </>}

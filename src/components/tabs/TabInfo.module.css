@@ -1,0 +1,141 @@
+.heroCard {
+  background: linear-gradient(135deg, var(--c-green-pale) 0%, var(--c-surface) 100%);
+  border-color: rgba(34,139,34,.18);
+}
+
+.heroTitle {
+  font-family: var(--font-headline);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--c-green2);
+  margin-bottom: 8px;
+}
+
+.premCard {
+  background: var(--c-prem-bg);
+  border-color: var(--c-prem-border);
+}
+
+.premTitle {
+  font-family: var(--font-headline);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--c-prem-text);
+  margin-bottom: 12px;
+}
+
+.benefitList {
+  font-size: 13px;
+  line-height: 2.1;
+  color: var(--c-text);
+  padding-left: 0;
+  margin-bottom: 16px;
+  font-family: var(--font-body);
+  list-style: none;
+}
+
+.benefitItem {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.benefitBullet {
+  color: var(--c-coin);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.upgradeBtn {
+  margin-top: 0;
+  width: auto;
+  padding: 12px 28px;
+  display: inline-block;
+  font-size: 14px;
+}
+
+.premBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--c-green-pale);
+  border: 1px solid rgba(34,139,34,.2);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--c-green2);
+}
+
+.sectionTitle {
+  font-family: var(--font-headline);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--c-green);
+  margin-bottom: 12px;
+}
+
+.sectionTitleMid {
+  font-family: var(--font-headline);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--c-green-mid);
+  margin-bottom: 10px;
+}
+
+.plainList {
+  font-size: 13px;
+  line-height: 2.1;
+  color: var(--c-text);
+  padding-left: 0;
+  margin-bottom: 12px;
+  font-family: var(--font-body);
+  list-style: none;
+}
+
+.formulaCard {
+  background: var(--c-green-pale);
+  border-color: rgba(34,139,34,.14);
+}
+
+.formulaCode {
+  font-size: 12px;
+  display: block;
+  background: rgba(34,139,34,.08);
+  border: 1px solid rgba(34,139,34,.15);
+  padding: 12px 16px;
+  border-radius: 10px;
+  color: var(--c-green2);
+  line-height: 1.9;
+  font-family: 'JetBrains Mono','Fira Code','Courier New',monospace;
+}
+
+.formulaNote {
+  font-size: 11px;
+  color: var(--c-muted);
+  text-align: center;
+  margin-top: 14px;
+  font-style: italic;
+  line-height: 1.6;
+  font-family: var(--font-body);
+}
+
+.prose {
+  font-size: 13px;
+  line-height: 1.85;
+  color: var(--c-text);
+  margin-bottom: 14px;
+  font-family: var(--font-body);
+}
+
+.proseLast {
+  font-size: 13px;
+  line-height: 1.85;
+  color: var(--c-text);
+  font-family: var(--font-body);
+}

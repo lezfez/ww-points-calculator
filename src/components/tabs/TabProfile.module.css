@@ -1,0 +1,105 @@
+/* ── Profile form ── */
+.title {
+  font-family: var(--font-headline);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--c-text);
+  margin-bottom: 6px;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: var(--c-sub);
+  margin-bottom: 18px;
+  line-height: 1.7;
+  font-family: var(--font-body);
+}
+
+.fieldGrid {
+  margin-bottom: 16px;
+}
+
+.selectWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--c-muted);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-family: var(--font-body);
+}
+
+.select {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--c-border);
+  background: var(--c-surface);
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--c-text);
+  appearance: none;
+}
+
+.select:focus {
+  border-color: var(--c-green);
+  box-shadow: 0 0 0 3px rgba(34,139,34,.13);
+  outline: none;
+}
+
+.calcResult {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.divider {
+  border-top: 1px solid var(--c-border);
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.saveIndicator       { margin-top: 10px; font-size: 12px; font-family: var(--font-body); color: var(--c-muted); }
+.saveIndicator.saved { color: var(--c-green); }
+.saveIndicator.error { color: var(--c-danger); }
+
+/* ── Guest / loading states ── */
+.guestCard {
+  text-align: center;
+  padding: 40px 24px;
+}
+
+.guestEmoji { font-size: 40px; margin-bottom: 12px; }
+
+.guestTitle {
+  font-family: var(--font-headline);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--c-text);
+  margin-bottom: 8px;
+}
+
+.guestText {
+  font-size: 13px;
+  color: var(--c-sub);
+  font-family: var(--font-body);
+  margin-bottom: 14px;
+}
+
+.loadingState {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--c-muted);
+  font-family: var(--font-body);
+}

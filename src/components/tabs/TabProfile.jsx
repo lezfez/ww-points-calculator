@@ -1,8 +1,12 @@
 import { useMemo, useState } from "react";
-import { C, FH, FB, card, sectionLabel, inputStyle, labelStyle, primaryBtn } from "../../styles/theme";
+import { C } from "../../styles/theme";
 import { calcDailyBudget } from "../../lib/points";
 import ScoreBlock from "../ScoreBlock";
+import Card from "../ui/Card";
+import Button from "../ui/Button";
+import Input from "../ui/Input";
 import { useUserProfile } from "../../hooks/useUserProfile";
+import styles from "./TabProfile.module.css";
 
 function ProfileForm({ profile, onSave, saving }) {
   const [displayName, setDisplayName] = useState(profile?.display_name || "");
@@ -25,50 +29,43 @@ function ProfileForm({ profile, onSave, saving }) {
   const effectiveBudget = calcResult ? String(calcResult.coins) : dailyBudget;
 
   return (
-    <div style={card}>
-      <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 22, color: C.text, marginBottom: 6 }}>
-        Mein Profil
-      </div>
-      <p style={{ fontSize: 13, color: C.sub, marginBottom: 18, lineHeight: 1.7, fontFamily: FB }}>
-        Verwalte hier deine persönlichen Daten und Budget-Einstellungen zentral.
-      </p>
+    <Card>
+      <div className={styles.title}>Mein Profil</div>
+      <p className={styles.subtitle}>Verwalte hier deine persönlichen Daten und Budget-Einstellungen zentral.</p>
 
-      <div style={sectionLabel}>Persönliche Angaben</div>
-      <div className="field-grid" style={{ marginBottom: 16 }}>
-        <div>
-          <label style={labelStyle}>Anzeigename</label>
-          <input className="app-input" style={inputStyle} value={displayName} placeholder="z.B. Alex" onChange={(e) => setDisplayName(e.target.value)} />
-        </div>
-        <div>
-          <label style={labelStyle}>Avatar URL</label>
-          <input className="app-input" style={inputStyle} value={avatarUrl} placeholder="https://..." onChange={(e) => setAvatarUrl(e.target.value)} />
-        </div>
+      <div className="section-label">Persönliche Angaben</div>
+      <div className={`field-grid ${styles.fieldGrid}`}>
+        <Input
+          id="displayName"
+          label="Anzeigename"
+          value={displayName}
+          placeholder="z.B. Alex"
+          onChange={e => setDisplayName(e.target.value)}
+        />
+        <Input
+          id="avatarUrl"
+          label="Avatar URL"
+          value={avatarUrl}
+          placeholder="https://…"
+          onChange={e => setAvatarUrl(e.target.value)}
+        />
       </div>
 
-      <div style={sectionLabel}>Budget berechnen</div>
-      <div className="field-grid" style={{ marginBottom: 14 }}>
-        <div>
-          <label style={labelStyle}>Gewicht (kg)</label>
-          <input type="number" className="app-input" style={inputStyle} value={gewicht} placeholder="–" onChange={(e) => setGewicht(e.target.value)} />
-        </div>
-        <div>
-          <label style={labelStyle}>Größe (cm)</label>
-          <input type="number" className="app-input" style={inputStyle} value={groesse} placeholder="–" onChange={(e) => setGroesse(e.target.value)} />
-        </div>
-        <div>
-          <label style={labelStyle}>Alter (Jahre)</label>
-          <input type="number" className="app-input" style={inputStyle} value={alter} placeholder="–" onChange={(e) => setAlter(e.target.value)} />
-        </div>
-        <div>
-          <label style={labelStyle}>Geschlecht</label>
-          <select className="app-select" style={inputStyle} value={geschlecht} onChange={(e) => setGeschlecht(e.target.value)}>
+      <div className="section-label">Budget berechnen</div>
+      <div className={`field-grid ${styles.fieldGrid}`}>
+        <Input id="gewicht" label="Gewicht (kg)" type="number" value={gewicht} placeholder="–" onChange={e => setGewicht(e.target.value)} />
+        <Input id="groesse" label="Größe (cm)"   type="number" value={groesse} placeholder="–" onChange={e => setGroesse(e.target.value)} />
+        <Input id="alter"   label="Alter (Jahre)" type="number" value={alter}   placeholder="–" onChange={e => setAlter(e.target.value)} />
+        <div className={styles.selectWrap}>
+          <label className={styles.label} htmlFor="geschlecht">Geschlecht</label>
+          <select id="geschlecht" className={`app-select ${styles.select}`} value={geschlecht} onChange={e => setGeschlecht(e.target.value)}>
             <option value="w">Weiblich</option>
             <option value="m">Männlich</option>
           </select>
         </div>
-        <div>
-          <label style={labelStyle}>Aktivitätsniveau</label>
-          <select className="app-select" style={inputStyle} value={aktivitaet} onChange={(e) => setAktivitaet(e.target.value)}>
+        <div className={styles.selectWrap}>
+          <label className={styles.label} htmlFor="aktivitaet">Aktivitätsniveau</label>
+          <select id="aktivitaet" className={`app-select ${styles.select}`} value={aktivitaet} onChange={e => setAktivitaet(e.target.value)}>
             <option value="sitzend">Überwiegend sitzend</option>
             <option value="leicht">Leicht aktiv</option>
             <option value="maessig">Mäßig aktiv</option>
@@ -77,35 +74,41 @@ function ProfileForm({ profile, onSave, saving }) {
         </div>
       </div>
 
-      <button
-        className="btn-primary"
-        style={{ ...primaryBtn(false), marginBottom: 16 }}
+      <Button
+        style={{ marginBottom: 16 }}
         onClick={() => setCalcResult(calcDailyBudget({ ...parsedNumbers, geschlecht, aktivitaet }))}
       >
         Budget berechnen
-      </button>
+      </Button>
 
       {calcResult && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center", marginBottom: 18 }}>
+        <div className={styles.calcResult}>
           <ScoreBlock value={calcResult.coins} label="🌿 Coins/Tag (wf)" bg={C.coinBg} textColor={C.coinText} borderColor={C.coinBorder} />
           <ScoreBlock value={calcResult.ww} label="WW Points/Tag" bg={C.greenPale} textColor={C.green} borderColor="rgba(34,139,34,.14)" />
         </div>
       )}
 
-      <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-        <div>
-          <label style={labelStyle}>Tages-Budget (Coins)</label>
-          <input type="number" className="app-input" style={inputStyle} placeholder="z.B. 35" value={effectiveBudget} onChange={(e) => { setCalcResult(null); setDailyBudget(e.target.value); }} />
-        </div>
-        <div>
-          <label style={labelStyle}>Wochenbonus (Coins)</label>
-          <input type="number" className="app-input" style={inputStyle} placeholder="49" value={weeklyBonus} onChange={(e) => setWeeklyBonus(e.target.value)} />
-        </div>
+      <div className={styles.divider}>
+        <Input
+          id="dailyBudget"
+          label="Tages-Budget (Coins)"
+          type="number"
+          placeholder="z.B. 35"
+          value={effectiveBudget}
+          onChange={e => { setCalcResult(null); setDailyBudget(e.target.value); }}
+        />
+        <Input
+          id="weeklyBonus"
+          label="Wochenbonus (Coins)"
+          type="number"
+          placeholder="49"
+          value={weeklyBonus}
+          onChange={e => setWeeklyBonus(e.target.value)}
+        />
       </div>
 
-      <button
-        className="btn-primary"
-        style={{ ...primaryBtn(true), marginTop: 14 }}
+      <Button
+        style={{ marginTop: 14 }}
         disabled={saving || !(parseInt(effectiveBudget) > 0)}
         onClick={() => onSave({
           display_name: displayName.trim() || null,
@@ -120,8 +123,8 @@ function ProfileForm({ profile, onSave, saving }) {
         })}
       >
         {saving ? "Speichert…" : "Profil speichern"}
-      </button>
-    </div>
+      </Button>
+    </Card>
   );
 }
 
@@ -131,20 +134,20 @@ export default function TabProfile({ isSignedIn, onSignIn }) {
 
   if (!isSignedIn) {
     return (
-      <div className="tab-content" style={{ ...card, textAlign: "center", padding: "40px 24px" }}>
-        <div style={{ fontSize: 40, marginBottom: 12 }}>👤</div>
-        <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 20, color: C.text, marginBottom: 8 }}>Profil</div>
-        <p style={{ fontSize: 13, color: C.sub, fontFamily: FB, marginBottom: 14 }}>Bitte melde dich an, um dein Profil zu bearbeiten.</p>
-        <button className="btn-primary" style={primaryBtn(true)} onClick={onSignIn}>Anmelden</button>
+      <div className="tab-content">
+        <Card className={styles.guestCard}>
+          <div className={styles.guestEmoji}>👤</div>
+          <div className={styles.guestTitle}>Profil</div>
+          <p className={styles.guestText}>Bitte melde dich an, um dein Profil zu bearbeiten.</p>
+          <Button onClick={onSignIn}>Anmelden</Button>
+        </Card>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="tab-content" style={{ textAlign: "center", padding: "40px 0", color: C.muted, fontFamily: FB }}>
-        Lade Profil…
-      </div>
+      <div className={`tab-content ${styles.loadingState}`}>Lade Profil…</div>
     );
   }
 
@@ -165,7 +168,7 @@ export default function TabProfile({ isSignedIn, onSignIn }) {
       />
 
       {saveState !== "idle" && (
-        <div style={{ marginTop: 10, fontSize: 12, fontFamily: FB, color: saveState === "saved" ? C.green : saveState === "error" ? "#DC2626" : C.muted }}>
+        <div className={`${styles.saveIndicator}${saveState === "saved" ? ` ${styles.saved}` : saveState === "error" ? ` ${styles.error}` : ''}`}>
           {saveState === "saving" ? "Speichert…" : saveState === "saved" ? "✓ Profil gespeichert" : "✗ Speichern fehlgeschlagen"}
         </div>
       )}

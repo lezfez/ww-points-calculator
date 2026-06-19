@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
-import { C, FH, FB, card, sectionLabel, primaryBtn } from "../../styles/theme";
+import Card from "../ui/Card";
+import Button from "../ui/Button";
 import { useDailyJournal } from "../../hooks/useDailyJournal";
 import { useFavorites, FREE_FAV_LIMIT } from "../../hooks/useFavorites";
 import FoodSearch from "../FoodSearch";
+import styles from "./TabFood.module.css";
 
 const MEALS = [
   { id: "fruehstueck", label: "Frühstück" },
@@ -13,9 +15,7 @@ const MEALS = [
   { id: "snack2", label: "Snack 2" },
 ];
 
-function toISODate(d) {
-  return d.toISOString().slice(0, 10);
-}
+function toISODate(d) { return d.toISOString().slice(0, 10); }
 
 export default function TabFood({ isSignedIn, onSignIn, isPremium = false }) {
   const { getToken } = useAuth();
@@ -42,128 +42,99 @@ export default function TabFood({ isSignedIn, onSignIn, isPremium = false }) {
 
   if (!isSignedIn) {
     return (
-      <div className="tab-content" style={{ ...card, textAlign: "center", padding: "40px 24px" }}>
-        <div style={{ fontSize: 40, marginBottom: 12 }}>🥗</div>
-        <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 20, color: C.text, marginBottom: 8 }}>
-          Food
-        </div>
-        <p style={{ fontSize: 13, color: C.sub, fontFamily: FB, marginBottom: 14 }}>
-          Bitte melde dich an, damit du Lebensmittel suchen, scannen und als Mahlzeit eintragen kannst.
-        </p>
-        <button className="btn-primary" style={primaryBtn(true)} onClick={onSignIn}>Anmelden</button>
+      <div className="tab-content">
+        <Card className={styles.guestCard}>
+          <div className={styles.guestEmoji}>🥗</div>
+          <div className={styles.guestTitle}>Food</div>
+          <p className={styles.guestText}>
+            Bitte melde dich an, damit du Lebensmittel suchen, scannen und als Mahlzeit eintragen kannst.
+          </p>
+          <Button onClick={onSignIn}>Anmelden</Button>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="tab-content" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={card}>
-        <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 22, color: C.text, marginBottom: 4 }}>
-          🥗 Food
-        </div>
-        <p style={{ fontFamily: FB, fontSize: 13, color: C.sub, lineHeight: 1.6, margin: 0 }}>
-          Lebensmittel suchen, scannen und direkt in dein Tagebuch eintragen.
-        </p>
-      </div>
+    <div className={`tab-content ${styles.column}`}>
+      <Card>
+        <div className={styles.title}>🥗 Food</div>
+        <p className={styles.subtitle}>Lebensmittel suchen, scannen und direkt in dein Tagebuch eintragen.</p>
+      </Card>
 
-      <div style={card}>
-        <div style={sectionLabel}>Mahlzeit-Ziel</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-          <label style={{ display: "flex", flexDirection: "column", gap: 4, fontFamily: FB, fontSize: 12, color: C.sub }}>
+      <Card>
+        <div className="section-label">Mahlzeit-Ziel</div>
+        <div className={styles.goalGrid}>
+          <label className={styles.fieldLabel}>
             Datum
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              style={{ borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, padding: "10px 12px", fontFamily: FB }}
-            />
+            <input type="date" value={date} onChange={e => setDate(e.target.value)} className={styles.dateInput} />
           </label>
-          <label style={{ display: "flex", flexDirection: "column", gap: 4, fontFamily: FB, fontSize: 12, color: C.sub }}>
+          <label className={styles.fieldLabel}>
             Slot
-            <select
-              value={mealSlot}
-              onChange={(e) => setMealSlot(e.target.value)}
-              style={{ borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, padding: "10px 12px", fontFamily: FB }}
-            >
-              {MEALS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+            <select value={mealSlot} onChange={e => setMealSlot(e.target.value)} className={styles.slotSelect}>
+              {MEALS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
           </label>
         </div>
 
-        <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-          <span style={{ fontFamily: FB, fontSize: 12, color: C.muted, alignSelf: "center" }}>
+        <div className={styles.statusRow}>
+          <span className={styles.statusText}>
             {loading ? "Lade…" : `${mealItems.length} Einträge · ${mealCoins} Coins`}
           </span>
           {saveState !== "idle" && (
-            <span style={{ fontFamily: FB, fontSize: 12, color: saveState === "saved" ? C.green : saveState === "error" ? "#B91C1C" : C.muted, alignSelf: "center" }}>
+            <span className={saveState === "saved" ? styles.saveOk : saveState === "error" ? styles.saveErr : styles.statusText}>
               {saveState === "saving" ? "Speichert…" : saveState === "saved" ? "✓ gespeichert" : "✗ Fehler"}
             </span>
           )}
         </div>
 
         {lastAdded && (
-          <div style={{ marginTop: 10, padding: "8px 10px", background: C.greenPale, border: `1px solid ${C.border}`, borderRadius: 10 }}>
-            <div style={{ fontFamily: FB, fontSize: 12, color: C.sub, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              ✓ Eingetragen: {lastAdded.name}
-            </div>
+          <div className={styles.lastAdded}>
+            <div className={styles.lastAddedText}>✓ Eingetragen: {lastAdded.name}</div>
           </div>
         )}
-      </div>
+      </Card>
 
-      <div style={card}>
-        <div style={sectionLabel}>Suche &amp; Scan</div>
-        <p style={{ fontFamily: FB, fontSize: 12, color: C.muted, marginTop: 0, marginBottom: 10 }}>
+      <Card>
+        <div className="section-label">Suche &amp; Scan</div>
+        <p className={styles.searchHint}>
           Lebensmittel suchen oder Barcode scannen und direkt in den gewählten Slot eintragen.
         </p>
         {!showSearch && (
-          <button
-            className="btn-primary"
-            style={{ ...primaryBtn(true), width: "auto", padding: "10px 16px", display: "inline-block" }}
-            onClick={() => setShowSearch(true)}
-          >
+          <Button onClick={() => setShowSearch(true)} style={{ width: "auto", padding: "10px 16px" }}>
             🔎 Suche öffnen
-          </button>
+          </Button>
         )}
-
         {showSearch && (
-          <div style={{ marginTop: 8 }}>
+          <div className={styles.searchWrap}>
             <FoodSearch
               inline
               onClose={() => setShowSearch(false)}
-              onAdd={(item) => {
-                addItemToMeal(item);
-                setShowSearch(false);
-              }}
+              onAdd={(item) => { addItemToMeal(item); setShowSearch(false); }}
               favorites={favorites}
               onToggleFavorite={(_food, favName, favCoins, existingFav) => {
-                if (existingFav) {
-                  removeFavorite(existingFav);
-                } else {
-                  addFavorite({ name: favName, coins: favCoins });
-                }
+                if (existingFav) removeFavorite(existingFav);
+                else addFavorite({ name: favName, coins: favCoins });
               }}
             />
           </div>
         )}
-      </div>
+      </Card>
 
-      <div style={card}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-          <div style={sectionLabel}>Favoriten</div>
-          {favStatus === "loading" && (
-            <span style={{ fontFamily: FB, fontSize: 11, color: C.muted }}>Lade…</span>
-          )}
-          {favStatus === "error" && (
-            <span style={{ fontFamily: FB, fontSize: 11, color: "#B91C1C" }}>Sync-Fehler</span>
-          )}
+      <Card>
+        <div className={styles.favHeader}>
+          <div className="section-label" style={{ marginBottom: 0 }}>Favoriten</div>
+          {favStatus === "loading" && <span className={styles.favStatus}>Lade…</span>}
+          {favStatus === "error"   && <span className={styles.favError}>Sync-Fehler</span>}
           {!isPremium && favStatus !== "loading" && (
-            <span style={{ fontFamily: FB, fontSize: 11, color: atLimit ? "#B45309" : C.muted, marginLeft: "auto" }}>
+            <span className={`${styles.favCount}${atLimit ? ` ${styles.atLimit}` : ''}`}>
               {favorites.length} / {FREE_FAV_LIMIT}
             </span>
           )}
         </div>
+
         {favorites.length === 0 && favStatus !== "loading" ? (
-          <div style={{ fontFamily: FB, fontSize: 12, color: C.muted }}>
+          <div className={styles.favEmpty}>
             Noch keine Favoriten. Tippe in der Suche auf ❤️ um Lebensmittel zu speichern.
           </div>
         ) : (
@@ -173,48 +144,36 @@ export default function TabFood({ isSignedIn, onSignIn, isPremium = false }) {
                 placeholder="Favoriten filtern…"
                 value={favQuery}
                 onChange={e => setFavQuery(e.target.value)}
-                style={{ width: "100%", boxSizing: "border-box", padding: "8px 12px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontFamily: FB, fontSize: 13, marginBottom: 10 }}
+                className={styles.favFilterInput}
               />
             )}
             {atLimit && (
-              <div style={{ padding: "8px 12px", background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: 10, marginBottom: 10 }}>
-                <div style={{ fontFamily: FB, fontSize: 12, color: "#92400E", fontWeight: 700, marginBottom: 2 }}>
-                  Limit erreicht ({FREE_FAV_LIMIT} Favoriten)
-                </div>
-                <div style={{ fontFamily: FB, fontSize: 11, color: "#B45309" }}>
-                  Mit Premium kannst du unbegrenzt Favoriten speichern.
-                </div>
+              <div className={styles.limitWarning}>
+                <div className={styles.limitTitle}>Limit erreicht ({FREE_FAV_LIMIT} Favoriten)</div>
+                <div className={styles.limitSub}>Mit Premium kannst du unbegrenzt Favoriten speichern.</div>
               </div>
             )}
           </>
         )}
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+
+        <div className={styles.favList}>
           {favQuery && !favorites.some(f => f.name.toLowerCase().includes(favQuery.toLowerCase())) && (
-            <div style={{ fontFamily: FB, fontSize: 12, color: C.muted }}>Kein Favorit gefunden.</div>
+            <div className={styles.favNoMatch}>Kein Favorit gefunden.</div>
           )}
-          {favorites.filter(fav => !favQuery || fav.name.toLowerCase().includes(favQuery.toLowerCase())).map((fav) => (
-            <div key={fav.id} style={{ display: "flex", alignItems: "center", gap: 8, border: `1px solid ${C.border}`, borderRadius: 10, background: C.surface, padding: "8px 10px" }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: FB, fontSize: 13, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{fav.name}</div>
-                <div style={{ fontFamily: FB, fontSize: 11, color: C.muted }}>{fav.coins} Coins</div>
+          {favorites.filter(fav => !favQuery || fav.name.toLowerCase().includes(favQuery.toLowerCase())).map(fav => (
+            <div key={fav.id} className={styles.favItem}>
+              <div className={styles.favItemName}>
+                <div className={styles.favItemLabel}>{fav.name}</div>
+                <div className={styles.favItemCoins}>{fav.coins} Coins</div>
               </div>
-              <button
-                onClick={() => addItemToMeal({ id: Date.now(), name: fav.name, coins: fav.coins })}
-                style={{ border: "none", background: C.green, color: "#fff", borderRadius: 8, padding: "6px 10px", fontFamily: FB, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
-              >
+              <button onClick={() => addItemToMeal({ id: Date.now(), name: fav.name, coins: fav.coins })} className={styles.favAddBtn}>
                 + Mahlzeit
               </button>
-              <button
-                onClick={() => removeFavorite(fav)}
-                style={{ border: `1px solid ${C.border}`, background: C.surface2, color: C.muted, borderRadius: 8, padding: "6px 8px", fontFamily: FB, fontSize: 12, cursor: "pointer" }}
-              >
-                ✕
-              </button>
+              <button onClick={() => removeFavorite(fav)} className={styles.favRemoveBtn}>✕</button>
             </div>
           ))}
         </div>
-      </div>
-
+      </Card>
     </div>
   );
 }

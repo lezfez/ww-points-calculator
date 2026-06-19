@@ -117,6 +117,17 @@ button, a { touch-action: manipulation; }
   align-items: start;
 }
 
+/* ── Section label (universell) ── */
+.section-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--c-muted);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  font-family: var(--font-body);
+}
+
 /* ── Tab content animation ── */
 .tab-content { animation: fadeUp .2s ease both; }
 @keyframes fadeUp {
@@ -211,6 +222,7 @@ button, a { touch-action: manipulation; }
     background: none;
     font-size: 10px;
     font-weight: 500;
+    font-family: var(--font-body);
     letter-spacing: .02em;
     gap: 4px;
     cursor: pointer;
@@ -219,7 +231,10 @@ button, a { touch-action: manipulation; }
     transition: color .15s;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
+    color: var(--c-muted);
   }
+
+  .bottom-nav-btn.active { color: var(--c-green2); }
 
   .bottom-nav-btn.active span {
     font-weight: 700;
