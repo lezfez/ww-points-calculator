@@ -1,3 +1,51 @@
+/* ══ Design Tokens ══ */
+:root {
+  --c-bg:          #F5F0E8;
+  --c-surface:     #FDFAF5;
+  --c-surface2:    #EDE8DE;
+  --c-border:      #DDD8CC;
+
+  --c-green:       #228B22;
+  --c-green2:      #1A6B1A;
+  --c-green-mid:   #2E9D2E;
+  --c-green-light: #5BA85B;
+  --c-green-pale:  #EBF4EB;
+
+  --c-coin:        #C67B5C;
+  --c-coin-dark:   #A34D08;
+  --c-coin-bg:     #FAF0EA;
+  --c-coin-text:   #7A3618;
+  --c-coin-border: rgba(198,123,92,.2);
+
+  --c-text:        #1C1B18;
+  --c-sub:         #5C5C50;
+  --c-muted:       #9E9E90;
+
+  --c-prem-bg:     #FFFBF0;
+  --c-prem-border: #EDD698;
+  --c-prem-text:   #6B3A00;
+
+  --c-admin-bg:    #F0F4FF;
+  --c-admin-border:#C7D2FE;
+  --c-admin-text:  #3730A3;
+
+  --c-amber:       #B45309;
+  --c-danger:      #DC2626;
+  --c-danger-dark: #991B1B;
+
+  --radius-sm:  10px;
+  --radius-md:  16px;
+  --radius-lg:  20px;
+  --radius-xl:  22px;
+  --radius-pill: 999px;
+
+  --shadow-xs: 0 1px 3px rgba(28,27,24,.07), 0 2px 6px rgba(28,27,24,.04);
+  --shadow-sm: 0 2px 8px rgba(28,27,24,.09), 0 4px 16px rgba(28,27,24,.06);
+
+  --font-headline: 'Lora', Georgia, serif;
+  --font-body:     'Raleway', system-ui, sans-serif;
+}
+
 /* Reset */
 *, *::before, *::after { box-sizing: border-box; }
 html {

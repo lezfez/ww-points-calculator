@@ -29,6 +29,11 @@ export const C = {
   adminBg:    "#F0F4FF",
   adminBorder:"#C7D2FE",
   adminText:  "#3730A3",
+
+  coinDark:   "#A34D08",
+  amber:      "#B45309",
+  danger:     "#DC2626",
+  dangerDark: "#991B1B",
 };
 
 export const sh = {

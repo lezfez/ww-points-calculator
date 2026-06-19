@@ -1,9 +1,7 @@
-import { C, FH, FB, sh } from "../styles/theme";
+import styles from './RecipeCard.module.css';
 
 export default function RecipeCard({ recipe, onSelect, selected, isFavorite = false, onToggleFavorite }) {
   const toggleRecipe = () => onSelect(selected ? null : recipe.id);
-  const hasShortDescriptionHtml = !!String(recipe.shortDescriptionHtml || "").trim();
-  const hasInstructionsHtml = !!String(recipe.instructionsHtml || "").trim();
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" || e.key === " ") {
@@ -12,13 +10,15 @@ export default function RecipeCard({ recipe, onSelect, selected, isFavorite = fa
     }
   };
 
+  const hasShortDescriptionHtml = !!String(recipe.shortDescriptionHtml || "").trim();
+  const hasInstructionsHtml = !!String(recipe.instructionsHtml || "").trim();
+
   return (
     <div
       role="button"
       tabIndex={0}
       aria-expanded={selected}
-      className={`recipe-card${selected ? " recipe-card--open" : ""}`}
-      style={{ background: C.surface, border: `1.5px solid ${selected ? C.green : C.border}`, borderRadius: 18, padding: "16px 18px", cursor: "pointer", boxShadow: selected ? `0 0 0 3px ${C.greenPale}, ${sh.sm}` : sh.xs }}
+      className={`${styles.card}${selected ? ` ${styles.open}` : ''}`}
       onClick={toggleRecipe}
       onKeyDown={handleKeyDown}
     >
@@ -27,72 +27,67 @@ export default function RecipeCard({ recipe, onSelect, selected, isFavorite = fa
           src={recipe.image_url}
           alt={`Rezeptbild: ${recipe.name}`}
           loading="lazy"
-          style={{
-            display: "block",
-            width: "100%",
-            aspectRatio: "4 / 3",
-            objectFit: "cover",
-            borderRadius: 12,
-            marginBottom: 12,
-            border: `1px solid ${C.border}`,
-            background: C.surface2,
-          }}
+          className={styles.image}
         />
       )}
-      <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: C.coinBg, border: `1px solid ${C.coinBorder}`, color: C.coinText, fontWeight: 700, fontFamily: FH, fontStyle: "italic", fontSize: 14, padding: "4px 12px 4px 10px", borderRadius: 999, marginBottom: 9 }}>
+
+      <div className={styles.coinBadge}>
         🪙 {recipe.coins} Coins
       </div>
-      <div style={{ fontWeight: 700, fontSize: 15, color: C.text, marginBottom: 9, lineHeight: 1.4, fontFamily: FB }}>
-        {recipe.name}
-      </div>
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+
+      <div className={styles.title}>{recipe.name}</div>
+
+      <div className={styles.tags}>
         {[recipe.kategorie, `⏱ ${recipe.zeit}`, `👥 ${recipe.portionen} Port.`].filter(Boolean).map(tag => (
-          <span key={tag} style={{ padding: "4px 10px", borderRadius: 999, background: C.surface2, color: C.sub, fontSize: 11, fontWeight: 600, fontFamily: FB }}>{tag}</span>
+          <span key={tag} className={styles.tag}>{tag}</span>
         ))}
         {onToggleFavorite && (
           <button
             onClick={(e) => { e.stopPropagation(); onToggleFavorite(recipe.id); }}
             aria-label={isFavorite ? "Aus Favoriten entfernen" : "Zu Favoriten hinzufügen"}
-            style={{ border: "none", background: "none", cursor: "pointer", padding: "2px 4px", fontSize: 16, lineHeight: 1, color: isFavorite ? "#E53E3E" : C.muted }}
+            className={`${styles.favBtn}${isFavorite ? ` ${styles.active}` : ''}`}
           >
             {isFavorite ? "❤️" : "🤍"}
           </button>
         )}
-        <span style={{ fontSize: 12, color: selected ? C.green : C.muted, fontWeight: 700 }}>
+        <span className={`${styles.arrow}${selected ? ` ${styles.open}` : ''}`}>
           {selected ? "▲" : "▼"}
         </span>
       </div>
+
       {selected && (
-        <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
+        <div className={styles.detail}>
           {hasShortDescriptionHtml && (
             <div
-              style={{ margin: "0 0 12px", lineHeight: 1.7, fontSize: 13, color: C.text, fontFamily: FB }}
+              className={styles.prose}
               onClick={e => e.stopPropagation()}
               dangerouslySetInnerHTML={{ __html: recipe.shortDescriptionHtml }}
             />
           )}
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", color: C.muted, marginBottom: 8, fontFamily: FB }}>Zutaten</div>
-          <ul style={{ margin: "0 0 14px", padding: "0 0 0 18px", lineHeight: 1.9, textAlign: "left", fontSize: 13, color: C.text, fontFamily: FB }}>
+          <div className={styles.sectionLabel}>Zutaten</div>
+          <ul className={styles.ingredients}>
             {recipe.zutaten.map(z => <li key={z}>{z}</li>)}
           </ul>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", color: C.muted, marginBottom: 8, fontFamily: FB }}>Zubereitung</div>
+          <div className={styles.sectionLabel}>Zubereitung</div>
           {hasInstructionsHtml ? (
             <div
-              style={{ margin: "0 0 12px", lineHeight: 1.8, fontSize: 13, color: C.text, fontFamily: FB }}
+              className={styles.prose}
               onClick={e => e.stopPropagation()}
               dangerouslySetInnerHTML={{ __html: recipe.instructionsHtml }}
             />
           ) : (
-            <p style={{ margin: "0 0 12px", lineHeight: 1.8, fontSize: 13, color: C.text, fontFamily: FB }}>{recipe.zubereitung}</p>
+            <p className={styles.prose}>{recipe.zubereitung}</p>
           )}
           {recipe.hinweis && (
-            <div style={{ background: C.greenPale, border: `1px solid rgba(34,139,34,.15)`, borderRadius: 9, padding: "8px 12px", fontSize: 12, color: C.green2, marginBottom: 12, fontFamily: FB }}>
-              ℹ️ {recipe.hinweis}
-            </div>
+            <div className={styles.hinweis}>ℹ️ {recipe.hinweis}</div>
           )}
-          <a href={recipe.url} target="_blank" rel="noreferrer"
-            style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: C.green, fontWeight: 700, textDecoration: "none", fontFamily: FB, cursor: "pointer" }}
-            onClick={e => e.stopPropagation()}>
+          <a
+            href={recipe.url}
+            target="_blank"
+            rel="noreferrer"
+            className={styles.sourceLink}
+            onClick={e => e.stopPropagation()}
+          >
             → Rezeptquelle
           </a>
         </div>
