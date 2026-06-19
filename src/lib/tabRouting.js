@@ -1,6 +1,6 @@
 const DEFAULT_TAB = "calc";
 
-export function normalizeTabId(value, fallback = DEFAULT_TAB) {
+function normalizeTabId(value, fallback = DEFAULT_TAB) {
   const normalized = String(value || "").trim().toLowerCase();
   return normalized || fallback;
 }

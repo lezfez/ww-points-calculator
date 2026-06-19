@@ -1,4 +1,4 @@
-export const ROLE_RANK = { guest: 0, user: 1, premium: 2, admin: 3 };
+const ROLE_RANK = { guest: 0, user: 1, premium: 2, admin: 3 };
 export const ROLE_LABELS = { guest: "Gast", user: "Registriert", premium: "Premium", admin: "Admin" };
 export const ROLE_OPTIONS = ["user", "premium", "admin"];
 
