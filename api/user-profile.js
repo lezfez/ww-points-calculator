@@ -85,6 +85,55 @@ export default async function handler(req, res) {
     return res.status(405).end();
   }
 
+  // --- Recipe favorites sub-resource ---
+  if (req.query.action === "recipe-favorites") {
+    if (req.method === "GET") {
+      const { data, error } = await supabase
+        .from("recipe_favorites")
+        .select("id, recipe_id")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) return res.status(500).json({ error: error.message });
+      return res.json(data ?? []);
+    }
+
+    if (req.method === "POST") {
+      const { recipe_id } = req.body ?? {};
+      if (!recipe_id) return res.status(400).json({ error: "recipe_id erforderlich" });
+
+      const [{ count }, premium] = await Promise.all([
+        supabase.from("recipe_favorites").select("id", { count: "exact", head: true }).eq("user_id", userId).then(r => ({ count: r.count ?? 0 })),
+        isPremiumUser(userId),
+      ]);
+      if (!premium && count >= FREE_FAV_LIMIT) {
+        return res.status(403).json({ error: "limit_reached", limit: FREE_FAV_LIMIT });
+      }
+
+      const { data, error } = await supabase
+        .from("recipe_favorites")
+        .upsert({ user_id: userId, recipe_id: String(recipe_id) }, { onConflict: "user_id,recipe_id" })
+        .select("id, recipe_id")
+        .single();
+      if (error) return res.status(500).json({ error: error.message });
+      return res.status(201).json(data);
+    }
+
+    if (req.method === "DELETE") {
+      const { id } = req.body ?? {};
+      if (!id) return res.status(400).json({ error: "id erforderlich" });
+      const { error } = await supabase
+        .from("recipe_favorites")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", userId);
+      if (error) return res.status(500).json({ error: error.message });
+      return res.status(204).end();
+    }
+
+    return res.status(405).end();
+  }
+
   // --- Profile resource ---
   if (!["GET", "PUT"].includes(req.method)) return res.status(405).end();
 

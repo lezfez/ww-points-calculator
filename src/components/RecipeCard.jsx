@@ -1,6 +1,6 @@
 import { C, FH, FB, sh } from "../styles/theme";
 
-export default function RecipeCard({ recipe, onSelect, selected }) {
+export default function RecipeCard({ recipe, onSelect, selected, isFavorite = false, onToggleFavorite }) {
   const toggleRecipe = () => onSelect(selected ? null : recipe.id);
   const hasShortDescriptionHtml = !!String(recipe.shortDescriptionHtml || "").trim();
   const hasInstructionsHtml = !!String(recipe.instructionsHtml || "").trim();
@@ -49,7 +49,16 @@ export default function RecipeCard({ recipe, onSelect, selected }) {
         {[recipe.kategorie, `⏱ ${recipe.zeit}`, `👥 ${recipe.portionen} Port.`].filter(Boolean).map(tag => (
           <span key={tag} style={{ padding: "4px 10px", borderRadius: 999, background: C.surface2, color: C.sub, fontSize: 11, fontWeight: 600, fontFamily: FB }}>{tag}</span>
         ))}
-        <span style={{ marginLeft: "auto", fontSize: 12, color: selected ? C.green : C.muted, fontWeight: 700 }}>
+        {onToggleFavorite && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleFavorite(recipe.id); }}
+            aria-label={isFavorite ? "Aus Favoriten entfernen" : "Zu Favoriten hinzufügen"}
+            style={{ border: "none", background: "none", cursor: "pointer", padding: "2px 4px", fontSize: 16, lineHeight: 1, color: isFavorite ? "#E53E3E" : C.muted }}
+          >
+            {isFavorite ? "❤️" : "🤍"}
+          </button>
+        )}
+        <span style={{ fontSize: 12, color: selected ? C.green : C.muted, fontWeight: 700 }}>
           {selected ? "▲" : "▼"}
         </span>
       </div>
