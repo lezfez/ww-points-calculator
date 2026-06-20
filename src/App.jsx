@@ -531,7 +531,10 @@ export default function App() {
           <div className={styles.headerInner}>
             <img src={appLogo} alt="WampeWeg" className={styles.logo} />
             <div className={styles.headerText}>
-              <div className={styles.appName}>WampeWeg</div>
+              <div className={styles.appName}>
+                WampeWeg
+                <span className={styles.appVersion}>{__APP_VERSION__}</span>
+              </div>
               <div className={styles.taglineRow}>
                 <div className={styles.tagline}>{headerTagline}</div>
                 {isSignedIn && (

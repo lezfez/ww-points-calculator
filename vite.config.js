@@ -1,8 +1,15 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { execSync } from 'child_process'
+
+const commitCount = parseInt(execSync('git rev-list --count HEAD').toString().trim(), 10);
+const APP_VERSION = `v1.${String(commitCount).padStart(3, '0')}`;
 
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(APP_VERSION),
+  },
   build: {
     rollupOptions: {
       output: {
