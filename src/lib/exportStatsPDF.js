@@ -160,12 +160,16 @@ export function exportStatsPDF(days, stats, displayName) {
 </body>
 </html>`;
 
-  const win = window.open("", "_blank");
-  if (!win) return;
-  win.document.write(html);
-  win.document.close();
-  win.addEventListener("load", () => {
-    win.focus();
-    win.print();
-  });
+  // Use a blob URL so iOS Safari opens a real new tab the user can close/back-navigate from.
+  // document.write() into an empty window replaces the current history entry on mobile.
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, "_blank");
+  if (!win) {
+    // Popup blocked — revoke immediately
+    URL.revokeObjectURL(url);
+    return;
+  }
+  // Revoke after enough time for the tab to load and print
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
