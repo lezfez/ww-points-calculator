@@ -1,8 +1,8 @@
 {
   "name": "ww-points-calculator",
   "private": true,
-  "version": "1.0.91",
-  "deployVersion": 2,
+  "version": "1.0.99",
+  "deployVersion": 3,
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -15,7 +15,7 @@
     "db:push": "npx supabase db push",
     "db:pull": "npx supabase db pull",
     "db:migration:new": "npx supabase migration new",
-    "version:deploy": "node -e \"const fs=require('fs'),p=JSON.parse(fs.readFileSync('package.json'));p.deployVersion=(p.deployVersion||0)+1;fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\\n');console.log('deployVersion →',p.deployVersion)\""
+    "version:deploy": "node -e \"const fs=require('fs'),{execSync}=require('child_process'),p=JSON.parse(fs.readFileSync('package.json'));p.deployVersion=(p.deployVersion||0)+1;const count=parseInt(execSync('git rev-list --count HEAD').toString().trim())+1;const[maj,,]=p.version.split('.');p.version=maj+'.0.'+count;fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\\n');console.log('v1.'+p.deployVersion+'.'+String(count).padStart(3,'0'))\""
   },
   "dependencies": {
     "@clerk/backend": "^3.5.0",
