@@ -16,6 +16,16 @@
 }
 
 .searchInput {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1.5px solid var(--c-border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: var(--font-body);
+  color: var(--c-text);
+  background: var(--c-surface);
+  outline: none;
+  box-sizing: border-box;
   margin-bottom: 14px;
 }
 
