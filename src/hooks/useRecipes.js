@@ -125,9 +125,13 @@ export function useRecipes() {
   const [error, setError] = useState(null);
 
   const fetchRecipes = useCallback(async () => {
+    // Only show published recipes (or rows without a status, for backwards compatibility)
+    const PUBLISHED_FILTER = "status.eq.published,status.is.null";
+
     const fullQuery = await supabase
       .from("recipes")
       .select(RECIPE_SELECT_WITH_IMAGES_AND_CATEGORIES)
+      .or(PUBLISHED_FILTER)
       .order("id");
 
     let data = fullQuery.data;
@@ -137,6 +141,7 @@ export function useRecipes() {
       const imageAndTextFallbackQuery = await supabase
         .from("recipes")
         .select(RECIPE_SELECT_WITH_IMAGES_AND_TEXTS)
+        .or(PUBLISHED_FILTER)
         .order("id");
 
       data = imageAndTextFallbackQuery.data;
@@ -147,6 +152,7 @@ export function useRecipes() {
       const imageAndCategoriesFallbackQuery = await supabase
         .from("recipes")
         .select(RECIPE_SELECT_WITH_IMAGES_AND_CATEGORIES_NO_TEXTS)
+        .or(PUBLISHED_FILTER)
         .order("id");
 
       data = imageAndCategoriesFallbackQuery.data;
@@ -157,6 +163,7 @@ export function useRecipes() {
       const imageFallbackQuery = await supabase
         .from("recipes")
         .select(RECIPE_SELECT_WITH_IMAGES)
+        .or(PUBLISHED_FILTER)
         .order("id");
 
       data = imageFallbackQuery.data;
@@ -167,6 +174,7 @@ export function useRecipes() {
       const textFallbackQuery = await supabase
         .from("recipes")
         .select(RECIPE_SELECT_WITH_TEXTS)
+        .or(PUBLISHED_FILTER)
         .order("id");
 
       data = textFallbackQuery.data;
@@ -177,6 +185,7 @@ export function useRecipes() {
       const fallbackQuery = await supabase
         .from("recipes")
         .select(BASE_RECIPE_SELECT)
+        .or(PUBLISHED_FILTER)
         .order("id");
 
       data = fallbackQuery.data;
