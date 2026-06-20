@@ -2,9 +2,19 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { execSync } from 'child_process'
+import { readFileSync } from 'fs'
 
-const commitCount = parseInt(execSync('git rev-list --count HEAD').toString().trim(), 10);
-const APP_VERSION = `v1.${String(commitCount).padStart(3, '0')}`;
+function getBuildNumber() {
+  try {
+    return parseInt(execSync('git rev-list --count HEAD', { stdio: 'pipe' }).toString().trim(), 10);
+  } catch {
+    // Vercel build container has no .git — fall back to package.json patch version
+    const pkg = JSON.parse(readFileSync('./package.json', 'utf8'));
+    return parseInt((pkg.version || '0.0.0').split('.')[2] || '0', 10);
+  }
+}
+
+const APP_VERSION = `v1.${String(getBuildNumber()).padStart(3, '0')}`;
 
 export default defineConfig({
   define: {
