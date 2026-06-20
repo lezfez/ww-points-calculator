@@ -82,11 +82,26 @@ input::placeholder { color: #B8B0A4; }
   input, select, textarea { font-size: 16px !important; }
 }
 
+/* Base input / select styles */
+.app-input,
+.app-select {
+  padding: 11px 13px;
+  border: 1.5px solid var(--c-border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: var(--font-body);
+  color: var(--c-text);
+  background: var(--c-surface);
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
 /* Focus states – green ring */
 .app-input:focus,
 .app-select:focus {
-  border-color: #228B22 !important;
-  box-shadow: 0 0 0 3px rgba(34, 139, 34, 0.13) !important;
+  border-color: var(--c-green);
+  box-shadow: 0 0 0 3px rgba(34, 139, 34, 0.13);
   outline: none;
 }
 
