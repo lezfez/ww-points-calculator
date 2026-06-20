@@ -67,6 +67,7 @@ export default function TabAdmin({
   const [imageSearchQuery, setImageSearchQuery] = useState("");
   const [imageModal, setImageModal] = useState(null);
   const [activeSubtab, setActiveSubtab] = useState(getInitialAdminSubtab);
+  const [recipeStatusFilter, setRecipeStatusFilter] = useState("all");
 
   const formatDateTime = (value) => {
     if (!value) return "-";
@@ -77,12 +78,15 @@ export default function TabAdmin({
 
   const filteredRecipes = useMemo(() => {
     const needle = recipeCategoryQuery.trim().toLowerCase();
-    if (!needle) return recipes;
-    return recipes.filter(r =>
-      r.name?.toLowerCase().includes(needle) ||
-      (r.kategorienLabels || []).some(cat => cat.toLowerCase().includes(needle))
-    );
-  }, [recipes, recipeCategoryQuery]);
+    return recipes.filter(r => {
+      const status = recipeStatusById?.[r.id]?.status ?? "published";
+      if (recipeStatusFilter === "published" && status !== "published") return false;
+      if (recipeStatusFilter === "draft" && status !== "draft") return false;
+      if (!needle) return true;
+      return r.name?.toLowerCase().includes(needle) ||
+        (r.kategorienLabels || []).some(cat => cat.toLowerCase().includes(needle));
+    });
+  }, [recipes, recipeCategoryQuery, recipeStatusFilter, recipeStatusById]);
 
   const activeRecipeCategoriesCatalog = useMemo(
     () => recipeCategoriesCatalog.filter(cat => cat.is_active !== false),
@@ -530,6 +534,23 @@ export default function TabAdmin({
           <p className={styles.proseSm}>
             Weise Rezepten eine oder mehrere aktive Kategorien zu oder korrigiere bestehende Zuordnungen.
           </p>
+
+          <div className={styles.filterChips}>
+            {[
+              { id: "all",       label: "Alle" },
+              { id: "published", label: "✅ Veröffentlicht" },
+              { id: "draft",     label: "📝 Entwurf" },
+            ].map(f => (
+              <button
+                key={f.id}
+                onClick={() => setRecipeStatusFilter(f.id)}
+                className={`${styles.chip}${recipeStatusFilter === f.id ? ` ${styles.chipActive}` : ""}`}
+              >
+                {f.label}
+              </button>
+            ))}
+            <span className={styles.filterCount}>{filteredRecipes.length} Rezepte</span>
+          </div>
 
           <div className={`${styles.searchRow} ${styles.searchRowMb12}`}>
             <input

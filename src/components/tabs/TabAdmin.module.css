@@ -97,6 +97,41 @@
 .msgBanner.err { background: #FEE2E2;              color: var(--c-danger-dark); }
 .msgBannerMt   { margin-top: 12px; }
 
+/* ── Status filter chips ── */
+.filterChips {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.chip {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1.5px solid var(--c-border);
+  background: var(--c-surface);
+  color: var(--c-sub);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.chipActive {
+  border-color: var(--c-green);
+  background: var(--c-green-pale);
+  color: var(--c-green2);
+}
+
+.filterCount {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--c-muted);
+  margin-left: auto;
+}
+
 /* ── Generic form row ── */
 .searchRow {
   display: flex;

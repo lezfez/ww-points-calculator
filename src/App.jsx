@@ -79,6 +79,7 @@ export default function App() {
   const [bootstrapMsg, setBootstrapMsg]         = useState(null);
 
   const { recipes, loading: recipesLoading, error: recipesError, reload: reloadRecipes } = useRecipes();
+  const { recipes: adminRecipes, reload: reloadAdminRecipes } = useRecipes({ includeAll: true });
   const { flags, loading: flagsLoading, error: flagsError, reload: reloadFlags } = useFeatureFlags();
   const { isSignedIn, user } = useUser();
   const { getToken }         = useAuth();
@@ -451,7 +452,7 @@ export default function App() {
   }, [adminFetch, reloadRecipes]);
 
   const generateAllImages = useCallback(async () => {
-    const todo = recipes.filter(r => r.image_status !== "ready");
+    const todo = adminRecipes.filter(r => r.image_status !== "ready");
     if (!todo.length) return;
     setImageGenLoading(true);
     for (const r of todo) {
@@ -459,7 +460,7 @@ export default function App() {
       if (todo.indexOf(r) < todo.length - 1) await new Promise(res => setTimeout(res, 1500));
     }
     setImageGenLoading(false);
-  }, [recipes, generateRecipeImage]);
+  }, [adminRecipes, generateRecipeImage]);
 
   const TABS = useMemo(() => [
     { id: "calc",    label: "Rechner" },
@@ -644,7 +645,7 @@ export default function App() {
             bootstrapSettingsSaving={adminBootstrapSettingsSaving}
             bootstrapSettingsMsg={adminBootstrapSettingsMsg}
             onSaveBootstrapSettings={saveBootstrapSettings}
-            recipes={recipes}
+            recipes={adminRecipes}
             imageGenLoading={imageGenLoading} imageGenPerRecipe={imageGenPerRecipe} imageGenMsg={imageGenMsg}
             onGenerateImage={generateRecipeImage} onGenerateAllImages={generateAllImages}
             recipeCategoryQuery={adminRecipeCategoryQuery}

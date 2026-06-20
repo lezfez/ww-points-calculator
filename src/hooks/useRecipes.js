@@ -119,29 +119,29 @@ function mapRecipe(r) {
   };
 }
 
-export function useRecipes() {
+export function useRecipes({ includeAll = false } = {}) {
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const fetchRecipes = useCallback(async () => {
-    // Only show published recipes (or rows without a status, for backwards compatibility)
+    // Only show published recipes (or rows without a status, for backwards compatibility).
+    // includeAll=true skips the filter for admin views that need to see drafts too.
     const PUBLISHED_FILTER = "status.eq.published,status.is.null";
+    const applyFilter = (q) => includeAll ? q : q.or(PUBLISHED_FILTER);
 
-    const fullQuery = await supabase
+    const fullQuery = await applyFilter(supabase
       .from("recipes")
-      .select(RECIPE_SELECT_WITH_IMAGES_AND_CATEGORIES)
-      .or(PUBLISHED_FILTER)
+      .select(RECIPE_SELECT_WITH_IMAGES_AND_CATEGORIES))
       .order("id");
 
     let data = fullQuery.data;
     let error = fullQuery.error;
 
     if (error?.code === "42703") {
-      const imageAndTextFallbackQuery = await supabase
+      const imageAndTextFallbackQuery = await applyFilter(supabase
         .from("recipes")
-        .select(RECIPE_SELECT_WITH_IMAGES_AND_TEXTS)
-        .or(PUBLISHED_FILTER)
+        .select(RECIPE_SELECT_WITH_IMAGES_AND_TEXTS))
         .order("id");
 
       data = imageAndTextFallbackQuery.data;
@@ -149,10 +149,9 @@ export function useRecipes() {
     }
 
     if (error?.code === "42703") {
-      const imageAndCategoriesFallbackQuery = await supabase
+      const imageAndCategoriesFallbackQuery = await applyFilter(supabase
         .from("recipes")
-        .select(RECIPE_SELECT_WITH_IMAGES_AND_CATEGORIES_NO_TEXTS)
-        .or(PUBLISHED_FILTER)
+        .select(RECIPE_SELECT_WITH_IMAGES_AND_CATEGORIES_NO_TEXTS))
         .order("id");
 
       data = imageAndCategoriesFallbackQuery.data;
@@ -160,10 +159,9 @@ export function useRecipes() {
     }
 
     if (error?.code === "42703") {
-      const imageFallbackQuery = await supabase
+      const imageFallbackQuery = await applyFilter(supabase
         .from("recipes")
-        .select(RECIPE_SELECT_WITH_IMAGES)
-        .or(PUBLISHED_FILTER)
+        .select(RECIPE_SELECT_WITH_IMAGES))
         .order("id");
 
       data = imageFallbackQuery.data;
@@ -171,10 +169,9 @@ export function useRecipes() {
     }
 
     if (error?.code === "42703") {
-      const textFallbackQuery = await supabase
+      const textFallbackQuery = await applyFilter(supabase
         .from("recipes")
-        .select(RECIPE_SELECT_WITH_TEXTS)
-        .or(PUBLISHED_FILTER)
+        .select(RECIPE_SELECT_WITH_TEXTS))
         .order("id");
 
       data = textFallbackQuery.data;
@@ -182,10 +179,9 @@ export function useRecipes() {
     }
 
     if (error?.code === "42703") {
-      const fallbackQuery = await supabase
+      const fallbackQuery = await applyFilter(supabase
         .from("recipes")
-        .select(BASE_RECIPE_SELECT)
-        .or(PUBLISHED_FILTER)
+        .select(BASE_RECIPE_SELECT))
         .order("id");
 
       data = fallbackQuery.data;
@@ -195,7 +191,7 @@ export function useRecipes() {
     if (error) throw error;
 
     return (data || []).map(mapRecipe);
-  }, []);
+  }, [includeAll]);
 
   const reload = useCallback(async () => {
     setLoading(true);
