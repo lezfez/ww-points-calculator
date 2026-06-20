@@ -4,17 +4,24 @@ import { VitePWA } from 'vite-plugin-pwa'
 import { execSync } from 'child_process'
 import { readFileSync } from 'fs'
 
-function getBuildNumber() {
+function getVersionParts() {
+  const pkg = JSON.parse(readFileSync('./package.json', 'utf8'));
+  const [, minor] = (pkg.version || '1.0.0').split('.');
+  const deployVersion = parseInt(minor || '0', 10);
+
+  let buildNumber;
   try {
-    return parseInt(execSync('git rev-list --count HEAD', { stdio: 'pipe' }).toString().trim(), 10);
+    buildNumber = parseInt(execSync('git rev-list --count HEAD', { stdio: 'pipe' }).toString().trim(), 10);
   } catch {
     // Vercel build container has no .git — fall back to package.json patch version
-    const pkg = JSON.parse(readFileSync('./package.json', 'utf8'));
-    return parseInt((pkg.version || '0.0.0').split('.')[2] || '0', 10);
+    buildNumber = parseInt((pkg.version || '0.0.0').split('.')[2] || '0', 10);
   }
+
+  return { deployVersion, buildNumber };
 }
 
-const APP_VERSION = `v1.${String(getBuildNumber()).padStart(3, '0')}`;
+const { deployVersion, buildNumber } = getVersionParts();
+const APP_VERSION = `v1.${deployVersion}.${String(buildNumber).padStart(3, '0')}`;
 
 export default defineConfig({
   define: {
