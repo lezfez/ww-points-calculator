@@ -6,8 +6,7 @@ import { readFileSync } from 'fs'
 
 function getVersionParts() {
   const pkg = JSON.parse(readFileSync('./package.json', 'utf8'));
-  const [, minor] = (pkg.version || '1.0.0').split('.');
-  const deployVersion = parseInt(minor || '0', 10);
+  const deployVersion = pkg.deployVersion || 0;
 
   let buildNumber;
   try {

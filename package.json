@@ -2,6 +2,7 @@
   "name": "ww-points-calculator",
   "private": true,
   "version": "1.0.91",
+  "deployVersion": 2,
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,7 +14,8 @@
     "db:link": "npx supabase link --project-ref \"$SUPABASE_PROJECT_REF\"",
     "db:push": "npx supabase db push",
     "db:pull": "npx supabase db pull",
-    "db:migration:new": "npx supabase migration new"
+    "db:migration:new": "npx supabase migration new",
+    "version:deploy": "node -e \"const fs=require('fs'),p=JSON.parse(fs.readFileSync('package.json'));p.deployVersion=(p.deployVersion||0)+1;fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\\n');console.log('deployVersion →',p.deployVersion)\""
   },
   "dependencies": {
     "@clerk/backend": "^3.5.0",
