@@ -63,6 +63,12 @@
   margin-top: 0;
 }
 
+.inline {
+  width: auto;
+  padding: 12px 22px;
+  margin-top: 0;
+}
+
 .pill {
   border-radius: var(--radius-pill);
 }

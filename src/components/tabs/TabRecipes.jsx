@@ -97,7 +97,7 @@ export default function TabRecipes({ recipes, loading, error, onReload, isSigned
           <p className={styles.errorDesc}>
             Die Verbindung zur Datenbank ist fehlgeschlagen. Bitte prüfe die Verbindung oder versuche es erneut.
           </p>
-          <Button onClick={onReload} style={{ width: "auto", padding: "12px 24px" }}>
+          <Button onClick={onReload} size="inline">
             Erneut laden
           </Button>
         </Card>

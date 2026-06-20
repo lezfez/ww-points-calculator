@@ -137,6 +137,7 @@ Be careful when changing webhook parsing: Stripe signature verification requires
 - Do not edit the nested `ww-points-calculator/` folder for normal app changes.
 - Do not expose `.env.local` contents in logs or responses.
 - For React changes, keep accessibility in mind: labels, buttons, keyboard behavior, loading and error states.
+- Vermeide doppelten Code, baue bevorzugt zentrale Componenten und Module
 
 ## Deployment Notes
 

@@ -75,7 +75,7 @@ function ProfileForm({ profile, onSave, saving }) {
       </div>
 
       <Button
-        style={{ marginBottom: 16 }}
+        className={styles.btnCalc}
         onClick={() => setCalcResult(calcDailyBudget({ ...parsedNumbers, geschlecht, aktivitaet }))}
       >
         Budget berechnen
@@ -108,7 +108,6 @@ function ProfileForm({ profile, onSave, saving }) {
       </div>
 
       <Button
-        style={{ marginTop: 14 }}
         disabled={saving || !(parseInt(effectiveBudget) > 0)}
         onClick={() => onSave({
           display_name: displayName.trim() || null,

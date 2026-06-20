@@ -1,0 +1,51 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.usedArc {
+  transition: stroke-dasharray .4s ease;
+}
+
+/* ── Legend ── */
+.legend {
+  display: flex;
+  gap: 14px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.legendDot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  /* background stays inline — data-driven per segment */
+}
+
+.legendDotBudget {
+  background: var(--c-surface2);
+  border: 1.5px solid var(--c-border);
+}
+
+.legendText {
+  color: var(--c-sub);
+}
+
+.legendVal {
+  color: var(--c-text);
+}
+
+.legendValGreen {
+  color: var(--c-green);
+}

@@ -1,4 +1,6 @@
 /* ── Profile form ── */
+.btnCalc { margin-bottom: 16px; }
+
 .title {
   font-family: var(--font-headline);
   font-style: italic;

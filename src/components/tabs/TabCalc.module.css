@@ -57,6 +57,10 @@
   font-family: 'JetBrains Mono','Fira Code','Courier New',monospace;
 }
 
+.formulaCoin  { color: var(--c-coin-text); }
+.formulaGreen { color: var(--c-green2); }
+.formulaSub   { color: var(--c-sub); }
+
 .formulaNote {
   font-size: 11px;
   color: var(--c-muted);

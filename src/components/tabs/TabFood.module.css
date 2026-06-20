@@ -201,3 +201,6 @@
   margin-bottom: 8px;
 }
 .guestText { font-size: 13px; color: var(--c-sub); font-family: var(--font-body); margin-bottom: 14px; }
+
+.btnSearch         { padding: 10px 16px; }
+.sectionLabelFlush { margin-bottom: 0; }

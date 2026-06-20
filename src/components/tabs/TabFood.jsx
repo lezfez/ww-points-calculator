@@ -101,7 +101,7 @@ export default function TabFood({ isSignedIn, onSignIn, isPremium = false }) {
           Lebensmittel suchen oder Barcode scannen und direkt in den gewählten Slot eintragen.
         </p>
         {!showSearch && (
-          <Button onClick={() => setShowSearch(true)} style={{ width: "auto", padding: "10px 16px" }}>
+          <Button onClick={() => setShowSearch(true)} size="inline" className={styles.btnSearch}>
             🔎 Suche öffnen
           </Button>
         )}
@@ -123,7 +123,7 @@ export default function TabFood({ isSignedIn, onSignIn, isPremium = false }) {
 
       <Card>
         <div className={styles.favHeader}>
-          <div className="section-label" style={{ marginBottom: 0 }}>Favoriten</div>
+          <div className={`section-label ${styles.sectionLabelFlush}`}>Favoriten</div>
           {favStatus === "loading" && <span className={styles.favStatus}>Lade…</span>}
           {favStatus === "error"   && <span className={styles.favError}>Sync-Fehler</span>}
           {!isPremium && favStatus !== "loading" && (

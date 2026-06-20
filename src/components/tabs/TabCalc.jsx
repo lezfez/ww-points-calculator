@@ -3,7 +3,6 @@ import Field from "../Field";
 import ScoreBlock from "../ScoreBlock";
 import Card from "../ui/Card";
 import Button from "../ui/Button";
-import { C } from "../../styles/theme";
 import { SYSTEMS, SYS_FIELDS, FIELD_DEFS } from "../../lib/pointSystems";
 import { calcClassic, calcCoins, calcPersonalPoints, calcProPoints, calcSmartPoints } from "../../lib/points";
 import styles from "./TabCalc.module.css";
@@ -67,11 +66,11 @@ export default function TabCalc() {
       <Card className={styles.formulaCard}>
         <div className="section-label">Verwendete Formeln</div>
         <div className={styles.formulaCode}>
-          <b style={{ color: C.coinText }}>Coins (wf):</b> kcal×0.022 + gesF×0.20 + Zucker×0.10 + Salz×0.15 − Protein×0.10 − Bst×0.15<br />
-          <b style={{ color: C.green }}>PersonalPoints:</b> SmartPoints − Bst×0.14 − ungesF×0.07<br />
-          <b style={{ color: C.green }}>SmartPoints:</b> kcal×0.0305 + gesF×0.275 + Zucker×0.12 − Protein×0.098<br />
-          <b style={{ color: C.sub }}>ProPoints:</b> Protein×0.36 + KH×0.16 + Fett×0.24 − Bst×0.18<br />
-          <b style={{ color: C.sub }}>Classic:</b> kcal×0.0165 + Fett×0.11
+          <b className={styles.formulaCoin}>Coins (wf):</b> kcal×0.022 + gesF×0.20 + Zucker×0.10 + Salz×0.15 − Protein×0.10 − Bst×0.15<br />
+          <b className={styles.formulaGreen}>PersonalPoints:</b> SmartPoints − Bst×0.14 − ungesF×0.07<br />
+          <b className={styles.formulaGreen}>SmartPoints:</b> kcal×0.0305 + gesF×0.275 + Zucker×0.12 − Protein×0.098<br />
+          <b className={styles.formulaSub}>ProPoints:</b> Protein×0.36 + KH×0.16 + Fett×0.24 − Bst×0.18<br />
+          <b className={styles.formulaSub}>Classic:</b> kcal×0.0165 + Fett×0.11
         </div>
         <p className={styles.formulaNote}>
           ⚠️ Alle Formeln sind Näherungen / reverse-engineered. Weder WW noch weight friends veröffentlichen offizielle Formeln.

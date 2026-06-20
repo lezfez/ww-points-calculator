@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useAuth } from "@clerk/clerk-react";
-import { C, FB, FH, card, sectionLabel, inputStyle, primaryBtn } from "../styles/theme";
+import Card from "./ui/Card";
+import styles from "./AdminFoods.module.css";
 
 const PAGE_SIZE = 25;
 
@@ -17,7 +18,6 @@ const NUTR_FIELDS = [
 
 function useAdminFoodApi() {
   const { getToken } = useAuth();
-
   const authFetch = useCallback(async (url, options = {}) => {
     const token = await getToken();
     return fetch(url, {
@@ -25,7 +25,6 @@ function useAdminFoodApi() {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...(options.headers || {}) },
     });
   }, [getToken]);
-
   return { authFetch };
 }
 
@@ -33,17 +32,18 @@ function useAdminFoodApi() {
 function StatsCard({ stats }) {
   if (!stats) return null;
   const items = [
-    { label: "Gesamt",   value: stats.total,   color: C.text },
-    { label: "OFF",      value: stats.off,     color: C.sub },
-    { label: "Manuell",  value: stats.manual,  color: "#B45309" },
-    { label: "Lückenhaft", value: stats.incomplete, color: "#DC2626" },
+    { label: "Gesamt",    value: stats.total,      color: "var(--c-text)" },
+    { label: "OFF",       value: stats.off,        color: "var(--c-sub)" },
+    { label: "Manuell",   value: stats.manual,     color: "var(--c-amber)" },
+    { label: "Lückenhaft",value: stats.incomplete, color: "var(--c-danger)" },
   ];
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }}>
+    <div className={styles.statsGrid}>
       {items.map(i => (
-        <div key={i.label} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "10px 12px", textAlign: "center" }}>
-          <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 20, color: i.color }}>{i.value ?? "–"}</div>
-          <div style={{ fontFamily: FB, fontSize: 10, color: C.muted, marginTop: 2 }}>{i.label}</div>
+        <div key={i.label} className={styles.statCard}>
+          {/* color stays inline — data-driven per stat type */}
+          <div className={styles.statNum} style={{ color: i.color }}>{i.value ?? "–"}</div>
+          <div className={styles.statLabel}>{i.label}</div>
         </div>
       ))}
     </div>
@@ -56,53 +56,48 @@ function EditRow({ food, onSave, onCancel }) {
   const set = (k, v) => setDraft(p => ({ ...p, [k]: v }));
 
   return (
-    <div style={{ padding: "12px 14px", background: C.surface2, borderTop: `1px solid ${C.border}` }}>
-      <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-        <div style={{ flex: 2 }}>
-          <div style={{ fontFamily: FB, fontSize: 10, color: C.muted, marginBottom: 3 }}>Name</div>
-          <input className="app-input" style={{ ...inputStyle, padding: "7px 10px", fontSize: 12 }}
+    <div className={styles.editRowWrap}>
+      <div className={styles.editFieldRow}>
+        <div className={styles.editFieldFlex2}>
+          <div className={styles.editFieldLabel}>Name</div>
+          <input className={`app-input ${styles.editInputSm}`}
             value={draft.name} onChange={e => set("name", e.target.value)} />
         </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: FB, fontSize: 10, color: C.muted, marginBottom: 3 }}>Marke</div>
-          <input className="app-input" style={{ ...inputStyle, padding: "7px 10px", fontSize: 12 }}
+        <div className={styles.editFieldFlex1}>
+          <div className={styles.editFieldLabel}>Marke</div>
+          <input className={`app-input ${styles.editInputSm}`}
             value={draft.brand || ""} onChange={e => set("brand", e.target.value)} />
         </div>
       </div>
       <div style={{ marginBottom: 10 }}>
-        <div style={{ fontFamily: FB, fontSize: 10, color: C.muted, marginBottom: 3 }}>Barcode (EAN/GTIN)</div>
-        <input className="app-input" style={{ ...inputStyle, padding: "7px 10px", fontSize: 12 }}
+        <div className={styles.editFieldLabel}>Barcode (EAN/GTIN)</div>
+        <input className={`app-input ${styles.editInputSm}`}
           value={draft.barcode || ""} onChange={e => set("barcode", e.target.value.replace(/\D/g, ""))} placeholder="z.B. 9002490203541" />
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginBottom: 10 }}>
+      <div className={styles.editNutrGrid}>
         {NUTR_FIELDS.map(f => (
           <div key={f.id}>
-            <div style={{ fontFamily: FB, fontSize: 10, color: C.muted, marginBottom: 2 }}>{f.label}/100g</div>
-            <input type="number" step={f.step} className="app-input"
-              style={{ ...inputStyle, padding: "6px 8px", fontSize: 12, textAlign: "right" }}
+            <div className={styles.editFieldLabel}>{f.label}/100g</div>
+            <input type="number" step={f.step} className={`app-input ${styles.editInputSmRight}`}
               value={draft[f.id] ?? ""} onChange={e => set(f.id, e.target.value === "" ? null : parseFloat(e.target.value))} />
           </div>
         ))}
       </div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: FB, fontSize: 10, color: C.muted, marginBottom: 2 }}>Portion (g)</div>
-          <input type="number" className="app-input" style={{ ...inputStyle, padding: "6px 8px", fontSize: 12 }}
+      <div className={styles.editFieldRow} style={{ marginBottom: 8 }}>
+        <div className={styles.editFieldFlex1}>
+          <div className={styles.editFieldLabel}>Portion (g)</div>
+          <input type="number" className={`app-input ${styles.editInputSmNum}`}
             value={draft.serving_g ?? ""} onChange={e => set("serving_g", e.target.value === "" ? null : parseFloat(e.target.value))} />
         </div>
-        <div style={{ flex: 2 }}>
-          <div style={{ fontFamily: FB, fontSize: 10, color: C.muted, marginBottom: 2 }}>Portionsbezeichnung</div>
-          <input className="app-input" style={{ ...inputStyle, padding: "6px 8px", fontSize: 12 }}
+        <div className={styles.editFieldFlex2}>
+          <div className={styles.editFieldLabel}>Portionsbezeichnung</div>
+          <input className={`app-input ${styles.editInputSmNum}`}
             value={draft.serving_label || ""} onChange={e => set("serving_label", e.target.value)} />
         </div>
       </div>
-      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-        <button onClick={onCancel} style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: C.surface, fontFamily: FB, fontSize: 12, cursor: "pointer", color: C.sub }}>
-          Abbrechen
-        </button>
-        <button onClick={() => onSave(draft)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: C.green, color: "#fff", fontFamily: FB, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
-          Speichern
-        </button>
+      <div className={styles.editBtnRow}>
+        <button onClick={onCancel} className={styles.cancelBtn}>Abbrechen</button>
+        <button onClick={() => onSave(draft)} className={styles.saveGreenBtn}>Speichern</button>
       </div>
     </div>
   );
@@ -157,59 +152,44 @@ function LocalDB({ authFetch, onStatsChange }) {
 
   return (
     <div>
-      {/* Search + add */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-        <input className="app-input" placeholder="Suchen…"
-          value={q} onChange={e => handleSearch(e.target.value)}
-          style={{ ...inputStyle, flex: 1, padding: "8px 12px", fontSize: 13 }} />
-        <button onClick={() => setShowAdd(v => !v)}
-          style={{ padding: "8px 14px", borderRadius: 9, border: "none", background: C.green, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", flexShrink: 0 }}>
-          + Manuell
-        </button>
+      <div className={styles.searchRow}>
+        <input className={`app-input ${styles.flexInput}`} placeholder="Suchen…"
+          value={q} onChange={e => handleSearch(e.target.value)} />
+        <button onClick={() => setShowAdd(v => !v)} className={styles.addBtn}>+ Manuell</button>
       </div>
 
-      {/* Manual add form */}
       {showAdd && (
         <ManualAddForm authFetch={authFetch} onSaved={() => { setShowAdd(false); load(); }} onCancel={() => setShowAdd(false)} />
       )}
 
-      {/* Count */}
-      <div style={{ fontFamily: FB, fontSize: 11, color: C.muted, marginBottom: 10 }}>
-        {loading ? "Lade…" : `${total} Einträge`}
-      </div>
+      <div className={styles.countMsg}>{loading ? "Lade…" : `${total} Einträge`}</div>
 
-      {/* Food list */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div className={styles.foodList}>
         {foods.map(food => (
-          <div key={food.id} style={{ background: C.surface, border: `1px solid ${editId === food.id ? C.green : C.border}`, borderRadius: 12, overflow: "hidden" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px" }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                  <span style={{ fontFamily: FB, fontWeight: 700, fontSize: 13, color: C.text }}>{food.name}</span>
-                  {food.brand && <span style={{ fontSize: 11, color: C.muted, fontFamily: FB }}>· {food.brand}</span>}
-                  {food.barcode && <span style={{ fontSize: 10, color: C.muted, fontFamily: FB }}>· #{food.barcode}</span>}
-                  <span style={{ fontSize: 10, background: food.source === "manual" ? "#FEF3C7" : C.surface2, color: food.source === "manual" ? "#B45309" : C.muted, borderRadius: 999, padding: "1px 7px", fontFamily: FB }}>
+          <div key={food.id} className={`${styles.foodItem}${editId === food.id ? ` ${styles.editing}` : ''}`}>
+            <div className={styles.foodRow}>
+              <div className={styles.foodMain}>
+                <div className={styles.foodNameRow}>
+                  <span className={styles.foodName}>{food.name}</span>
+                  {food.brand && <span className={styles.foodBrand}>· {food.brand}</span>}
+                  {food.barcode && <span className={styles.foodBarcode}>· #{food.barcode}</span>}
+                  <span className={`${styles.sourceBadge}${food.source === "manual" ? ` ${styles.manual}` : ''}`}>
                     {food.source === "manual" ? "manuell" : "OFF"}
                   </span>
                 </div>
-                <div style={{ display: "flex", gap: 8, marginTop: 3, flexWrap: "wrap" }}>
-                  {food.kcal_100g != null && <span style={{ fontSize: 10, color: C.muted, fontFamily: FB }}>{food.kcal_100g} kcal</span>}
-                  {food.protein_100g != null && <span style={{ fontSize: 10, color: C.muted, fontFamily: FB }}>P {food.protein_100g}g</span>}
-                  {food.carbs_100g != null && <span style={{ fontSize: 10, color: C.muted, fontFamily: FB }}>KH {food.carbs_100g}g</span>}
-                  {food.fat_100g != null && <span style={{ fontSize: 10, color: C.muted, fontFamily: FB }}>F {food.fat_100g}g</span>}
+                <div className={styles.nutrRow}>
+                  {food.kcal_100g != null && <span className={styles.nutrVal}>{food.kcal_100g} kcal</span>}
+                  {food.protein_100g != null && <span className={styles.nutrVal}>P {food.protein_100g}g</span>}
+                  {food.carbs_100g != null && <span className={styles.nutrVal}>KH {food.carbs_100g}g</span>}
+                  {food.fat_100g != null && <span className={styles.nutrVal}>F {food.fat_100g}g</span>}
                 </div>
               </div>
-              <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 13, color: C.coinText, flexShrink: 0 }}>
-                🪙 {food.coins_100g}
-              </div>
+              <div className={styles.foodCoins}>🪙 {food.coins_100g}</div>
               <button onClick={() => setEditId(editId === food.id ? null : food.id)}
-                style={{ padding: "5px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: editId === food.id ? C.greenPale : C.surface2, cursor: "pointer", fontSize: 13, color: C.sub }}>
+                className={`${styles.editBtn}${editId === food.id ? ` ${styles.editing}` : ''}`}>
                 ✎
               </button>
-              <button onClick={() => handleDelete(food.id)}
-                style={{ padding: "5px 10px", borderRadius: 7, border: `1px solid ${C.border}`, background: C.surface2, cursor: "pointer", fontSize: 13, color: "#DC2626" }}>
-                ✕
-              </button>
+              <button onClick={() => handleDelete(food.id)} className={styles.deleteBtn}>✕</button>
             </div>
             {editId === food.id && (
               <EditRow food={food} onSave={handleSave} onCancel={() => setEditId(null)} />
@@ -217,22 +197,17 @@ function LocalDB({ authFetch, onStatsChange }) {
           </div>
         ))}
         {!loading && foods.length === 0 && (
-          <div style={{ textAlign: "center", padding: "28px 0", color: C.muted, fontFamily: FB, fontSize: 13 }}>
-            Keine Einträge gefunden.
-          </div>
+          <div className={styles.foodEmpty}>Keine Einträge gefunden.</div>
         )}
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14, justifyContent: "center" }}>
-          <button disabled={page === 1} onClick={() => { const p = page - 1; setPage(p); load(q, p); }}
-            style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: C.surface2, cursor: page === 1 ? "default" : "pointer", color: page === 1 ? C.border : C.sub, fontFamily: FB, fontSize: 12 }}>
+        <div className={styles.pagination}>
+          <button disabled={page === 1} onClick={() => { const p = page - 1; setPage(p); load(q, p); }} className={styles.pageBtn}>
             ‹ Zurück
           </button>
-          <span style={{ fontFamily: FB, fontSize: 12, color: C.muted }}>Seite {page} / {totalPages}</span>
-          <button disabled={page === totalPages} onClick={() => { const p = page + 1; setPage(p); load(q, p); }}
-            style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: C.surface2, cursor: page === totalPages ? "default" : "pointer", color: page === totalPages ? C.border : C.sub, fontFamily: FB, fontSize: 12 }}>
+          <span className={styles.pageInfo}>Seite {page} / {totalPages}</span>
+          <button disabled={page === totalPages} onClick={() => { const p = page + 1; setPage(p); load(q, p); }} className={styles.pageBtn}>
             Weiter ›
           </button>
         </div>
@@ -259,45 +234,44 @@ function ManualAddForm({ authFetch, onSaved, onCancel }) {
   };
 
   return (
-    <div style={{ background: C.surface, border: `1.5px solid ${C.green}`, borderRadius: 12, padding: "14px", marginBottom: 12 }}>
-      <div style={{ fontFamily: FB, fontSize: 12, fontWeight: 700, color: C.green, marginBottom: 10 }}>Neues Lebensmittel</div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-        <div style={{ flex: 2 }}>
-          <div style={{ fontFamily: FB, fontSize: 10, color: C.muted, marginBottom: 2 }}>Name *</div>
-          <input className="app-input" style={{ ...inputStyle, padding: "7px 10px", fontSize: 12 }} placeholder="z.B. Haferflocken" value={draft.name} onChange={e => set("name", e.target.value)} />
+    <div className={styles.manualAddForm}>
+      <div className={styles.manualTitle}>Neues Lebensmittel</div>
+      <div className={styles.editFieldRow}>
+        <div className={styles.editFieldFlex2}>
+          <div className={styles.editFieldLabel}>Name *</div>
+          <input className={`app-input ${styles.editInputSm}`} placeholder="z.B. Haferflocken" value={draft.name} onChange={e => set("name", e.target.value)} />
         </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: FB, fontSize: 10, color: C.muted, marginBottom: 2 }}>Marke</div>
-          <input className="app-input" style={{ ...inputStyle, padding: "7px 10px", fontSize: 12 }} placeholder="Optional" value={draft.brand} onChange={e => set("brand", e.target.value)} />
+        <div className={styles.editFieldFlex1}>
+          <div className={styles.editFieldLabel}>Marke</div>
+          <input className={`app-input ${styles.editInputSm}`} placeholder="Optional" value={draft.brand} onChange={e => set("brand", e.target.value)} />
         </div>
       </div>
       <div style={{ marginBottom: 8 }}>
-        <div style={{ fontFamily: FB, fontSize: 10, color: C.muted, marginBottom: 2 }}>Barcode (EAN/GTIN)</div>
-        <input className="app-input" style={{ ...inputStyle, padding: "7px 10px", fontSize: 12 }} placeholder="Optional" value={draft.barcode} onChange={e => set("barcode", e.target.value.replace(/\D/g, ""))} />
+        <div className={styles.editFieldLabel}>Barcode (EAN/GTIN)</div>
+        <input className={`app-input ${styles.editInputSm}`} placeholder="Optional" value={draft.barcode} onChange={e => set("barcode", e.target.value.replace(/\D/g, ""))} />
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginBottom: 8 }}>
+      <div className={styles.editNutrGrid}>
         {NUTR_FIELDS.map(f => (
           <div key={f.id}>
-            <div style={{ fontFamily: FB, fontSize: 10, color: C.muted, marginBottom: 2 }}>{f.label}/100g</div>
-            <input type="number" step={f.step} className="app-input" style={{ ...inputStyle, padding: "6px 8px", fontSize: 12, textAlign: "right" }}
+            <div className={styles.editFieldLabel}>{f.label}/100g</div>
+            <input type="number" step={f.step} className={`app-input ${styles.editInputSmRight}`}
               value={draft[f.id]} onChange={e => set(f.id, e.target.value)} />
           </div>
         ))}
       </div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: FB, fontSize: 10, color: C.muted, marginBottom: 2 }}>Portion (g)</div>
-          <input type="number" className="app-input" style={{ ...inputStyle, padding: "6px 8px", fontSize: 12 }} value={draft.serving_g} onChange={e => set("serving_g", e.target.value)} />
+      <div className={styles.editFieldRow} style={{ marginBottom: 10 }}>
+        <div className={styles.editFieldFlex1}>
+          <div className={styles.editFieldLabel}>Portion (g)</div>
+          <input type="number" className={`app-input ${styles.editInputSmNum}`} value={draft.serving_g} onChange={e => set("serving_g", e.target.value)} />
         </div>
-        <div style={{ flex: 2 }}>
-          <div style={{ fontFamily: FB, fontSize: 10, color: C.muted, marginBottom: 2 }}>Portionsbezeichnung</div>
-          <input className="app-input" style={{ ...inputStyle, padding: "6px 8px", fontSize: 12 }} placeholder="z.B. 1 Scheibe (30g)" value={draft.serving_label} onChange={e => set("serving_label", e.target.value)} />
+        <div className={styles.editFieldFlex2}>
+          <div className={styles.editFieldLabel}>Portionsbezeichnung</div>
+          <input className={`app-input ${styles.editInputSmNum}`} placeholder="z.B. 1 Scheibe (30g)" value={draft.serving_label} onChange={e => set("serving_label", e.target.value)} />
         </div>
       </div>
-      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-        <button onClick={onCancel} style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: C.surface, fontFamily: FB, fontSize: 12, cursor: "pointer", color: C.sub }}>Abbrechen</button>
-        <button onClick={handleSave} disabled={saving || !draft.name.trim()}
-          style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: C.green, color: "#fff", fontFamily: FB, fontWeight: 700, fontSize: 12, cursor: "pointer", opacity: saving ? .6 : 1 }}>
+      <div className={styles.manualBtnRow}>
+        <button onClick={onCancel} className={styles.cancelBtn}>Abbrechen</button>
+        <button onClick={handleSave} disabled={saving || !draft.name.trim()} className={styles.savePrimaryBtn}>
           {saving ? "Speichert…" : "Speichern"}
         </button>
       </div>
@@ -358,63 +332,51 @@ function OFFImport({ authFetch, onImported }) {
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-        <input className="app-input" placeholder="Suche auf Open Food Facts…"
+      <div className={styles.offSearchRow}>
+        <input className={`app-input ${styles.flexInput}`} placeholder="Suche auf Open Food Facts…"
           value={q} onChange={e => setQ(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && search()}
-          style={{ ...inputStyle, flex: 1, padding: "8px 12px", fontSize: 13 }} />
-        <button onClick={search} disabled={loading}
-          style={{ padding: "8px 16px", borderRadius: 9, border: "none", background: C.green, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", flexShrink: 0, opacity: loading ? .6 : 1 }}>
+          onKeyDown={e => e.key === "Enter" && search()} />
+        <button onClick={search} disabled={loading} className={styles.offSearchBtn}>
           {loading ? "…" : "Suchen"}
         </button>
       </div>
 
       {products.length > 0 && (
         <>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-            <button onClick={toggleAll} style={{ fontSize: 12, fontFamily: FB, color: C.green, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+          <div className={styles.offToggleRow}>
+            <button onClick={toggleAll} className={styles.offToggleBtn}>
               {selected.size === products.length ? "Alle abwählen" : "Alle auswählen"}
             </button>
-            <span style={{ fontSize: 11, color: C.muted, fontFamily: FB }}>{selected.size} ausgewählt</span>
+            <span className={styles.offCount}>{selected.size} ausgewählt</span>
             {selected.size > 0 && (
-              <button onClick={handleImport} disabled={importing}
-                style={{ marginLeft: "auto", padding: "6px 14px", borderRadius: 8, border: "none", background: C.green, color: "#fff", fontFamily: FB, fontWeight: 700, fontSize: 12, cursor: "pointer", opacity: importing ? .6 : 1 }}>
+              <button onClick={handleImport} disabled={importing} className={styles.offImportBtn}>
                 {importing ? "Importiert…" : `${selected.size} importieren`}
               </button>
             )}
           </div>
-          {msg && <div style={{ fontFamily: FB, fontSize: 12, color: C.green, marginBottom: 10 }}>{msg}</div>}
+          {msg && <div className={styles.offMsg}>{msg}</div>}
         </>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {loading && <div style={{ textAlign: "center", padding: "20px", color: C.muted, fontFamily: FB, fontSize: 13 }}>Suche bei Open Food Facts…</div>}
-        {!loading && products.length === 0 && q && <div style={{ textAlign: "center", padding: "20px", color: C.muted, fontFamily: FB, fontSize: 13 }}>Keine Ergebnisse. Suchbegriff verfeinern.</div>}
+      <div className={styles.offList}>
+        {loading && <div className={styles.offLoadingMsg}>Suche bei Open Food Facts…</div>}
+        {!loading && products.length === 0 && q && <div className={styles.offLoadingMsg}>Keine Ergebnisse. Suchbegriff verfeinern.</div>}
         {products.map((p, i) => (
           <button key={p.off_id || i} onClick={() => toggleOne(i)}
-            style={{
-              display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", textAlign: "left",
-              background: selected.has(i) ? C.greenPale : C.surface,
-              border: `1.5px solid ${selected.has(i) ? C.green : C.border}`,
-              borderRadius: 11, cursor: "pointer", transition: "all .1s",
-            }}>
-            <span style={{ width: 18, height: 18, borderRadius: 4, border: `2px solid ${selected.has(i) ? C.green : C.border}`, background: selected.has(i) ? C.green : C.surface, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {selected.has(i) && <span style={{ color: "#fff", fontSize: 11, fontWeight: 700 }}>✓</span>}
+            className={`${styles.offItem}${selected.has(i) ? ` ${styles.selected}` : ''}`}>
+            <span className={`${styles.offCheckbox}${selected.has(i) ? ` ${styles.selected}` : ''}`}>
+              {selected.has(i) && <span className={styles.offCheck}>✓</span>}
             </span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 12, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {p.name}{p.brand ? ` · ${p.brand}` : ""}
-              </div>
-              <div style={{ fontSize: 10, color: C.muted, fontFamily: FB, marginTop: 2 }}>
+            <div className={styles.offItemInfo}>
+              <div className={styles.offItemName}>{p.name}{p.brand ? ` · ${p.brand}` : ""}</div>
+              <div className={styles.offItemNutr}>
                 {p.kcal_100g != null ? `${p.kcal_100g} kcal` : "–"} · P {p.protein_100g ?? "–"}g · KH {p.carbs_100g ?? "–"}g · F {p.fat_100g ?? "–"}g
               </div>
             </div>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3, flexShrink: 0 }}>
-                <span style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 12, color: C.coinText }}>🪙 {p.coins_100g}</span>
-                {p._sourceLabel && (
-                  <span style={{ fontSize: 9, fontFamily: FB, color: C.muted, background: C.surface2, borderRadius: 999, padding: "1px 6px" }}>{p._sourceLabel}</span>
-                )}
-              </div>
+            <div className={styles.offItemRight}>
+              <span className={styles.offCoins}>🪙 {p.coins_100g}</span>
+              {p._sourceLabel && <span className={styles.offSourceLabel}>{p._sourceLabel}</span>}
+            </div>
           </button>
         ))}
       </div>
@@ -426,52 +388,35 @@ function OFFImport({ authFetch, onImported }) {
 export default function AdminFoods() {
   const { authFetch } = useAdminFoodApi();
   const [stats, setStats] = useState(null);
-  const [activeTab, setActiveTab] = useState("local"); // local | import
+  const [activeTab, setActiveTab] = useState("local");
 
   const loadFullStats = useCallback(async () => {
     try {
       const res = await authFetch("/api/admin-foods?_stats=1");
       const data = await res.json();
-      setStats({
-        total: data.total ?? 0,
-        off: data.off ?? 0,
-        manual: data.manual ?? 0,
-        incomplete: data.incomplete ?? 0,
-      });
+      setStats({ total: data.total ?? 0, off: data.off ?? 0, manual: data.manual ?? 0, incomplete: data.incomplete ?? 0 });
     } catch { /* ignore */ }
   }, [authFetch]);
 
   useEffect(() => { loadFullStats(); }, [loadFullStats]);
 
   return (
-    <div style={{ ...card }}>
-      <div style={sectionLabel}>🥦 Lebensmitteldatenbank</div>
+    <Card>
+      <div className="section-label">🥦 Lebensmitteldatenbank</div>
 
       <StatsCard stats={stats} />
 
-      {/* Tab toggle */}
-      <div style={{ display: "flex", background: C.surface2, borderRadius: 10, padding: 3, marginBottom: 14, gap: 3 }}>
+      <div className={styles.tabToggle}>
         {[["local", "📋 Lokale DB"], ["import", "🌍 OFF importieren"]].map(([id, label]) => (
           <button key={id} onClick={() => setActiveTab(id)}
-            style={{
-              flex: 1, padding: "8px 0", borderRadius: 8, border: "none", cursor: "pointer",
-              fontFamily: FB, fontWeight: 700, fontSize: 12,
-              background: activeTab === id ? C.surface : "transparent",
-              color: activeTab === id ? C.green : C.muted,
-              boxShadow: activeTab === id ? "0 1px 4px rgba(0,0,0,.08)" : "none",
-              transition: "all .15s",
-            }}>
+            className={`${styles.tabBtn}${activeTab === id ? ` ${styles.active}` : ''}`}>
             {label}
           </button>
         ))}
       </div>
 
-      {activeTab === "local" && (
-        <LocalDB authFetch={authFetch} onStatsChange={loadFullStats} />
-      )}
-      {activeTab === "import" && (
-        <OFFImport authFetch={authFetch} onImported={loadFullStats} />
-      )}
-    </div>
+      {activeTab === "local" && <LocalDB authFetch={authFetch} onStatsChange={loadFullStats} />}
+      {activeTab === "import" && <OFFImport authFetch={authFetch} onImported={loadFullStats} />}
+    </Card>
   );
 }

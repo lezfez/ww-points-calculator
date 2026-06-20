@@ -1,0 +1,305 @@
+/* ── Stats grid ── */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.statCard {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  text-align: center;
+}
+.statNum {
+  font-family: var(--font-headline);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 20px;
+  /* color stays inline — data-driven */
+}
+.statLabel { font-family: var(--font-body); font-size: 10px; color: var(--c-muted); margin-top: 2px; }
+
+/* ── Tab toggle ── */
+.tabToggle {
+  display: flex;
+  background: var(--c-surface2);
+  border-radius: 10px;
+  padding: 3px;
+  margin-bottom: 14px;
+  gap: 3px;
+}
+.tabBtn {
+  flex: 1;
+  padding: 8px 0;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 12px;
+  background: transparent;
+  color: var(--c-muted);
+  transition: all .15s;
+}
+.tabBtn.active {
+  background: var(--c-surface);
+  color: var(--c-green);
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+}
+
+/* ── Search row ── */
+.searchRow { display: flex; gap: 8px; margin-bottom: 14px; }
+.flexInput { flex: 1; padding: 8px 12px; font-size: 13px; }
+.addBtn {
+  padding: 8px 14px;
+  border-radius: 9px;
+  border: none;
+  background: var(--c-green);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.countMsg { font-family: var(--font-body); font-size: 11px; color: var(--c-muted); margin-bottom: 10px; }
+
+/* ── Food list ── */
+.foodList { display: flex; flex-direction: column; gap: 6px; }
+.foodItem {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color .15s;
+}
+.foodItem.editing { border-color: var(--c-green); }
+
+.foodRow { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
+.foodMain { flex: 1; min-width: 0; }
+.foodNameRow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.foodName    { font-family: var(--font-body); font-weight: 700; font-size: 13px; color: var(--c-text); }
+.foodBrand   { font-size: 11px; color: var(--c-muted); font-family: var(--font-body); }
+.foodBarcode { font-size: 10px; color: var(--c-muted); font-family: var(--font-body); }
+
+.sourceBadge {
+  font-size: 10px;
+  color: var(--c-muted);
+  background: var(--c-surface2);
+  border-radius: var(--radius-pill);
+  padding: 1px 7px;
+  font-family: var(--font-body);
+}
+.sourceBadge.manual {
+  background: #FEF3C7;
+  color: var(--c-amber);
+}
+
+.nutrRow { display: flex; gap: 8px; margin-top: 3px; flex-wrap: wrap; }
+.nutrVal { font-size: 10px; color: var(--c-muted); font-family: var(--font-body); }
+.foodCoins {
+  font-family: var(--font-headline);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--c-coin-text);
+  flex-shrink: 0;
+}
+.editBtn {
+  padding: 5px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--c-border);
+  background: var(--c-surface2);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--c-sub);
+}
+.editBtn.editing { background: var(--c-green-pale); }
+.deleteBtn {
+  padding: 5px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--c-border);
+  background: var(--c-surface2);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--c-danger);
+}
+.foodEmpty { text-align: center; padding: 28px 0; color: var(--c-muted); font-family: var(--font-body); font-size: 13px; }
+
+/* ── Pagination ── */
+.pagination { display: flex; align-items: center; gap: 10px; margin-top: 14px; justify-content: center; }
+.pageBtn {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--c-border);
+  background: var(--c-surface2);
+  cursor: pointer;
+  color: var(--c-sub);
+  font-family: var(--font-body);
+  font-size: 12px;
+}
+.pageBtn:disabled { cursor: default; color: var(--c-border); }
+.pageInfo { font-family: var(--font-body); font-size: 12px; color: var(--c-muted); }
+
+/* ── EditRow ── */
+.editRowWrap { padding: 12px 14px; background: var(--c-surface2); border-top: 1px solid var(--c-border); }
+.editFieldRow { display: flex; gap: 8px; margin-bottom: 10px; }
+.editFieldFlex2 { flex: 2; }
+.editFieldFlex1 { flex: 1; }
+.editFieldLabel { font-family: var(--font-body); font-size: 10px; color: var(--c-muted); margin-bottom: 3px; }
+.editInputSm { padding: 7px 10px; font-size: 12px; }
+.editInputSmRight { padding: 6px 8px; font-size: 12px; text-align: right; }
+.editInputSmNum { padding: 6px 8px; font-size: 12px; }
+.editNutrGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
+.editBtnRow { display: flex; gap: 8px; justify-content: flex-end; margin-bottom: 8px; }
+.cancelBtn {
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  font-family: var(--font-body);
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--c-sub);
+}
+.saveGreenBtn {
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: none;
+  background: var(--c-green);
+  color: #fff;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* ── ManualAddForm ── */
+.manualAddForm {
+  background: var(--c-surface);
+  border: 1.5px solid var(--c-green);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.manualTitle { font-family: var(--font-body); font-size: 12px; font-weight: 700; color: var(--c-green); margin-bottom: 10px; }
+.manualBtnRow { display: flex; gap: 8px; justify-content: flex-end; }
+.savePrimaryBtn {
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: none;
+  background: var(--c-green);
+  color: #fff;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+}
+.savePrimaryBtn:disabled { opacity: .6; cursor: default; }
+
+/* ── OFFImport ── */
+.offSearchRow { display: flex; gap: 8px; margin-bottom: 14px; }
+.offSearchBtn {
+  padding: 8px 16px;
+  border-radius: 9px;
+  border: none;
+  background: var(--c-green);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.offSearchBtn:disabled { opacity: .6; cursor: default; }
+.offToggleRow { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.offToggleBtn {
+  font-size: 12px;
+  font-family: var(--font-body);
+  color: var(--c-green);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+.offCount { font-size: 11px; color: var(--c-muted); font-family: var(--font-body); }
+.offImportBtn {
+  margin-left: auto;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: none;
+  background: var(--c-green);
+  color: #fff;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+}
+.offImportBtn:disabled { opacity: .6; cursor: default; }
+.offMsg { font-family: var(--font-body); font-size: 12px; color: var(--c-green); margin-bottom: 10px; }
+.offList { display: flex; flex-direction: column; gap: 6px; }
+.offLoadingMsg { text-align: center; padding: 20px; color: var(--c-muted); font-family: var(--font-body); font-size: 13px; }
+
+.offItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  text-align: left;
+  background: var(--c-surface);
+  border: 1.5px solid var(--c-border);
+  border-radius: 11px;
+  cursor: pointer;
+  transition: all .1s;
+  width: 100%;
+}
+.offItem.selected { background: var(--c-green-pale); border-color: var(--c-green); }
+
+.offCheckbox {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 2px solid var(--c-border);
+  background: var(--c-surface);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.offCheckbox.selected { border-color: var(--c-green); background: var(--c-green); }
+.offCheck { color: #fff; font-size: 11px; font-weight: 700; }
+
+.offItemInfo { flex: 1; min-width: 0; }
+.offItemName {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--c-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.offItemNutr { font-size: 10px; color: var(--c-muted); font-family: var(--font-body); margin-top: 2px; }
+
+.offItemRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.offCoins {
+  font-family: var(--font-headline);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--c-coin-text);
+}
+.offSourceLabel {
+  font-size: 9px;
+  font-family: var(--font-body);
+  color: var(--c-muted);
+  background: var(--c-surface2);
+  border-radius: var(--radius-pill);
+  padding: 1px 6px;
+}

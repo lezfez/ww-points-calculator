@@ -11,7 +11,7 @@ export default function Button({
 }) {
   const base = styles.btn;
   const variantClass = coinStyle ? styles.coin : styles[variant] ?? styles.primary;
-  const sizeClass = size === 'sm' ? styles.sm : '';
+  const sizeClass = size === 'sm' ? styles.sm : size === 'inline' ? styles.inline : '';
   const pillClass = pill ? styles.pill : '';
 
   return (

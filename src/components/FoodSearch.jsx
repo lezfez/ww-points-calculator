@@ -1,12 +1,12 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { C, FH, FB } from "../styles/theme";
 import { useFoodSearch } from "../hooks/useFoodSearch";
+import styles from "./FoodSearch.module.css";
 
 function NutriBadge({ label, value, unit = "g" }) {
   if (value == null) return null;
   return (
-    <span style={{ fontSize: 10, color: C.muted, fontFamily: FB }}>
-      <b style={{ color: C.sub }}>{label}</b> {value}{unit}
+    <span className={styles.nutriBadge}>
+      <b className={styles.nutriBadgeLabel}>{label}</b> {value}{unit}
     </span>
   );
 }
@@ -16,45 +16,23 @@ function PortionRow({ food, onAdd }) {
   const coins = Math.max(0, Math.round(food.coins_100g * grams / 100));
 
   return (
-    <div style={{
-      display: "flex", alignItems: "center", gap: 8, marginTop: 8,
-      padding: "8px 10px", background: C.surface2, borderRadius: 9,
-    }}>
+    <div className={styles.portionRow}>
       <input
         type="number" min="1" max="2000"
         value={grams}
         onChange={e => setGrams(Math.max(1, parseInt(e.target.value) || 1))}
-        style={{
-          width: 64, padding: "5px 8px", borderRadius: 7,
-          border: `1.5px solid ${C.border}`, background: C.surface,
-          fontFamily: FB, fontSize: 13, color: C.text, textAlign: "center",
-        }}
+        className={styles.portionInput}
       />
-      <span style={{ fontFamily: FB, fontSize: 12, color: C.muted, flex: 1 }}>
+      <span className={styles.portionUnit}>
         g
         {food.serving_label && (
-          <button
-            onClick={() => setGrams(food.serving_g || 100)}
-            style={{ marginLeft: 6, fontSize: 10, color: C.green, background: "none", border: "none", cursor: "pointer", fontFamily: FB, padding: 0 }}>
+          <button onClick={() => setGrams(food.serving_g || 100)} className={styles.servingBtn}>
             ({food.serving_label})
           </button>
         )}
       </span>
-      <span style={{
-        fontFamily: FH, fontStyle: "italic", fontWeight: 700,
-        fontSize: 14, color: C.coinText, minWidth: 44, textAlign: "right",
-      }}>
-        🪙 {coins}
-      </span>
-      <button
-        onClick={() => onAdd(food, grams, coins)}
-        style={{
-          padding: "6px 14px", borderRadius: 8, border: "none",
-          background: C.green, color: "#fff", fontWeight: 700,
-          fontSize: 13, cursor: "pointer", flexShrink: 0,
-        }}>
-        +
-      </button>
+      <span className={styles.portionCoins}>🪙 {coins}</span>
+      <button onClick={() => onAdd(food, grams, coins)} className={styles.portionAddBtn}>+</button>
     </div>
   );
 }
@@ -158,237 +136,148 @@ export default function FoodSearch({ onAdd, onClose, inline = false, favorites =
   };
 
   const content = (
-    <div className={inline ? "food-search-inline" : "food-search-sheet"} style={{
-      background: C.bg,
-      display: "flex",
-      flexDirection: "column",
-    }}>
-        {/* Handle */}
-        <div style={{ display: "flex", justifyContent: "center", padding: inline ? "0 0 6px" : "12px 0 0" }}>
-          <div style={{ width: 36, height: 4, borderRadius: 999, background: C.border }} />
-        </div>
-
-        {/* Header */}
-        <div style={{ padding: "10px 20px 10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 17, color: C.text }}>
-            🔍 Lebensmittel suchen
-          </span>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 22, color: C.muted, padding: 0 }}>✕</button>
-        </div>
-
-        {/* Search input */}
-        <div style={{ padding: "0 16px 10px", display: "flex", gap: 8 }}>
-          <input
-            className="app-input"
-            placeholder="z.B. Vollmilch, Haferflocken, Tofu…"
-            value={query}
-            onChange={handleChange}
-            autoFocus
-            style={{
-              width: "100%", padding: "10px 14px", borderRadius: 10,
-              border: `1.5px solid ${C.border}`, background: C.surface,
-              fontFamily: FB, fontSize: 14, color: C.text, boxSizing: "border-box",
-            }}
-          />
-          <button
-            onClick={() => setBarcodeManualOpen((v) => !v)}
-            style={{
-              borderRadius: 10,
-              border: `1.5px solid ${barcodeManualOpen ? C.green : C.border}`,
-              background: barcodeManualOpen ? C.greenPale : C.surface,
-              color: barcodeManualOpen ? C.green : C.sub,
-              fontFamily: FB,
-              fontWeight: 700,
-              fontSize: 12,
-              cursor: "pointer",
-              minWidth: 86,
-              padding: "0 10px",
-              flexShrink: 0,
-            }}
-          >
-            {barcodeManualOpen ? "Zu" : "Code"}
-          </button>
-          <button
-            onClick={scannerOpen ? stopScanner : startScanner}
-            style={{
-              borderRadius: 10,
-              border: `1.5px solid ${scannerOpen ? C.green : C.border}`,
-              background: scannerOpen ? C.greenPale : C.surface,
-              color: scannerOpen ? C.green : C.sub,
-              fontFamily: FB,
-              fontWeight: 700,
-              fontSize: 12,
-              cursor: "pointer",
-              minWidth: 86,
-              padding: "0 10px",
-              flexShrink: 0,
-            }}
-          >
-            {scannerOpen ? "Stop" : "Scan"}
-          </button>
-        </div>
-
-        {barcodeManualOpen && (
-          <div style={{ padding: "0 16px 12px" }}>
-            <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, background: C.surface, padding: 10 }}>
-              <div style={{ fontFamily: FB, fontSize: 11, color: C.muted, marginBottom: 8 }}>
-                Barcode manuell eingeben (EAN/GTIN):
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <input
-                  className="app-input"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  placeholder="z.B. 9002490203541"
-                  value={barcodeInput}
-                  onChange={(e) => setBarcodeInput(e.target.value.replace(/\D/g, ""))}
-                  onKeyDown={(e) => e.key === "Enter" && runBarcodeSearch()}
-                  style={{
-                    width: "100%",
-                    padding: "12px 14px",
-                    borderRadius: 10,
-                    border: `1.5px solid ${C.border}`,
-                    background: C.surface2,
-                    fontFamily: FB,
-                    fontSize: 16,
-                    color: C.text,
-                    boxSizing: "border-box",
-                    letterSpacing: ".03em",
-                  }}
-                />
-                <button
-                  onClick={runBarcodeSearch}
-                  disabled={String(barcodeInput || "").replace(/\D/g, "").length < 8}
-                  style={{
-                    borderRadius: 10,
-                    border: "none",
-                    background: C.green,
-                    color: "#fff",
-                    fontFamily: FB,
-                    fontWeight: 700,
-                    fontSize: 12,
-                    cursor: "pointer",
-                    minWidth: 78,
-                    padding: "0 10px",
-                    opacity: String(barcodeInput || "").replace(/\D/g, "").length < 8 ? 0.5 : 1,
-                  }}
-                >
-                  Suchen
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {scannerOpen && (
-          <div style={{ padding: "0 16px 12px" }}>
-            <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, background: C.surface, padding: 10 }}>
-              <div style={{ fontFamily: FB, fontSize: 11, color: C.muted, marginBottom: 8 }}>
-                Barcode vor die Kamera halten (EAN/UPC).
-              </div>
-              {!scannerError && (
-                <video
-                  ref={videoRef}
-                  muted
-                  playsInline
-                  style={{ width: "100%", borderRadius: 8, background: "#111", aspectRatio: "4 / 3", objectFit: "cover" }}
-                />
-              )}
-              {scannerError && (
-                <div style={{ fontFamily: FB, fontSize: 12, color: "#B91C1C", lineHeight: 1.5 }}>
-                  {scannerError}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Results */}
-        <div style={{ overflowY: "auto", padding: "0 16px 28px", flex: 1 }}>
-          {loading && (
-            <div style={{ textAlign: "center", padding: "20px 0", color: C.muted, fontFamily: FB, fontSize: 13 }}>
-              Suche…
-            </div>
-          )}
-
-          {!loading && query.length >= 2 && results.length === 0 && (
-            <div style={{ textAlign: "center", padding: "20px 0", color: C.muted, fontFamily: FB, fontSize: 13 }}>
-              Keine Lebensmittel gefunden.
-            </div>
-          )}
-
-          {!loading && results.map((food, i) => {
-            const isOpen = expanded === i;
-            const favName = `${food.name}${food.brand ? ` · ${food.brand}` : ""}`;
-            const favCoins = food.coins_100g;
-            const existingFav = favorites.find(f => f.name === favName && Number(f.coins) === Number(favCoins));
-            const isFav = Boolean(existingFav);
-            return (
-              <div key={food.off_id || food.id || i}
-                style={{ marginBottom: 8, background: C.surface, border: `1px solid ${isOpen ? C.green : C.border}`, borderRadius: 12, overflow: "hidden", transition: "border-color .15s" }}>
-
-                {/* Food row */}
-                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 12px" }}>
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setExpanded(isOpen ? null : i)}
-                    onKeyDown={e => e.key === "Enter" && setExpanded(isOpen ? null : i)}
-                    style={{ flex: 1, minWidth: 0, cursor: "pointer" }}>
-                    <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 13, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {food.name}
-                    </div>
-                    {food.brand && (
-                      <div style={{ fontSize: 11, color: C.muted, fontFamily: FB }}>{food.brand}</div>
-                    )}
-                    <div style={{ display: "flex", gap: 8, marginTop: 3, flexWrap: "wrap" }}>
-                      <NutriBadge label="kcal" value={food.kcal_100g} unit="" />
-                      <NutriBadge label="P" value={food.protein_100g} />
-                      <NutriBadge label="KH" value={food.carbs_100g} />
-                      <NutriBadge label="F" value={food.fat_100g} />
-                    </div>
-                  </div>
-                  {onToggleFavorite && (
-                    <button
-                      onClick={() => onToggleFavorite(food, favName, favCoins, existingFav)}
-                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "2px 2px", flexShrink: 0, opacity: isFav ? 1 : 0.35, transition: "opacity .15s" }}
-                      title={isFav ? "Aus Favoriten entfernen" : "Als Favorit speichern"}
-                    >
-                      ❤️
-                    </button>
-                  )}
-                  <div
-                    onClick={() => setExpanded(isOpen ? null : i)}
-                    style={{ flexShrink: 0, textAlign: "right", cursor: "pointer" }}>
-                    <div style={{ fontFamily: FH, fontStyle: "italic", fontWeight: 700, fontSize: 13, color: C.coinText }}>
-                      🪙 {food.coins_100g}
-                    </div>
-                    <div style={{ fontSize: 10, color: C.muted, fontFamily: FB }}>/ 100g</div>
-                  </div>
-                  <span onClick={() => setExpanded(isOpen ? null : i)} style={{ fontSize: 12, color: C.muted, flexShrink: 0, cursor: "pointer" }}>{isOpen ? "▲" : "▼"}</span>
-                </div>
-
-                {/* Portion selector */}
-                {isOpen && (
-                  <div style={{ padding: "0 12px 12px", borderTop: `1px solid ${C.border}` }}>
-                    <div style={{ fontFamily: FB, fontSize: 11, color: C.muted, marginBottom: 6, marginTop: 8 }}>
-                      Menge eingeben:
-                    </div>
-                    <PortionRow food={food} onAdd={handleAdd} />
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-          {!query && (
-            <div style={{ textAlign: "center", padding: "24px 0 8px", color: C.muted, fontFamily: FB, fontSize: 13 }}>
-              Tippe mindestens 2 Zeichen um zu suchen.<br />
-              <span style={{ fontSize: 11 }}>Daten von Open Food Facts</span>
-            </div>
-          )}
-        </div>
+    <div className={`${inline ? "food-search-inline" : "food-search-sheet"} ${styles.wrap}`}>
+      <div className={`${styles.handle} ${inline ? styles.handleInline : styles.handleSheet}`}>
+        <div className={styles.handleBar} />
       </div>
+
+      <div className={styles.header}>
+        <span className={styles.headerTitle}>🔍 Lebensmittel suchen</span>
+        <button onClick={onClose} className={styles.closeBtn}>✕</button>
+      </div>
+
+      <div className={styles.searchRow}>
+        <input
+          className={styles.searchInput}
+          placeholder="z.B. Vollmilch, Haferflocken, Tofu…"
+          value={query}
+          onChange={handleChange}
+          autoFocus
+        />
+        <button
+          onClick={() => setBarcodeManualOpen((v) => !v)}
+          className={`${styles.toggleBtn}${barcodeManualOpen ? ` ${styles.active}` : ''}`}
+        >
+          {barcodeManualOpen ? "Zu" : "Code"}
+        </button>
+        <button
+          onClick={scannerOpen ? stopScanner : startScanner}
+          className={`${styles.toggleBtn}${scannerOpen ? ` ${styles.active}` : ''}`}
+        >
+          {scannerOpen ? "Stop" : "Scan"}
+        </button>
+      </div>
+
+      {barcodeManualOpen && (
+        <div className={styles.barcodePanel}>
+          <div className={styles.barcodePanelInner}>
+            <div className={styles.barcodeHint}>Barcode manuell eingeben (EAN/GTIN):</div>
+            <div className={styles.barcodeRow}>
+              <input
+                className={styles.barcodeInput}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="z.B. 9002490203541"
+                value={barcodeInput}
+                onChange={(e) => setBarcodeInput(e.target.value.replace(/\D/g, ""))}
+                onKeyDown={(e) => e.key === "Enter" && runBarcodeSearch()}
+              />
+              <button
+                onClick={runBarcodeSearch}
+                disabled={String(barcodeInput || "").replace(/\D/g, "").length < 8}
+                className={styles.barcodeSearchBtn}
+              >
+                Suchen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {scannerOpen && (
+        <div className={styles.scannerPanel}>
+          <div className={styles.scannerPanelInner}>
+            <div className={styles.scannerHint}>Barcode vor die Kamera halten (EAN/UPC).</div>
+            {!scannerError && (
+              <video ref={videoRef} muted playsInline className={styles.scannerVideo} />
+            )}
+            {scannerError && (
+              <div className={styles.scannerError}>{scannerError}</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className={styles.resultsList}>
+        {loading && <div className={styles.loadingMsg}>Suche…</div>}
+
+        {!loading && query.length >= 2 && results.length === 0 && (
+          <div className={styles.emptyMsg}>Keine Lebensmittel gefunden.</div>
+        )}
+
+        {!loading && results.map((food, i) => {
+          const isOpen = expanded === i;
+          const favName = `${food.name}${food.brand ? ` · ${food.brand}` : ""}`;
+          const favCoins = food.coins_100g;
+          const existingFav = favorites.find(f => f.name === favName && Number(f.coins) === Number(favCoins));
+          const isFav = Boolean(existingFav);
+          return (
+            <div key={food.off_id || food.id || i}
+              className={`${styles.resultItem}${isOpen ? ` ${styles.open}` : ''}`}>
+              <div className={styles.resultRow}>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setExpanded(isOpen ? null : i)}
+                  onKeyDown={e => e.key === "Enter" && setExpanded(isOpen ? null : i)}
+                  className={styles.resultClickArea}
+                >
+                  <div className={styles.foodName}>{food.name}</div>
+                  {food.brand && <div className={styles.brandName}>{food.brand}</div>}
+                  <div className={styles.nutriRow}>
+                    <NutriBadge label="kcal" value={food.kcal_100g} unit="" />
+                    <NutriBadge label="P" value={food.protein_100g} />
+                    <NutriBadge label="KH" value={food.carbs_100g} />
+                    <NutriBadge label="F" value={food.fat_100g} />
+                  </div>
+                </div>
+                {onToggleFavorite && (
+                  <button
+                    onClick={() => onToggleFavorite(food, favName, favCoins, existingFav)}
+                    className={styles.favBtn}
+                    style={{ opacity: isFav ? 1 : 0.35 }}
+                    title={isFav ? "Aus Favoriten entfernen" : "Als Favorit speichern"}
+                  >
+                    ❤️
+                  </button>
+                )}
+                <div onClick={() => setExpanded(isOpen ? null : i)} className={styles.coinCol}>
+                  <div className={styles.coinValue}>🪙 {food.coins_100g}</div>
+                  <div className={styles.coinPer100}>/ 100g</div>
+                </div>
+                <span onClick={() => setExpanded(isOpen ? null : i)} className={styles.expandChevron}>
+                  {isOpen ? "▲" : "▼"}
+                </span>
+              </div>
+
+              {isOpen && (
+                <div className={styles.portionWrapper}>
+                  <div className={styles.portionLabel}>Menge eingeben:</div>
+                  <PortionRow food={food} onAdd={handleAdd} />
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {!query && (
+          <div className={styles.hintMsg}>
+            Tippe mindestens 2 Zeichen um zu suchen.<br />
+            <span className={styles.hintSub}>Daten von Open Food Facts</span>
+          </div>
+        )}
+      </div>
+    </div>
   );
 
   if (inline) return content;

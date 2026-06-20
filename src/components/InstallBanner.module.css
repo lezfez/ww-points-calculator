@@ -100,3 +100,6 @@
   color: var(--c-sub);
   box-shadow: none;
 }
+
+.btnNoTop  { margin-top: 0; }
+.shareIcon { font-size: 15px; }

@@ -548,3 +548,5 @@
 .loadingState { text-align: center; padding: 40px 0; color: var(--c-muted); font-family: var(--font-body); }
 
 .budgetCardCenter { text-align: center; }
+
+.btnWide { padding: 14px 32px; }

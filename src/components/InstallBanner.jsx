@@ -28,19 +28,19 @@ export default function InstallBanner() {
 
         <p className={styles.description}>
           {isIOS
-            ? <>Tippe unten auf <b>Teilen</b> <span style={{ fontSize: 15 }}>⎙</span> und dann auf <b>„Zum Home-Bildschirm"</b>, um die App zu installieren.</>
+            ? <>Tippe unten auf <b>Teilen</b> <span className={styles.shareIcon}>⎙</span> und dann auf <b>„Zum Home-Bildschirm"</b>, um die App zu installieren.</>
             : <>Füge die App zum Startbildschirm hinzu – kein App Store, kein Download. Funktioniert wie eine native App.</>
           }
         </p>
 
         {!isIOS && (
-          <Button onClick={promptInstall} style={{ marginTop: 0 }}>
+          <Button onClick={promptInstall} className={styles.btnNoTop}>
             🌿 Zum Startbildschirm hinzufügen
           </Button>
         )}
 
         {isIOS && (
-          <Button onClick={dismiss} className={styles.dismissBtn} style={{ marginTop: 0 }}>
+          <Button onClick={dismiss} className={`${styles.dismissBtn} ${styles.btnNoTop}`}>
             Verstanden
           </Button>
         )}

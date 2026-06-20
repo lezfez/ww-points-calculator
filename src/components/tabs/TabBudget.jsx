@@ -289,7 +289,7 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
           <p className={styles.lockedDesc}>
             Das persönliche Tagesjournal ist exklusiv für Premium-Mitglieder verfügbar.
           </p>
-          <Button onClick={onUpgrade} disabled={checkoutLoading} style={{ width: "auto", padding: "14px 32px" }}>
+          <Button onClick={onUpgrade} disabled={checkoutLoading} size="inline" className={styles.btnWide}>
             {checkoutLoading ? "Weiterleitung…" : `🌿 Premium – ${premiumPriceLabel}`}
           </Button>
         </Card>
@@ -322,7 +322,7 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
           <p className={styles.setupText}>
             Dein Tagebuch benötigt ein gespeichertes Tages-Budget. Bitte richte dein Profil einmalig im Profil-Tab ein.
           </p>
-          <Button onClick={onOpenProfile} style={{ width: "auto", padding: "12px 22px" }}>
+          <Button onClick={onOpenProfile} size="inline">
             Zum Profil
           </Button>
         </Card>
