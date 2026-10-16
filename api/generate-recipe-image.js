@@ -1,8 +1,12 @@
 import { createClerkClient, verifyToken } from "@clerk/backend";
 import { createClient } from "@supabase/supabase-js";
+import { generateImage } from "ai";
 
 const BUCKET = "recipe-images";
-const HF_MODEL = "black-forest-labs/FLUX.1-schnell";
+const IMAGE_MODEL = "bfl/flux-2-flex";
+
+// Einheitlicher Bildstil – identisch mit den per Skill/Script erzeugten Prompts
+const PHOTO_STYLE = "Photography style: magazine quality, bright natural window lighting from the left, shallow depth of field, 3/4 overhead view. Setting: rustic wooden kitchen table with neutral cream linens, minimal props. Color grading: warm appetizing tones, natural colors. Details: no text, no watermarks, no people visible.";
 
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -27,7 +31,7 @@ function extractVisualIngredients(ingredients) {
     'avocado': 'creamy green avocado',
     'tofu': 'golden crispy tofu',
     'brokkoli|broccoli': 'vibrant green broccoli',
-    'paprika|bell pepper': 'bright red bell pepper strips',
+    'paprika(?!pulver)|bell pepper': 'bright red bell pepper strips',
     'rote bete|beetroot': 'deep purple beetroot',
     'karotte|carrot': 'orange carrot slices',
     'spinat|spinach': 'fresh dark green spinach',
@@ -38,11 +42,9 @@ function extractVisualIngredients(ingredients) {
     'sesam|sesame': 'sesame seeds',
     'tomato|tomate': 'juicy tomatoes',
     'gurke|cucumber': 'crisp cucumber',
-    'zwiebel|onion': 'caramelized onions',
-    'knoblauch|garlic': 'fresh garlic',
     'käse|cheese': 'melted cheese',
-    'ei|egg': 'sunny-side eggs',
-    'pilz|mushroom': 'sautéed mushrooms',
+    '\\beier?\\b|\\beggs?\\b': 'eggs',
+    'pilz|champignon|mushroom': 'sautéed mushrooms',
     'zucchini': 'grilled zucchini',
     'aubergine': 'roasted eggplant',
     'linsen|lentils': 'cooked lentils',
@@ -52,11 +54,10 @@ function extractVisualIngredients(ingredients) {
     'zitrone|lemon': 'lemon slices',
     'feta': 'crumbled feta cheese',
     'mozzarella': 'melted mozzarella',
-    'hähnchen|chicken': 'grilled chicken breast',
+    'hähnchen|hühner|huhn|chicken': 'tender chicken pieces',
     'lachs|salmon': 'cooked salmon fillet',
     'shrimp|garnelen': 'cooked shrimp',
-    'vollkorn|grain': 'wholegrains',
-    'reis|rice': 'cooked rice',
+    '\\breis\\b|basmati|rice': 'cooked rice',
     'nudel|pasta': 'cooked pasta',
   };
 
@@ -116,14 +117,14 @@ function buildImprovedPrompt(recipe, ingredients) {
     .replace(/🥗|🍜|🍴|🌿|🔥|🥘|🍽️|🥙|🍛|🍝|🍲|🌮|🍱|🥙/g, '')
     .trim();
   
-  return `Professional editorial food photography of ${dishName}. Visual elements: ${visualIngredients.join(', ')}. Presentation: ${plating}. Photography style: magazine quality, bright natural window lighting from the left side, shallow depth of field with food in sharp focus, background slightly blurred. Setting: rustic wooden table with neutral cream and white linens, minimal props, clean minimalist background. Color grading: warm appetizing tones, high contrast, vibrant natural food colors, rich shadows, bright highlights. Details: no text, no watermarks, no people visible, perfect food styling, professional composition, studio-quality lighting, appetizing presentation.`;
+  return `Professional editorial food photography of ${dishName}. Visual elements: ${visualIngredients.join(', ')}. Presentation: ${plating}. ${PHOTO_STYLE}`;
 }
 
 /**
  * Fallback: Generischer Prompt (wenn keine Zutaten verfügbar sind)
  */
 function buildLegacyPrompt(name) {
-  return `Appetizing photorealistic food photo of "${name}", editorial food photography, 3/4 overhead view, natural daylight on warm kitchen table, realistic colors, no text, no watermark, no people`;
+  return `Professional editorial food photography of ${name}. ${PHOTO_STYLE}`;
 }
 
 function buildVersionedImagePath(id, generatedAt) {
@@ -156,8 +157,6 @@ export default async function handler(req, res) {
   const { id } = req.body ?? {};
   if (!id) return res.status(400).json({ error: "id fehlt" });
 
-  const hfToken = process.env.HF_TOKEN;
-  if (!hfToken) return res.status(500).json({ error: "HF_TOKEN fehlt" });
   if (!supabaseUrl || !supabaseServiceRoleKey) {
     return res.status(500).json({ error: "Supabase-Konfiguration fehlt" });
   }
@@ -169,7 +168,7 @@ export default async function handler(req, res) {
   // Fetch recipe WITH ingredients for improved prompt
   const { data: recipe, error: dbErr } = await supabase
     .from("recipes")
-    .select("id, name, kategorie, image_path, recipe_ingredients(ingredient)")
+    .select("id, name, kategorie, image_path, image_prompt, recipe_ingredients(ingredient)")
     .eq("id", id)
     .single();
 
@@ -178,31 +177,22 @@ export default async function handler(req, res) {
   await supabase.from("recipes").update({ image_status: "generating" }).eq("id", id);
 
   try {
-    // Use improved prompt if ingredients are available, fallback to legacy
+    // Gespeicherten (handgeschriebenen) Prompt bevorzugen, sonst aus Zutaten bauen
     const ingredients = recipe.recipe_ingredients || [];
-    const prompt = ingredients.length > 0
-      ? buildImprovedPrompt(recipe, ingredients)
-      : buildLegacyPrompt(recipe.name);
+    const storedPrompt = String(recipe.image_prompt || "").trim();
+    const prompt = storedPrompt
+      || (ingredients.length > 0
+        ? buildImprovedPrompt(recipe, ingredients)
+        : buildLegacyPrompt(recipe.name));
 
-    const hfRes = await fetch(
-      `https://router.huggingface.co/hf-inference/models/${HF_MODEL}`,
-      {
-        method: "POST",
-        headers: { Authorization: `Bearer ${hfToken}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          inputs: prompt,
-          parameters: { width: 512, height: 384 },
-        }),
-        signal: AbortSignal.timeout(90000),
-      }
-    );
+    const { images } = await generateImage({
+      model: IMAGE_MODEL,
+      prompt,
+      aspectRatio: "4:3",
+      abortSignal: AbortSignal.timeout(90000),
+    });
 
-    if (!hfRes.ok) {
-      const err = await hfRes.json().catch(() => ({}));
-      throw new Error(`HF ${hfRes.status}: ${err.error || hfRes.statusText}`);
-    }
-
-    const imgBuffer = Buffer.from(await hfRes.arrayBuffer());
+    const imgBuffer = Buffer.from(images[0].uint8Array);
     if (imgBuffer.length < 1000) throw new Error("Bild zu klein – Generierung fehlgeschlagen");
 
     const generatedAt = new Date();
@@ -224,6 +214,7 @@ export default async function handler(req, res) {
       image_status: "ready",
       image_path: filePath,
       image_url: urlData.publicUrl,
+      image_prompt: prompt,
       image_generated_at: generatedAt.toISOString(),
     }).eq("id", id);
 
