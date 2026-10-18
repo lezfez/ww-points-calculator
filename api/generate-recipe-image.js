@@ -127,10 +127,128 @@ function buildLegacyPrompt(name) {
   return `Professional editorial food photography of ${name}. ${PHOTO_STYLE}`;
 }
 
-function buildVersionedImagePath(id, generatedAt) {
+function buildVersionedImagePath(id, generatedAt, ext = "jpg") {
   const stamp = generatedAt.toISOString().replace(/[-:.TZ]/g, "");
   const nonce = Math.random().toString(36).slice(2, 8);
-  return `${id}/${stamp}-${nonce}.jpg`;
+  return `${id}/${stamp}-${nonce}.${ext}`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// FALLBACK: FREIES FOTO (CC0 / Public Domain) VIA OPENVERSE
+// ═══════════════════════════════════════════════════════════
+
+const OPENVERSE_API = "https://api.openverse.org/v1/images/";
+const BLOCKED_SOURCES = new Set(["stocksnap"]); // blockiert Server-Downloads
+const IMAGE_EXT = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+
+function isCreditError(err) {
+  const msg = String(err?.message || "");
+  return err?.statusCode === 402 || /credit balance|insufficient (funds|credits)|top-up/i.test(msg);
+}
+
+/**
+ * Suchbegriffe vom spezifischen zum allgemeinen: Motiv aus dem (englischen)
+ * Prompt, gekürzte Varianten davon, zuletzt der Rezeptname.
+ */
+function buildStockQueries(recipe, prompt) {
+  const subject = (String(prompt || "").match(/photography of (.+?)\./i)?.[1] || "")
+    .replace(/\(.*?\)/g, "")
+    .replace(/\b(homemade|classic|traditional|austrian|german|fresh|golden|crispy|sourdough)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .replace(/^[^\p{L}]+/u, "")
+    .trim();
+  // Hauptmotiv ohne Zusätze ("red lentil dal with coconut milk" → "red lentil dal")
+  const core = subject.split(/\b(?:with|and|on|in|topped|served)\b/i)[0].trim();
+  const coreWords = core.split(" ").filter(Boolean);
+  const name = String(recipe.name || "")
+    .replace(/^sauerteig-?/i, "")
+    .replace(/[^\p{L}\s-]/gu, "")
+    .trim();
+  const queries = [subject, core, coreWords.slice(-2).join(" "), name, CATEGORY_QUERY[recipe.kategorie]];
+  return [...new Set(queries.filter(q => q && q.length > 2))];
+}
+
+// Letzter, allgemeiner Suchbegriff pro Kategorie
+const CATEGORY_QUERY = {
+  Salat: "salad", Suppe: "soup", Brot: "bread", Kuchen: "cake", Dessert: "dessert",
+  "Frühstück": "breakfast", Snack: "snack food", Beilage: "side dish food", Hauptspeise: "cooked meal food",
+};
+
+const STOP_WORDS = new Set(["with", "and", "the", "for", "from", "style", "bread"]);
+
+// Treffer muss mindestens ein Kernwort der Suche in Titel oder Tags enthalten
+function isRelevant(result, query) {
+  const keywords = query.toLowerCase().split(/[\s-]+/).filter(w => w.length > 3 && !STOP_WORDS.has(w));
+  if (!keywords.length) return true;
+  const haystack = [result.title, ...(result.tags || []).map(t => t.name)].join(" ").toLowerCase();
+  return keywords.some(w => haystack.includes(w.replace(/s$/, "")));
+}
+
+async function searchOpenverse(query) {
+  const params = new URLSearchParams({
+    q: query, license: "cc0,pdm", category: "photograph", page_size: "20", mature: "false",
+  });
+  const res = await fetch(`${OPENVERSE_API}?${params}`, { signal: AbortSignal.timeout(40000) });
+  if (!res.ok) throw new Error(`Openverse ${res.status}`);
+  const { results = [] } = await res.json();
+  return results.filter(r =>
+    r.url && !BLOCKED_SOURCES.has(r.source)
+    && !/\.(tif|tiff|svg|gif)$/i.test(r.url)
+    && (!r.width || !r.height || r.width >= r.height * 0.9)
+    && isRelevant(r, query)
+  );
+}
+
+async function downloadImage(url) {
+  const res = await fetch(url, {
+    headers: { "User-Agent": "Mozilla/5.0 (compatible; ww-points-calculator/1.0)" },
+    signal: AbortSignal.timeout(30000),
+  });
+  if (!res.ok) throw new Error(`Download ${res.status}`);
+  const contentType = (res.headers.get("content-type") || "").split(";")[0].trim();
+  if (!IMAGE_EXT[contentType]) throw new Error(`Kein Bild (${contentType})`);
+  const buffer = Buffer.from(await res.arrayBuffer());
+  if (buffer.length < 10000) throw new Error("Bild zu klein");
+  return { buffer, contentType };
+}
+
+/**
+ * Sucht ein frei nutzbares Foto. Unter den besten Treffern wird zufällig gewählt,
+ * damit ein erneuter Klick einen anderen Vorschlag liefert.
+ */
+async function findFreeStockImage(recipe, prompt) {
+  const deadline = Date.now() + 200000;
+  for (const query of buildStockQueries(recipe, prompt)) {
+    if (Date.now() > deadline) break;
+    let candidates;
+    try {
+      candidates = await searchOpenverse(query);
+    } catch {
+      continue;
+    }
+    const pool = candidates.slice(0, 6).sort(() => Math.random() - 0.5);
+    for (const c of pool) {
+      try {
+        const { buffer, contentType } = await downloadImage(c.url);
+        return {
+          buffer,
+          contentType,
+          ext: IMAGE_EXT[contentType],
+          meta: {
+            query,
+            title: c.title || null,
+            creator: c.creator || null,
+            license: c.license,
+            source: c.source,
+            landing_url: c.foreign_landing_url || c.url,
+          },
+        };
+      } catch {
+        // nächster Kandidat
+      }
+    }
+  }
+  throw new Error("Kein KI-Guthaben und kein freies Foto gefunden");
 }
 
 async function requireAdmin(token) {
@@ -185,23 +303,37 @@ export default async function handler(req, res) {
         ? buildImprovedPrompt(recipe, ingredients)
         : buildLegacyPrompt(recipe.name));
 
-    const { images } = await generateImage({
-      model: IMAGE_MODEL,
-      prompt,
-      aspectRatio: "4:3",
-      abortSignal: AbortSignal.timeout(90000),
-    });
+    let imgBuffer;
+    let contentType = "image/jpeg";
+    let ext = "jpg";
+    let source = "ai";
+    let stock = null;
 
-    const imgBuffer = Buffer.from(images[0].uint8Array);
-    if (imgBuffer.length < 1000) throw new Error("Bild zu klein – Generierung fehlgeschlagen");
+    try {
+      const { images } = await generateImage({
+        model: IMAGE_MODEL,
+        prompt,
+        aspectRatio: "4:3",
+        abortSignal: AbortSignal.timeout(90000),
+      });
+      imgBuffer = Buffer.from(images[0].uint8Array);
+      if (imgBuffer.length < 1000) throw new Error("Bild zu klein – Generierung fehlgeschlagen");
+    } catch (genErr) {
+      if (!isCreditError(genErr)) throw genErr;
+      // Kein Gateway-Guthaben → frei nutzbares Foto als Vorschlag übernehmen
+      const found = await findFreeStockImage(recipe, prompt);
+      ({ buffer: imgBuffer, contentType, ext } = found);
+      stock = found.meta;
+      source = "stock";
+    }
 
     const generatedAt = new Date();
-    const filePath = buildVersionedImagePath(id, generatedAt);
+    const filePath = buildVersionedImagePath(id, generatedAt, ext);
     const previousImagePath = recipe.image_path || null;
 
     const { error: uploadErr } = await supabase.storage
       .from(BUCKET).upload(filePath, imgBuffer, {
-        contentType: "image/jpeg",
+        contentType,
         cacheControl: "60",
         upsert: false,
       });
@@ -210,6 +342,7 @@ export default async function handler(req, res) {
 
     const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(filePath);
 
+    // Prompt auch beim Stock-Foto speichern, damit "↻" später ein KI-Bild erzeugen kann
     await supabase.from("recipes").update({
       image_status: "ready",
       image_path: filePath,
@@ -222,7 +355,7 @@ export default async function handler(req, res) {
       await supabase.storage.from(BUCKET).remove([previousImagePath]).catch(() => {});
     }
 
-    return res.status(200).json({ ok: true, image_url: urlData.publicUrl });
+    return res.status(200).json({ ok: true, image_url: urlData.publicUrl, source, stock });
   } catch (err) {
     await supabase.from("recipes").update({ image_status: "failed" }).eq("id", id);
     return res.status(500).json({ error: err.message });

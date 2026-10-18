@@ -443,7 +443,9 @@ export default function App() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Generierung fehlgeschlagen");
       await reloadRecipes();
-      setImageGenMsg({ type: "ok", text: `Bild generiert ✓` });
+      setImageGenMsg(data.source === "stock"
+        ? { type: "ok", text: `Kein KI-Guthaben – freies Foto übernommen (${String(data.stock?.license || "").toUpperCase()}, ${data.stock?.source}). ↻ für anderen Vorschlag.` }
+        : { type: "ok", text: `Bild generiert ✓` });
     } catch (e) {
       setImageGenMsg({ type: "err", text: e?.message || "Fehler" });
     }
@@ -457,7 +459,8 @@ export default function App() {
     setImageGenLoading(true);
     for (const r of todo) {
       await generateRecipeImage(r.id);
-      if (todo.indexOf(r) < todo.length - 1) await new Promise(res => setTimeout(res, 1500));
+      // AI Gateway erlaubt max. 5 Bilder/Minute
+      if (todo.indexOf(r) < todo.length - 1) await new Promise(res => setTimeout(res, 13000));
     }
     setImageGenLoading(false);
   }, [adminRecipes, generateRecipeImage]);
