@@ -1,4 +1,4 @@
-import { useState, useId, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import { C } from "../../styles/theme";
 import Card from "../ui/Card";
@@ -267,7 +267,7 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
 
   useEffect(() => {
     if (saveState === "saved") { reloadWeek(); reloadStats(); }
-  }, [saveState]);
+  }, [saveState, reloadWeek, reloadStats]);
 
   const handleRecipeSelect = (recipe) => {
     if (!pickerSlot) return;
@@ -338,7 +338,6 @@ export default function TabBudget({ locked, onUpgrade, checkoutLoading, isSigned
   const earnedCoins = (entry.activity_blocks || 0) + (entry.recovery_blocks || 0);
   const totalAvailable = daily_budget + earnedCoins + (entry.used_bonus_coins || 0);
   const today = toISODate(new Date());
-  const isToday = date === today;
   const isFuture = date > today;
 
   return (

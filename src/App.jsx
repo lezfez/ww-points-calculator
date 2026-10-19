@@ -49,7 +49,7 @@ export default function App() {
   const [adminRoleSelected, setAdminRoleSelected] = useState({});
   const [adminRecipeCategoryQuery, setAdminRecipeCategoryQuery] = useState("");
   const [adminRecipeCategoriesCatalog, setAdminRecipeCategoriesCatalog] = useState([]);
-  const [adminRecipeCategoriesLoading, setAdminRecipeCategoriesLoading] = useState(false);
+  const [adminRecipeCategoriesLoading, setAdminRecipeCategoriesLoading] = useState(true);
   const [adminRecipeCategoriesError, setAdminRecipeCategoriesError] = useState(null);
   const [adminRecipeCategorySaving, setAdminRecipeCategorySaving] = useState({});
   const [adminRecipeCategoryMsg, setAdminRecipeCategoryMsg] = useState(null);
@@ -212,20 +212,27 @@ export default function App() {
     setAdminRoleSaving(p => ({ ...p, [userId]: false }));
   };
 
-  const loadRecipeCategories = useCallback(async () => {
+  // State nur in Promise-Callbacks setzen, damit der Effect unten es aufrufen darf
+  const fetchRecipeCategories = useCallback(() =>
+    adminFetch("/api/admin-recipes?action=categories&includeInactive=1")
+      .then(async res => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Kategorien konnten nicht geladen werden.");
+        setAdminRecipeCategoriesCatalog(data.categories || []);
+        setAdminRecipeCategoriesError(null);
+      })
+      .catch(e => {
+        setAdminRecipeCategoriesCatalog([]);
+        setAdminRecipeCategoriesError(e?.message || "Kategorien konnten nicht geladen werden.");
+      })
+      .finally(() => setAdminRecipeCategoriesLoading(false)),
+  [adminFetch]);
+
+  const loadRecipeCategories = useCallback(() => {
     setAdminRecipeCategoriesLoading(true);
     setAdminRecipeCategoriesError(null);
-    try {
-      const res = await adminFetch("/api/admin-recipes?action=categories&includeInactive=1");
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Kategorien konnten nicht geladen werden.");
-      setAdminRecipeCategoriesCatalog(data.categories || []);
-    } catch (e) {
-      setAdminRecipeCategoriesCatalog([]);
-      setAdminRecipeCategoriesError(e?.message || "Kategorien konnten nicht geladen werden.");
-    }
-    setAdminRecipeCategoriesLoading(false);
-  }, [adminFetch]);
+    return fetchRecipeCategories();
+  }, [fetchRecipeCategories]);
 
   const createRecipeCategory = useCallback(async ({ slug, label, sort_order, is_active }) => {
     setAdminCategoryCreateSaving(true);
@@ -335,20 +342,19 @@ export default function App() {
     }
   }, [adminFetch, reloadRecipes]);
 
-  const loadRecipeStatuses = useCallback(async () => {
-    try {
-      const res = await adminFetch("/api/admin-recipes?action=recipe-statuses");
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Status konnten nicht geladen werden.");
-      const map = {};
-      (data.statuses || []).forEach(row => {
-        map[row.id] = { status: row.status || "published", editedAt: row.edited_at || null, publishedAt: row.published_at || null };
-      });
-      setAdminRecipeStatusById(map);
-    } catch {
-      setAdminRecipeStatusById({});
-    }
-  }, [adminFetch]);
+  const loadRecipeStatuses = useCallback(() =>
+    adminFetch("/api/admin-recipes?action=recipe-statuses")
+      .then(async res => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Status konnten nicht geladen werden.");
+        const map = {};
+        (data.statuses || []).forEach(row => {
+          map[row.id] = { status: row.status || "published", editedAt: row.edited_at || null, publishedAt: row.published_at || null };
+        });
+        setAdminRecipeStatusById(map);
+      })
+      .catch(() => setAdminRecipeStatusById({})),
+  [adminFetch]);
 
   const loadRecipeHistory = useCallback(async (recipeId) => {
     if (!recipeId) return;
@@ -395,10 +401,10 @@ export default function App() {
 
   useEffect(() => {
     if (userRole === "admin") {
-      loadRecipeCategories();
+      fetchRecipeCategories();
       loadRecipeStatuses();
     }
-  }, [userRole, loadRecipeCategories, loadRecipeStatuses]);
+  }, [userRole, fetchRecipeCategories, loadRecipeStatuses]);
 
   const doBootstrap = async () => {
     try {
@@ -442,7 +448,8 @@ export default function App() {
       const res = await adminFetch("/api/generate-recipe-image", { method: "POST", body: JSON.stringify({ id }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Generierung fehlgeschlagen");
-      await reloadRecipes();
+      // Admin-Liste zeigt adminRecipes → beide neu laden, sonst bleibt das alte Bild stehen
+      await Promise.all([reloadRecipes(), reloadAdminRecipes()]);
       setImageGenMsg(data.source === "stock"
         ? { type: "ok", text: `Kein KI-Guthaben – freies Foto übernommen (${String(data.stock?.license || "").toUpperCase()}, ${data.stock?.source}). ↻ für anderen Vorschlag.` }
         : { type: "ok", text: `Bild generiert ✓` });
@@ -451,7 +458,7 @@ export default function App() {
     }
     setImageGenPerRecipe(p => ({ ...p, [id]: false }));
     setTimeout(() => setImageGenMsg(null), 4000);
-  }, [adminFetch, reloadRecipes]);
+  }, [adminFetch, reloadRecipes, reloadAdminRecipes]);
 
   const generateAllImages = useCallback(async () => {
     const todo = adminRecipes.filter(r => r.image_status !== "ready");

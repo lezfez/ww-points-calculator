@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(git commit -m ' *)",
-      "Edit(/.claude/skills/publish-recipe/**)"
+      "Edit(/.claude/skills/publish-recipe/**)",
+      "Bash(vercel deploy *)",
+      "Bash(vercel ls *)",
+      "Bash(vercel alias *)"
     ]
   }
 }

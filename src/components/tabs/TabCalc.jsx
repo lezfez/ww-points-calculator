@@ -5,6 +5,7 @@ import Card from "../ui/Card";
 import Button from "../ui/Button";
 import { SYSTEMS, SYS_FIELDS, FIELD_DEFS } from "../../lib/pointSystems";
 import { calcClassic, calcCoins, calcPersonalPoints, calcProPoints, calcSmartPoints } from "../../lib/points";
+import { C } from "../../styles/theme";
 import styles from "./TabCalc.module.css";
 
 export default function TabCalc() {

@@ -55,6 +55,7 @@ Stripe-Checkout-Rückgaben über `?premium=success` und `?premium=canceled` werd
 | Schicht | Technologie |
 |---|---|
 | Frontend | React 19 + Vite 8 |
+| Styling | CSS Modules (`*.module.css`) + CSS Custom Properties in `src/index.css` |
 | Fonts | Lora (Serif, Headings) + Raleway (Body/UI) |
 | Auth | Clerk (`@clerk/clerk-react`, `@clerk/backend`), UI auf Deutsch (`deDE`) |
 | Datenbank | Supabase (Rezepte, Feature Flags, Tagesjournal, Lebensmittel, User-Profile) |
@@ -76,7 +77,8 @@ Stripe-Checkout-Rückgaben über `?premium=success` und `?premium=canceled` werd
 | `src/lib/featureFlags.js` | Definitionen der administrierbaren Feature Flags |
 | `src/data/recipesFallback.json` | Statische Rezeptdaten als möglicher späterer Supabase-Fallback |
 | `src/supabase.js` | Browser-Supabase-Client mit Anon-Key |
-| `src/styles/theme.js` | Design-Tokens für Farben, Fonts und Schatten |
+| `src/styles/theme.js` | Legacy JS Design-Tokens (`C`, `FH`, `FB`) – in neuen Dateien CSS Custom Properties (`var(--c-*)`) bevorzugen |
+| `src/components/ui/` | Shared UI-Primitives: `Button`, `Card`, `Input`, `Section` |
 | `src/components/` | UI-Komponenten (siehe unten) |
 | `src/components/tabs/` | Tab-Module: TabCalc, TabBudget, TabRecipes, TabInfo, TabAdmin |
 | `src/hooks/` (in `src/components/`) | Custom Hooks für Daten und UI-Logik |
@@ -110,7 +112,7 @@ Stripe-Checkout-Rückgaben über `?premium=success` und `?premium=canceled` werd
 | `useFoodSearch.js` | Debounced Lebensmittelsuche (400 ms) via `/api/food-search` |
 | `useUserProfile.js` | User-Profil (Gewicht, Größe, Alter, …) laden und speichern, auto-sync mit Clerk |
 | `useFeatureFlags.js` | Feature-Flags aus Supabase laden |
-| `useRecipes.js` | Rezepte aus Supabase laden |
+| `useRecipes.js` | Rezepte aus Supabase laden. Standard: nur `published` (+ `status IS NULL`). Admin: `useRecipes({ includeAll: true })` |
 | `useInstallPrompt.js` | PWA-Installations-Prompt-Logik |
 | `useDebounce.js` | Generischer Debounce-Hook |
 
@@ -280,14 +282,11 @@ CREATE INDEX foods_name_trgm ON foods USING GIN (name gin_trgm_ops);
 | `STRIPE_WEBHOOK_SECRET` | Stripe Webhook Signing Secret |
 | `STRIPE_PRICE_ID` | Stripe Price ID für das Premium-Abo |
 | `ADMIN_EMAILS` | Komma-getrennte Liste erlaubter Admin-E-Mails (z.B. `lezfez@gmail.com`) |
-| `OPENAI_API_KEY` | Server-/Admin-Key für die lokale Rezeptbild-Generierung |
-| `OPENAI_IMAGE_MODEL` | Optional, Standard: `gpt-image-1.5` |
-| `RECIPE_IMAGE_BUCKET` | Optional, Standard: `recipe-images` |
-| `RECIPE_IMAGE_SIZE` | Optional, Standard: `1024x1024` |
-| `RECIPE_IMAGE_QUALITY` | Optional, Standard: `medium` |
-| `RECIPE_IMAGE_FORMAT` | Optional, Standard: `webp` |
+| `AI_GATEWAY_API_KEY` | Vercel AI Gateway Key – wird von `api/generate-recipe-image.js` für die Rezeptbild-Generierung genutzt |
 
 > **Wichtig**: `SUPABASE_SERVICE_ROLE_KEY` muss explizit in Vercel gesetzt werden. `VITE_SUPABASE_ANON_KEY` allein reicht nicht – serverseitige Writes (Journaleinträge, User-Profile, Admin-Aktionen) schlagen sonst mit HTTP 500 fehl.
+
+> **Hinweis**: `RECIPE_IMAGE_BUCKET` / `RECIPE_IMAGE_SIZE` / `RECIPE_IMAGE_QUALITY` / `RECIPE_IMAGE_FORMAT` werden nur vom separaten, bereits veralteten Skript `scripts/generate-recipe-images.mjs` (`npm run generate:recipe-images`) gelesen – nicht vom Admin-Endpunkt `api/generate-recipe-image.js`.
 
 ### Lokal (`.env.local`)
 
@@ -302,7 +301,7 @@ STRIPE_SECRET_KEY=sk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 STRIPE_PRICE_ID=price_...
 ADMIN_EMAILS=deine@email.com
-OPENAI_API_KEY=sk-proj_...
+AI_GATEWAY_API_KEY=...
 ```
 
 > **Localhost-Hinweis**: Serverless Functions laufen lokal über `vercel dev`. Mit `npm run dev` (Vite only) sind `/api/`-Endpunkte nicht verfügbar.
@@ -397,6 +396,32 @@ Bereits vorhandene Bilder werden standardmäßig übersprungen. Mit `--force` we
 ```bash
 npm run generate:recipe-images -- --recipe-id 3 --force
 ```
+
+---
+
+## Versionierung
+
+Die App zeigt eine dreiteilige Version im Header: **`v1.<deployVersion>.<commitCount>`**
+
+| Teil | Quelle | Bedeutung |
+|---|---|---|
+| `1` | Fest | Major-Version |
+| `deployVersion` | `package.json` → `"deployVersion"` | Wird per `npm run version:deploy` um 1 erhöht |
+| `commitCount` | `git rev-list --count HEAD` | Patch aus `package.json` als Fallback (kein `.git` in Vercel-Build-Container) |
+
+`vite.config.js` baut den String zur Build-Zeit via `__APP_VERSION__` (Vite `define`) ein.
+
+### Deploy-Workflow
+
+```bash
+npm run version:deploy        # deployVersion++ und package.json Version-Patch synchronisieren
+git add package.json
+git commit -m "chore: v1.X.YYY"
+vercel --prod                 # production deploy
+vercel alias set <neue-url> ww-points-calculator-lezfez-wencom.vercel.app
+```
+
+> **Wichtig**: Env-Vars sind nur für Production konfiguriert. Reine Preview-Deploys (`vercel` ohne `--prod`) zeigen eine grüne Leere-Seite, weil Clerk nicht initialisieren kann.
 
 ---
 

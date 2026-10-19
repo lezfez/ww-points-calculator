@@ -60,19 +60,23 @@ Tabellen:
 { recipe_id, step_text, position }   // position ab 1
 ```
 
-### 4. Bild via Hugging Face generieren
-Modell: `black-forest-labs/FLUX.1-schnell`  
-Token: `HF_TOKEN` aus `.env.local`
+### 4. Bild via Vercel AI Gateway generieren
+Modell: `bfl/flux-2-flex` (Black Forest Labs FLUX, über Vercel AI Gateway)
+Key: `AI_GATEWAY_API_KEY` aus `.env.local`
 
 ```js
+import { generateImage } from 'ai';
+
 const prompt = `Appetizing photorealistic food photo of "${name}", editorial food photography, 3/4 overhead view, natural daylight on warm kitchen table, realistic colors, no text, no watermark, no people`;
 
-fetch(`https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell`, {
-  method: 'POST',
-  headers: { Authorization: `Bearer ${HF_TOKEN}`, 'Content-Type': 'application/json' },
-  body: JSON.stringify({ inputs: prompt, parameters: { width: 512, height: 384 } }),
-  signal: AbortSignal.timeout(90000),
-})
+const { images } = await generateImage({
+  model: 'bfl/flux-2-flex',
+  prompt,
+  aspectRatio: '4:3',
+  abortSignal: AbortSignal.timeout(90000),
+});
+
+const imgBuffer = Buffer.from(images[0].uint8Array);
 ```
 
 ### 5. Bild in Supabase Storage hochladen & Rezept aktualisieren

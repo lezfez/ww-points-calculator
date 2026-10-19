@@ -14,7 +14,7 @@ export function useDailyJournal(date) {
   const { getToken, isSignedIn } = useAuth();
   const [entry, setEntry] = useState(EMPTY_ENTRY);
   const [weeklyUsed, setWeeklyUsed] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loadedDate, setLoadedDate] = useState(null);
   const [saveState, setSaveState] = useState("idle"); // idle | saving | saved | error
   const saveTimer = useRef(null);
   const pendingRef = useRef(null);
@@ -29,8 +29,7 @@ export function useDailyJournal(date) {
 
   // Load journal for the given date
   useEffect(() => {
-    if (!isSignedIn || !date) { setLoading(false); return; }
-    setLoading(true);
+    if (!isSignedIn || !date) return;
     authFetch(`/api/daily-journal?date=${date}`)
       .then(r => r.json())
       .then(({ entry: e, weeklyUsed: w }) => {
@@ -38,8 +37,9 @@ export function useDailyJournal(date) {
         setWeeklyUsed(w || 0);
       })
       .catch(() => setEntry(EMPTY_ENTRY))
-      .finally(() => setLoading(false));
+      .finally(() => setLoadedDate(date));
   }, [date, isSignedIn, authFetch]);
+  const loading = Boolean(isSignedIn && date) && loadedDate !== date;
 
   // Debounced autosave
   const scheduleSave = useCallback((nextEntry) => {

@@ -20,7 +20,7 @@ Main capabilities:
 - Auth: Clerk
 - Database: Supabase
 - Payments: Stripe
-- Styling: mostly inline styles in `src/App.jsx`, with global CSS in `src/index.css` and `src/App.css`
+- Styling: CSS Modules per Komponente (`ComponentName.module.css`), Design-Tokens als CSS Custom Properties in `src/index.css`
 - PWA: configured in `vite.config.js`
 
 ## Repository Shape
@@ -30,7 +30,8 @@ Main capabilities:
 - `src/lib/pointSystems.js`, `src/lib/roles.js`, and `src/lib/featureFlags.js` contain shared domain constants and helpers.
 - `src/data/recipesFallback.json` contains static recipe data extracted from the old inline constant. It is not currently used by the active Supabase-powered recipe hook, but can be wired as a future fallback.
 - `src/supabase.js` creates the browser Supabase client from `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
-- `src/styles/theme.js` contains shared design tokens.
+- `src/styles/theme.js` contains legacy JS design tokens (`C`, `FH`, `FB`). Prefer CSS custom properties (`var(--c-green)` etc.) in new module files.
+- `src/components/ui/` contains shared UI primitives: `Button`, `Card`, `Input`, `Section`.
 - `api/` contains Vercel serverless functions for Clerk admin checks, Stripe checkout/webhooks, and feature-flag updates.
 - `public/` contains app icons and manifest assets.
 - `vite.config.js` contains React and PWA config.
@@ -128,6 +129,16 @@ Webhook:
 
 Be careful when changing webhook parsing: Stripe signature verification requires the raw request body.
 
+## CSS Workflow
+
+Every component has a co-located `.module.css` file. Rules:
+
+1. **Neue Komponente**: `Foo.jsx` + `Foo.module.css` anlegen. Tokens als `var(--c-*)` / `var(--font-*)` nutzen.
+2. **Inputs**: `className={`app-input ${styles.myInput}`}` — `app-input` in `src/index.css` liefert alle Basis-Styles (border, padding, radius, font, background). Das Modul-Class setzt nur Overrides (`flex: 1`, `font-size: 12px`, etc.). Nie Basis-Styles doppelt setzen.
+3. **Selects**: analog mit `app-select`.
+4. **Dynamische Farben** (data-driven): inline `style={{ color: ... }}` bleibt erlaubt. Kein CSS-in-JS.
+5. `src/styles/theme.js` nur noch für diese seltenen Fälle — nicht in neuen Modul-Dateien importieren.
+
 ## Coding Guidance
 
 - Prefer small, localized edits. Most active code is concentrated in `src/App.jsx`.
@@ -138,6 +149,7 @@ Be careful when changing webhook parsing: Stripe signature verification requires
 - Do not expose `.env.local` contents in logs or responses.
 - For React changes, keep accessibility in mind: labels, buttons, keyboard behavior, loading and error states.
 - Vermeide doppelten Code, baue bevorzugt zentrale Componenten und Module
+- Rezepte: `useRecipes()` filtert auf `status = 'published'` (oder NULL). Admin braucht `useRecipes({ includeAll: true })`.
 
 ## Deployment Notes
 
@@ -148,3 +160,20 @@ Before deploy-related changes, verify:
 - required Vercel env vars exist
 - API functions still avoid browser-only APIs
 - PWA config does not cache `/api/` routes
+
+### Versionierung
+
+Format: `v1.<deployVersion>.<commitCount>` — wird im Header neben "WampeWeg" angezeigt.
+
+- `deployVersion` — in `package.json` als `"deployVersion"` Feld, manuell via Script erhöht.
+- `commitCount` — automatisch aus `git rev-list --count HEAD`. Vercel-Fallback: `package.json` Patch-Version.
+
+**Deploy-Workflow** (immer in dieser Reihenfolge):
+```bash
+npm run version:deploy   # deployVersion++ und patch auf commit_count+1 sync
+git add package.json && git commit -m "..."
+vercel --prod
+vercel alias set <neue-url> ww-points-calculator-lezfez-wencom.vercel.app
+```
+
+Alle Env-Vars sind nur für `Production` konfiguriert — Preview-Deploys (`vercel` ohne `--prod`) zeigen daher eine grüne Seite (Clerk kann nicht initialisieren).

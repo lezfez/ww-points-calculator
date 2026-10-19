@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 export const FREE_RECIPE_FAV_LIMIT = 10;
 const CACHE_KEY = "recipe:favorites:cache";
+const NO_FAVORITES = [];
 
 function readCache() {
   try {
@@ -22,8 +23,8 @@ function writeCache(items) {
 }
 
 export function useRecipeFavorites(getToken, isPremium = false, isSignedIn = false) {
-  const [favorites, setFavorites] = useState(() => (isSignedIn ? readCache() : []));
-  const [favStatus, setFavStatus] = useState(isSignedIn ? "loading" : "idle");
+  const [storedFavorites, setFavorites] = useState(() => (isSignedIn ? readCache() : []));
+  const [storedFavStatus, setFavStatus] = useState("loading"); // idle | loading | error
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -31,32 +32,32 @@ export function useRecipeFavorites(getToken, isPremium = false, isSignedIn = fal
     return () => { mountedRef.current = false; };
   }, []);
 
-  const fetchFavorites = useCallback(async () => {
-    try {
-      const token = await getToken();
-      const res = await fetch("/api/user-profile?action=recipe-favorites", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+  // State nur in Promise-Callbacks setzen (react-hooks/set-state-in-effect)
+  const fetchFavorites = useCallback(() => getToken()
+    .then(token => fetch("/api/user-profile?action=recipe-favorites", {
+      headers: { Authorization: `Bearer ${token}` },
+    }))
+    .then(async res => {
       if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
+      return res.json();
+    })
+    .then(data => {
       if (!mountedRef.current) return;
       setFavorites(data);
       writeCache(data);
       setFavStatus("idle");
-    } catch {
+    })
+    .catch(() => {
       if (mountedRef.current) setFavStatus("error");
-    }
-  }, [getToken]);
+    }), [getToken]);
 
   useEffect(() => {
-    if (!isSignedIn) {
-      setFavorites([]);
-      setFavStatus("idle");
-      return;
-    }
-    setFavStatus("loading");
-    fetchFavorites();
+    if (isSignedIn) fetchFavorites();
   }, [fetchFavorites, isSignedIn]);
+
+  // Abgemeldet: keine Favoriten anzeigen (statt State im Effect zurückzusetzen)
+  const favorites = isSignedIn ? storedFavorites : NO_FAVORITES;
+  const favStatus = isSignedIn ? storedFavStatus : "idle";
 
   const favIds = new Set(favorites.map(f => String(f.recipe_id)));
   const atLimit = !isPremium && favorites.length >= FREE_RECIPE_FAV_LIMIT;

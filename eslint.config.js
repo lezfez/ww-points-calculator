@@ -14,7 +14,7 @@ export default defineConfig([
       reactRefresh.configs.vite,
     ],
     languageOptions: {
-      globals: globals.browser,
+      globals: { ...globals.browser, __APP_VERSION__: "readonly" }, // via Vite define
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
@@ -25,6 +25,10 @@ export default defineConfig([
     ],
     languageOptions: {
       globals: globals.node,
+    },
+    rules: {
+      // `const { uiOnly, ...rest } = obj` zum Entfernen von Feldern erlauben
+      "no-unused-vars": ["error", { ignoreRestSiblings: true }],
     },
   },
 ])

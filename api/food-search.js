@@ -38,7 +38,7 @@ function calcCoins({ kcal, gesF, zucker, protein, bst, salz }) {
 
 function mapOFFProduct(p) {
   const n = p.nutriments || {};
-  const kcal     = n["energy-kcal_100g"] ?? n["energy_100g"] / 4.184 ?? null;
+  const kcal     = n["energy-kcal_100g"] ?? (n["energy_100g"] != null ? n["energy_100g"] / 4.184 : null);
   const protein  = n["proteins_100g"] ?? null;
   const carbs    = n["carbohydrates_100g"] ?? null;
   const sugar    = n["sugars_100g"] ?? null;

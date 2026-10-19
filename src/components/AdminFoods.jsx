@@ -109,25 +109,29 @@ function LocalDB({ authFetch, onStatsChange }) {
   const [page, setPage] = useState(1);
   const [foods, setFoods] = useState([]);
   const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [editId, setEditId] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
   const debounce = useRef(null);
 
-  const load = useCallback(async (query = q, pg = page) => {
-    setLoading(true);
-    try {
-      const res = await authFetch(`/api/admin-foods?q=${encodeURIComponent(query)}&page=${pg}`);
-      const data = await res.json();
-      setFoods(data.foods || []);
-      setTotal(data.total || 0);
-      onStatsChange();
-    } finally {
-      setLoading(false);
-    }
-  }, [authFetch, q, page, onStatsChange]);
+  // State nur in Promise-Callbacks setzen (react-hooks/set-state-in-effect)
+  const fetchFoods = useCallback((query, pg) =>
+    authFetch(`/api/admin-foods?q=${encodeURIComponent(query)}&page=${pg}`)
+      .then(res => res.json())
+      .then(data => {
+        setFoods(data.foods || []);
+        setTotal(data.total || 0);
+        onStatsChange();
+      })
+      .finally(() => setLoading(false)),
+  [authFetch, onStatsChange]);
 
-  useEffect(() => { load(); }, []); // initial load
+  const load = useCallback((query = q, pg = page) => {
+    setLoading(true);
+    return fetchFoods(query, pg);
+  }, [fetchFoods, q, page]);
+
+  useEffect(() => { fetchFoods("", 1); }, [fetchFoods]); // initial load
 
   const handleSearch = (v) => {
     setQ(v);
@@ -390,13 +394,12 @@ export default function AdminFoods() {
   const [stats, setStats] = useState(null);
   const [activeTab, setActiveTab] = useState("local");
 
-  const loadFullStats = useCallback(async () => {
-    try {
-      const res = await authFetch("/api/admin-foods?_stats=1");
-      const data = await res.json();
-      setStats({ total: data.total ?? 0, off: data.off ?? 0, manual: data.manual ?? 0, incomplete: data.incomplete ?? 0 });
-    } catch { /* ignore */ }
-  }, [authFetch]);
+  const loadFullStats = useCallback(() =>
+    authFetch("/api/admin-foods?_stats=1")
+      .then(res => res.json())
+      .then(data => setStats({ total: data.total ?? 0, off: data.off ?? 0, manual: data.manual ?? 0, incomplete: data.incomplete ?? 0 }))
+      .catch(() => { /* ignore */ }),
+  [authFetch]);
 
   useEffect(() => { loadFullStats(); }, [loadFullStats]);
 
